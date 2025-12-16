@@ -1,0 +1,27 @@
+name: 🐛 버그 수정 (Bug Fix)
+description: 코드의 오류나 문제를 수정해야 할 때 사용합니다.
+title: "[FIX] "
+labels: ["bug"]
+body:
+    - type: markdown
+      attributes:
+          value: |
+              ### 버그 수정
+              발생한 오류를 수정하기 위한 태스크입니다.
+
+    - type: textarea
+      id: bug-description
+      attributes:
+          label: 버그 현상 (Description)
+          description: 어떤 문제가 발생하고 있는지 설명해 주세요.
+      validations:
+          required: true
+
+    - type: textarea
+      id: cause
+      attributes:
+          label: 원인 분석 (Root Cause)
+          description: (파악된 경우) 버그가 발생하는 원인이 무엇인지 적어주세요.
+          placeholder: "API 응답 시간이 초과될 때 예외 처리가 누락됨"
+      validations:
+          required: false

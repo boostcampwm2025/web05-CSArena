@@ -1,0 +1,27 @@
+name: ♻️ 리팩토링 (Refactor)
+description: 기능 변경 없이 코드 구조나 성능을 개선할 때 사용합니다.
+title: "[REFACTOR] "
+labels: ["refactor"]
+body:
+    - type: markdown
+      attributes:
+          value: |
+              ### 코드 리팩토링
+              가독성, 성능, 유지보수성을 높이기 위한 작업입니다.
+
+    - type: textarea
+      id: target
+      attributes:
+          label: 대상 모듈 (Target Module)
+          description: 어떤 파일이나 클래스를 리팩토링할 것인지 명시해 주세요.
+          placeholder: "src/network/http_client.py"
+      validations:
+          required: true
+
+    - type: textarea
+      id: reason
+      attributes:
+          label: 리팩토링 이유 (Why)
+          description: "왜 이 코드를 개선해야 하는지 이유를 적어주세요. (예: 중복 코드, 성능 저하, 가독성 등)"
+      validations:
+          required: true
