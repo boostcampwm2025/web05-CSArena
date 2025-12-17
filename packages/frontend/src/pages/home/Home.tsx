@@ -1,83 +1,92 @@
 export default function Home() {
-    return (
-        <div className="w-screen h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative overflow-hidden">
-            {/* Retro grid background */}
-            <div className="absolute inset-1 opacity-20">
-                <div className="absolute inset-0" style={{
-                    backgroundImage: `
+  return (
+    <div className="relative h-screen w-screen overflow-hidden bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      {/* Retro grid background */}
+      <div className="absolute inset-1 opacity-20">
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage: `
                         linear-gradient(rgba(139, 92, 246, 0.3) 1px, transparent 1px),
                         linear-gradient(90deg, rgba(139, 92, 246, 0.3) 1px, transparent 1px)
                     `,
-                    backgroundSize: '50px 50px'
-                }} />
-            </div>
+            backgroundSize: '50px 50px',
+          }}
+        />
+      </div>
 
-            <div className="relative z-10 h-full w-full flex flex-col gap-8 items-center justify-center">
-                {/* Logo */}
-                <div className="flex flex-col gap-8 items-center justify-center">
-                    <img 
-                        src="https://public.readdy.ai/ai/img_res/378e90fc-2221-4174-a79f-11e83e0a3814.png" 
-                        alt="CS Battle Logo" 
-                        className="w-32 h-32 drop-shadow-2xl"
-                    />
-                    {/* Title */}
-                    <div className="flex flex-col items-center justify-center text-center">
-                        <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400" style={{ fontFamily: '"Press Start 2P"' }}>
-                            CS BATTLE
-                        </h1>
-                        <p className="text-cyan-300 text-base tracking-widest" style={{ fontFamily: 'Orbitron' }}>
-                            KNOWLEDGE ARENA
-                        </p>
-                    </div>
-                </div>
-
-                <div className="w-full max-w-3xl flex flex-col gap-4">
-                    {/* Login Button */}
-                    <button
-                        onClick={() => {}}
-                        className="py-4 bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-2xl font-bold border-4 border-cyan-300 transition-all duration-200 hover:from-cyan-400 hover:to-blue-400 hover:scale-105"
-                        style={{ fontFamily: 'Orbitron' }}
-                    >
-                        LOGIN
-                    </button>
-
-                    {/* Quick Start Button */}
-                    <button
-                        onClick={() => {}}
-                        className="py-4 bg-gradient-to-r from-pink-500 to-rose-500 text-white text-2xl font-bold border-4 border-pink-300 transition-all duration-200 hover:from-pink-400 hover:to-rose-400 hover:scale-105"
-                        style={{ fontFamily: 'Orbitron' }}
-                    >
-                        QUICK START (ONLINE MATCH)
-                    </button>
-
-                    {/* Self Study Button */}
-                    <button
-                        onClick={() => {}}
-                        className="py-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white text-2xl font-bold border-4 border-purple-300 transition-all duration-200 hover:from-purple-400 hover:to-indigo-400 hover:scale-105"
-                        style={{ fontFamily: 'Orbitron' }}
-                    >
-                        SELF STUDY (SINGLE MODE)
-                    </button>
-
-                    {/* Bottom Navigation Buttons */}
-                    <div className="grid grid-cols-2 gap-4">
-                        <button
-                            onClick={() => {}}
-                            className="py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-2xl font-bold border-4 border-amber-300 transition-all duration-200 hover:from-amber-400 hover:to-orange-400 hover:scale-105"
-                            style={{ fontFamily: 'Orbitron' }}
-                        >
-                            LEADERBOARD
-                        </button>
-                        <button
-                            onClick={() => {}}
-                            className="py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-2xl font-bold border-4 border-emerald-300 transition-all duration-200 hover:from-emerald-400 hover:to-teal-400 hover:scale-105"
-                            style={{ fontFamily: 'Orbitron' }}
-                        >
-                            PROBLEM BANK
-                        </button>
-                    </div>
-                </div>
-            </div>
+      <div className="relative z-10 flex h-full w-full flex-col items-center justify-center gap-8">
+        {/* Logo */}
+        <div className="flex flex-col items-center justify-center gap-8">
+          <img
+            src="https://public.readdy.ai/ai/img_res/378e90fc-2221-4174-a79f-11e83e0a3814.png"
+            alt="CS Battle Logo"
+            className="h-32 w-32 drop-shadow-2xl"
+          />
+          {/* Title */}
+          <div className="flex flex-col items-center justify-center text-center">
+            <h1
+              className="bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-5xl font-black text-transparent"
+              style={{ fontFamily: '"Press Start 2P"' }}
+            >
+              CS BATTLE
+            </h1>
+            <p
+              className="text-base tracking-widest text-cyan-300"
+              style={{ fontFamily: 'Orbitron' }}
+            >
+              KNOWLEDGE ARENA
+            </p>
+          </div>
         </div>
-    );
+
+        <div className="flex w-full max-w-3xl flex-col gap-4">
+          {/* Login Button */}
+          <button
+            onClick={() => {}}
+            className="border-4 border-cyan-300 bg-gradient-to-r from-cyan-500 to-blue-500 py-4 text-2xl font-bold text-white transition-all duration-200 hover:scale-105 hover:from-cyan-400 hover:to-blue-400"
+            style={{ fontFamily: 'Orbitron' }}
+          >
+            LOGIN
+          </button>
+
+          {/* Quick Start Button */}
+          <button
+            onClick={() => {}}
+            className="border-4 border-pink-300 bg-gradient-to-r from-pink-500 to-rose-500 py-4 text-2xl font-bold text-white transition-all duration-200 hover:scale-105 hover:from-pink-400 hover:to-rose-400"
+            style={{ fontFamily: 'Orbitron' }}
+          >
+            QUICK START (ONLINE MATCH)
+          </button>
+
+          {/* Self Study Button */}
+          <button
+            onClick={() => {}}
+            className="border-4 border-purple-300 bg-gradient-to-r from-purple-500 to-indigo-500 py-4 text-2xl font-bold text-white transition-all duration-200 hover:scale-105 hover:from-purple-400 hover:to-indigo-400"
+            style={{ fontFamily: 'Orbitron' }}
+          >
+            SELF STUDY (SINGLE MODE)
+          </button>
+
+          {/* Bottom Navigation Buttons */}
+          <div className="grid grid-cols-2 gap-4">
+            <button
+              onClick={() => {}}
+              className="border-4 border-amber-300 bg-gradient-to-r from-amber-500 to-orange-500 py-4 text-2xl font-bold text-white transition-all duration-200 hover:scale-105 hover:from-amber-400 hover:to-orange-400"
+              style={{ fontFamily: 'Orbitron' }}
+            >
+              LEADERBOARD
+            </button>
+            <button
+              onClick={() => {}}
+              className="border-4 border-emerald-300 bg-gradient-to-r from-emerald-500 to-teal-500 py-4 text-2xl font-bold text-white transition-all duration-200 hover:scale-105 hover:from-emerald-400 hover:to-teal-400"
+              style={{ fontFamily: 'Orbitron' }}
+            >
+              PROBLEM BANK
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
