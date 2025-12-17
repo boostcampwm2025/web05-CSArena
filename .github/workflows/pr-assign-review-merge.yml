@@ -12,26 +12,35 @@ jobs:
     auto-assign:
         if: github.event_name == 'pull_request'
         runs-on: ubuntu-latest
+        permissions:
+            pull-requests: write
+            issues: write
         steps:
             - name: Assign PR creator as Assignee
               uses: actions/github-script@v6
               with:
                   script: |
                       const prNumber = context.payload.pull_request.number;
+                      const prAuthor = context.payload.pull_request.user.login;
                       const currentAssignees = context.payload.pull_request.assignees.map(a => a.login);
-                      if (!currentAssignees.includes(context.actor)) {
+                      if (!currentAssignees.includes(prAuthor)) {
                           await github.rest.issues.addAssignees({
                             owner: context.repo.owner,
                             repo: context.repo.repo,
                             issue_number: prNumber,
-                            assignees: [context.actor]
+                            assignees: [prAuthor]
                           });
+                          console.log(`Assigned: ${prAuthor}`);
+                      } else {
+                          console.log(`Already assigned: ${prAuthor}`);
                       }
 
     auto-reviewers:
         if: github.event_name == 'pull_request'
         runs-on: ubuntu-latest
         needs: auto-assign
+        permissions:
+            pull-requests: write
         steps:
             - name: Add random reviewers
               uses: actions/github-script@v6
