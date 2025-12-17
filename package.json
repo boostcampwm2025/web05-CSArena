@@ -3,26 +3,34 @@
   "version": "1.0.0",
   "private": true,
   "description": "Monorepo project with React frontend and NestJS backend",
-  "workspaces": [
-    "packages/*"
-  ],
   "scripts": {
-    "dev": "pnpm --parallel --filter ./packages/* dev",
-    "build": "pnpm --filter ./packages/* build",
-    "test": "pnpm --filter ./packages/* test",
-    "lint": "pnpm --filter ./packages/* lint",
-    "clean": "pnpm --filter ./packages/* clean"
+    "dev": "pnpm -r --parallel dev",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "clean": "pnpm -r clean",
+    "prepare": "husky"
   },
   "devDependencies": {
-    "typescript": "^5.3.3"
+    "eslint-plugin-import": "^2.32.0",
+    "globals": "^16.5.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
+    "prettier-plugin-tailwindcss": "^0.7.2",
+    "typescript": "^5.3.3",
+    "typescript-eslint": "^8.50.0"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,css,html}": [
+      "prettier --write"
+    ]
   },
   "engines": {
     "node": ">=18.0.0",
     "pnpm": ">=8.0.0"
-  },
-  "dependencies": {
-    "eslint-plugin-import": "^2.32.0",
-    "globals": "^16.5.0",
-    "typescript-eslint": "^8.50.0"
   }
 }
