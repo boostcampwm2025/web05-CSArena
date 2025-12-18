@@ -61,17 +61,46 @@ web05-boostcamp/
 ## 시작하기
 
 ### 사전 요구사항
+
+**일반 개발 환경:**
 - Node.js >= 18.0.0
 - pnpm >= 8.0.0
 
-### 설치
+**Docker 환경:**
+- Docker >= 20.10
+- Docker Compose >= 2.0
+
+### 빠른 시작 (Docker 사용)
 
 ```bash
-# pnpm 설치 (전역)
+# 1. 환경 변수 설정
+cp .env.example .env
+
+# 2. 전체 스택 실행 (Frontend + Backend + PostgreSQL)
+docker compose up -d
+
+# 3. 서비스 확인
+curl http://localhost:4000/api/health  # Backend
+open http://localhost                  # Frontend
+
+# 4. 로그 확인
+docker compose logs -f
+
+# 5. 종료
+docker compose down
+```
+
+### 일반 개발 환경 설정
+
+```bash
+# 1. pnpm 설치 (전역)
 npm install -g pnpm
 
-# 의존성 설치
+# 2. 의존성 설치
 pnpm install
+
+# 3. 개발 서버 실행
+pnpm dev
 ```
 
 ### 개발 서버 실행
@@ -115,10 +144,32 @@ pnpm lint
 
 ## 포트 설정
 
+### 일반 개발 환경
 - Frontend: http://localhost:3000
 - Backend: http://localhost:4000
 
+### Docker 환경
+- Frontend: http://localhost (포트 80)
+- Backend: http://localhost:4000
+- PostgreSQL: localhost:5432
+
 Frontend에서 `/api` 경로로 요청 시 자동으로 Backend로 프록시됩니다.
+
+## 환경 변수
+
+프로젝트 루트에 `.env` 파일을 생성합니다.
+
+```bash
+# .env.example을 복사하여 시작
+cp .env.example .env
+```
+
+주요 환경 변수:
+- `POSTGRES_DB`: PostgreSQL 데이터베이스 이름
+- `POSTGRES_USER`: PostgreSQL 사용자명
+- `POSTGRES_PASSWORD`: PostgreSQL 비밀번호
+- `NODE_ENV`: 실행 환경 (development/production)
+- `FRONTEND_URL`: CORS 설정용 프론트엔드 URL
 
 ## 개발 가이드
 
@@ -158,4 +209,56 @@ npx shadcn@latest add button
 npx shadcn@latest add card
 npx shadcn@latest add dialog
 # ... 기타 컴포넌트
+```
+
+## CI/CD 파이프라인
+
+### 브랜치 전략
+
+```
+feature → develop → main
+```
+
+### 자동화 워크플로우
+
+**develop 브랜치**
+- Pull Request 시: CI 실행 (Lint + Test + Build)
+- 2명 승인 + CI 통과 → 자동 머지
+
+**main 브랜치**
+- Pull Request 시: CI 실행 (Lint + Test + Build)
+- Push 시: CI/CD 실행 (Test + Build + Deploy to NCP)
+- 2명 승인 + CI 통과 → 자동 머지
+
+### 배포
+
+main 브랜치에 머지되면 자동으로 NCP(Naver Cloud Platform)에 배포됩니다.
+1. Docker 이미지 빌드
+2. NCP Container Registry에 푸시
+3. SSH로 서버 배포
+4. Health check 검증
+
+## Docker 명령어
+
+```bash
+# 빌드
+docker compose build
+
+# 백그라운드 실행
+docker compose up -d
+
+# 로그 확인
+docker compose logs -f
+
+# 특정 서비스 로그
+docker compose logs -f backend
+
+# 컨테이너 상태 확인
+docker compose ps
+
+# 중지
+docker compose down
+
+# 볼륨까지 삭제 (DB 데이터 초기화)
+docker compose down -v
 ```

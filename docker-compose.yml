@@ -1,0 +1,30 @@
+services:
+  backend:
+    image: ${NCP_REGISTRY}${NCP_REGISTRY:+/}web05-backend:latest
+    build:
+      context: .
+      dockerfile: packages/backend/Dockerfile
+    container_name: web05-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      CORS_ORIGIN: ${FRONTEND_URL:-http://localhost}
+    ports:
+      - "4000:4000"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  frontend:
+    image: ${NCP_REGISTRY}${NCP_REGISTRY:+/}web05-frontend:latest
+    build:
+      context: .
+      dockerfile: packages/frontend/Dockerfile
+    container_name: web05-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend

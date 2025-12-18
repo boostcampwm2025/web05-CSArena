@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "pnpm -r --parallel dev",
     "build": "pnpm -r build",
+    "build:backend": "pnpm --filter @web05-boostcamp/backend build",
+    "build:frontend": "pnpm --filter @web05-boostcamp/frontend build",
     "test": "pnpm -r test",
     "lint": "pnpm -r lint",
     "clean": "pnpm -r clean",
@@ -25,6 +27,7 @@
   },
   "engines": {
     "node": ">=18.0.0",
-    "pnpm": ">=8.0.0"
-  }
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@10.19.0"
 }
