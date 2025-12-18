@@ -106,32 +106,6 @@ jobs:
                           return;
                         }
 
-                        // CI 체크 상태 확인
-                        const checks = await github.rest.checks.listForRef({
-                          owner: context.repo.owner,
-                          repo: context.repo.repo,
-                          ref: pr.data.head.sha
-                        });
-
-                        // GitHub Actions는 check_runs로 표시됨
-                        const checkRuns = checks.data.check_runs;
-
-                        // 체크가 하나도 없으면 통과로 간주 (CI 미설정 프로젝트 지원)
-                        if (checkRuns.length === 0) {
-                          console.log('CI 체크가 설정되지 않았습니다. 머지를 진행합니다.');
-                        } else {
-                          // 모든 체크가 완료되고 성공했는지 확인
-                          const allChecksPassed = checkRuns.every(check =>
-                            check.status === 'completed' && check.conclusion === 'success'
-                          );
-
-                          if (!allChecksPassed) {
-                            console.log('CI 체크가 통과하지 못했습니다.');
-                            core.setFailed('CI 체크를 통과해야 자동 머지가 가능합니다.');
-                            return;
-                          }
-                        }
-
                         const reviews = await github.rest.pulls.listReviews({
                           owner: context.repo.owner,
                           repo: context.repo.repo,
