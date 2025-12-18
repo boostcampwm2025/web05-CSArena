@@ -21,7 +21,7 @@ export default function Match() {
         />
       </div>
 
-      { matchState === 'matching' && <Matching />}
+      {matchState === 'matching' && <Matching />}
     </div>
   );
 }
