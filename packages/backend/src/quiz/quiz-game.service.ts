@@ -30,4 +30,39 @@ export class QuizGameService {
 
     return this.store.getRoundData(roomId, roundData.roundNumber);
   }
+
+  /**
+   * 정답 제출
+   */
+  async submitAnswer(roomId: string, playerId: string, answer: string) {
+    this.store.submitAnswer(roomId, playerId, answer);
+
+    if (this.store.isAllSubmitted(roomId)) {
+      return await this.processGrading(roomId);
+    }
+
+    return { status: 'waiting_for_others' };
+  }
+
+  /**
+   * 채점
+   */
+  private async processGrading(roomId: string) {
+    const gradingInput = this.store.getGradingInput(roomId);
+
+    const roundResult = await this.aiService.gradeRound(
+      gradingInput.question,
+      gradingInput.submissions,
+    );
+
+    const session = this.store.getSession(roomId);
+
+    if (session) {
+      roundResult.roundNumber = session.currentRound;
+    }
+
+    this.store.setRoundResult(roomId, roundResult);
+
+    return roundResult;
+  }
 }
