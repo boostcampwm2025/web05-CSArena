@@ -99,7 +99,7 @@ jobs:
                           console.log('PR이 이미 머지되었습니다.');
                           return;
                         }
-                        
+
                         if (!pr.data.mergeable) {
                           console.log('PR에 충돌이 있습니다.');
                           core.setFailed('PR에 충돌이 있어 자동 머지를 진행할 수 없습니다.');
@@ -113,14 +113,23 @@ jobs:
                           ref: pr.data.head.sha
                         });
 
-                        const allChecksPassed = checks.data.check_runs.every(check =>
-                          check.status === 'completed' && check.conclusion === 'success'
-                        );
+                        // GitHub Actions는 check_runs로 표시됨
+                        const checkRuns = checks.data.check_runs;
 
-                        if (!allChecksPassed) {
-                          console.log('CI 체크가 통과하지 못했습니다.');
-                          core.setFailed('CI 체크를 통과해야 자동 머지가 가능합니다.');
-                          return;
+                        // 체크가 하나도 없으면 통과로 간주 (CI 미설정 프로젝트 지원)
+                        if (checkRuns.length === 0) {
+                          console.log('CI 체크가 설정되지 않았습니다. 머지를 진행합니다.');
+                        } else {
+                          // 모든 체크가 완료되고 성공했는지 확인
+                          const allChecksPassed = checkRuns.every(check =>
+                            check.status === 'completed' && check.conclusion === 'success'
+                          );
+
+                          if (!allChecksPassed) {
+                            console.log('CI 체크가 통과하지 못했습니다.');
+                            core.setFailed('CI 체크를 통과해야 자동 머지가 가능합니다.');
+                            return;
+                          }
                         }
 
                         const reviews = await github.rest.pulls.listReviews({
@@ -128,15 +137,15 @@ jobs:
                           repo: context.repo.repo,
                           pull_number: prNumber
                         });
-                        
+
                         const latestReviews = new Map();
                         reviews.data.forEach(review => {
                           latestReviews.set(review.user.login, review.state);
                         });
-                        
+
                         const hasRejection = Array.from(latestReviews.values()).includes('CHANGES_REQUESTED');
                         const approvalCount = Array.from(latestReviews.values()).filter(state => state === 'APPROVED').length;
-                        
+
                         if (!hasRejection && approvalCount >= 2) {
                           console.log('PR 머지를 시도합니다...');
                           await github.rest.pulls.merge({
@@ -144,7 +153,7 @@ jobs:
                             repo: context.repo.repo,
                             pull_number: prNumber
                           });
-                          
+
                           const branchName = pr.data.head.ref;
                           if (branchName !== 'main' && branchName !== 'develop') {
                             await github.rest.git.deleteRef({
