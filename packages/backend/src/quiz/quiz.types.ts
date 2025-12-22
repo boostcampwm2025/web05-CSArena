@@ -46,12 +46,12 @@ export interface GradeResult {
   answer: string;
   isCorrect: boolean;
   score: number;
+  feedback: string;
 }
 
 export interface RoundResult {
   roundNumber: number;
   grades: GradeResult[];
-  explanation: string;
 }
 
 export type RoundStatus = 'waiting' | 'in_progress' | 'completed';
