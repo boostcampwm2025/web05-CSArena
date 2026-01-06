@@ -1,0 +1,64 @@
+import { useState } from 'react';
+
+export default function Playing() {
+  const [isSubmit, setIsSubmit] = useState<boolean>(false);
+
+  return (
+    <div className="flex h-full items-center justify-center">
+      <div className="w-full max-w-4xl">
+        {/* Question Card */}
+        <div className="flex flex-col items-stretch justify-center gap-4 border-4 border-purple-400 bg-gradient-to-r from-slate-800/95 to-slate-900/95 p-6 shadow-2xl shadow-purple-500/30">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="border-2 border-purple-300 bg-purple-500 px-4 py-2">
+                <p className="text-sm font-bold text-white" style={{ fontFamily: 'Orbitron' }}>
+                  Algorithm
+                </p>
+              </div>
+              <div className="border-2 border-amber-300 bg-amber-500 px-4 py-2">
+                <p className="text-sm font-bold text-white" style={{ fontFamily: 'Orbitron' }}>
+                  100 PTS
+                </p>
+              </div>
+            </div>
+            <div className="text-lg font-bold text-cyan-300" style={{ fontFamily: 'Orbitron' }}>
+              <i className="ri-time-line mr-2"></i>
+              30s
+            </div>
+          </div>
+
+          <div className="text-xl leading-relaxed text-white" style={{ fontFamily: 'Orbitron' }}>
+            What is the time complexity of binary search algorithm?
+          </div>
+
+          {/* Answer Input */}
+          {isSubmit ? (
+            <div className="item-center flex justify-center">
+              <p className="text-3xl text-green-400" style={{ fontFamily: 'Orbitron' }}>
+                Your response has been submitted
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-4">
+              <input
+                type="text"
+                placeholder="Type your answer here..."
+                className="border-2 border-cyan-400 bg-slate-700 px-4 py-3 text-base text-white focus:border-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                style={{ fontFamily: 'Orbitron' }}
+                autoFocus
+              />
+              <button
+                className="w-full border-4 border-cyan-300 bg-gradient-to-r from-cyan-500 to-blue-500 py-3 font-bold text-white shadow-lg shadow-cyan-500/50 transition-all duration-200 hover:scale-105 hover:from-cyan-400 hover:to-blue-400"
+                onClick={() => setIsSubmit(true)}
+                style={{ fontFamily: 'Orbitron' }}
+              >
+                <i className="ri-send-plane-fill mr-2"></i>
+                SUBMIT ANSWER
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
