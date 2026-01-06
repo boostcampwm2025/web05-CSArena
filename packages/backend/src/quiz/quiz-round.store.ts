@@ -157,6 +157,12 @@ export class QuizRoundStore {
     return round?.result || null;
   }
 
+  getRoundData(roomId: string, roundNumber: number): RoundData | null {
+    const session = this.sessions.get(roomId);
+
+    return session?.rounds.get(roundNumber) || null;
+  }
+
   isFinished(roomId: string): boolean {
     const session = this.getSessionOrThrow(roomId);
 
