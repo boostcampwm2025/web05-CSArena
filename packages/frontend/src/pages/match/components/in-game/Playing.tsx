@@ -1,7 +1,15 @@
 import { useState } from 'react';
 
 // TODO: 파라미터는 데모 이후 제거
-export default function Playing({ time, onClick, stopTimer }: { time: number; onClick: () => void; stopTimer: () => void; }) {
+export default function Playing({
+  time,
+  onClick,
+  stopTimer,
+}: {
+  time: number;
+  onClick: () => void;
+  stopTimer: () => void;
+}) {
   const [isSubmit, setIsSubmit] = useState<boolean>(false);
 
   return (

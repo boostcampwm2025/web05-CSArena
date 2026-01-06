@@ -17,7 +17,9 @@ export default function InGame() {
   const [time, setTime] = useState(5);
   useEffect(() => {
     const timer = setInterval(() => {
-      if (!isRun) return;
+      if (!isRun) {
+        return;
+      }
 
       setTime((prev) => prev - 1);
 

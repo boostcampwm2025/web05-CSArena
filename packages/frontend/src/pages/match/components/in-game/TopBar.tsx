@@ -1,5 +1,5 @@
 // TODO: 파라미터는 데모 이후 제거
-export default function TopBar({time}: {time: number}) {
+export default function TopBar({ time }: { time: number }) {
   return (
     <div className="border-b-4 border-cyan-400 bg-gradient-to-r from-slate-800/95 to-slate-900/95">
       <div className="item-center flex w-full justify-between gap-4 px-8 py-4">

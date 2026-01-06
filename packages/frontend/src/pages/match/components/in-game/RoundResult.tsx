@@ -1,5 +1,13 @@
 // TODO: 파라미터는 데모 이후 제거
-export default function RoundResult({ time, onClick, stopTimer }: { time: number; onClick: () => void; stopTimer: () => void; }) {
+export default function RoundResult({
+  time,
+  onClick,
+  stopTimer,
+}: {
+  time: number;
+  onClick: () => void;
+  stopTimer: () => void;
+}) {
   return (
     <div className="flex h-full items-center justify-center">
       <div className="flex w-full max-w-4xl flex-col gap-6">
