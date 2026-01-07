@@ -1,12 +1,7 @@
 import { Body, Controller, Post, Req } from '@nestjs/common';
 import { FeedbackService } from './feedback.service';
 import { CreateFeedbackDto } from './dto/create-feedback.dto';
-
-interface RequestWithUser {
-  user?: {
-    id: string;
-  };
-}
+import { RequestWithUser } from '../common/interfaces/request-with-user.interface';
 
 @Controller('feedbacks')
 export class FeedbackController {
