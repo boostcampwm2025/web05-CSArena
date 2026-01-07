@@ -11,7 +11,6 @@ type RoundPhaseAPI = {
   roundState: RoundState;
   roundIndex: number;
   totalRounds: number;
-  durationSec: number;
 };
 
 type RoundTickAPI = {
@@ -40,7 +39,6 @@ const RoundScoreCtx = createContext<RoundScoreAPI | null>(null);
 
 export function RoundProvider({ children }: { children: React.ReactNode }) {
   const [roundState, setRoundState] = useState<RoundState>('preparing');
-  const [durationSec, setDurationSec] = useState<number>(0);
   const [roundIndex, setRoundIndex] = useState<number>(0);
   const [totalRounds, setTotalRounds] = useState<number>(0);
   const [remainedSec, setRemainedSec] = useState<number>(0);
@@ -59,7 +57,6 @@ export function RoundProvider({ children }: { children: React.ReactNode }) {
   const handleRoundReady = useCallback((payload: RoundReady) => {
     setRoundState('preparing');
     setRemainedSec(payload.durationSec);
-    setDurationSec(payload.durationSec);
     setRoundIndex(payload.roundIndex);
     setTotalRounds(payload.totalRounds);
   }, []);
@@ -67,14 +64,12 @@ export function RoundProvider({ children }: { children: React.ReactNode }) {
   const handleRoundStart = useCallback((payload: RoundStart) => {
     setRoundState('playing');
     setRemainedSec(payload.durationSec);
-    setDurationSec(payload.durationSec);
     setQuestion(payload.question);
   }, []);
 
   const handleRoundEnd = useCallback((payload: RoundEnd) => {
     setRoundState('round-result');
     setRemainedSec(payload.durationSec);
-    setDurationSec(payload.durationSec);
     setMyAnswer(payload.result.my.submitted);
     setMyDelta(payload.result.my.delta);
     setMyTotal(payload.result.my.total);
@@ -109,7 +104,6 @@ export function RoundProvider({ children }: { children: React.ReactNode }) {
     <RoundPhaseCtx.Provider
       value={{
         roundState,
-        durationSec,
         roundIndex,
         totalRounds,
       }}
