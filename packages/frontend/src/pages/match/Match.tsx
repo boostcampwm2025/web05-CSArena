@@ -1,5 +1,7 @@
 import { useMatch } from '@/feature/matching/useMatch';
 
+import { RoundProvider } from '@/feature/matching/useRound';
+
 import Matching from './components/Matching';
 import InGame from './components/InGame';
 
@@ -23,7 +25,11 @@ export default function Match() {
       </div>
 
       {matchState === 'matching' && <Matching />}
-      {matchState === 'inGame' && <InGame />}
+      {matchState === 'inGame' && (
+        <RoundProvider>
+          <InGame />
+        </RoundProvider>
+      )}
     </div>
   );
 }
