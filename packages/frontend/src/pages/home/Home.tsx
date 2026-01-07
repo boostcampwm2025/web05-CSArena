@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 
 import { MatchEnqueueRes } from '@/lib/socket/event';
 import { getSocket } from '@/lib/socket';
@@ -9,6 +9,7 @@ export default function Home() {
   const { setScene } = useScene();
 
   const [isDisabled, setIsDisabled] = useState<boolean>(false);
+  const socketRef = useRef(getSocket());
 
   const onClickQuickStartBtn = () => {
     if (isDisabled) {
@@ -17,7 +18,7 @@ export default function Home() {
 
     setIsDisabled(true);
 
-    const socket = getSocket();
+    const socket = socketRef.current;
 
     socket.once('connect', () => {
       // 소켓 연결 완료 후 큐 진입 요청 이벤트 호출
