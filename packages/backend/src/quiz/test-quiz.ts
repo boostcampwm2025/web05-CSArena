@@ -2,7 +2,7 @@ import { ConfigModule } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 
 import { ClovaClientService } from './clova/clova-client.service';
-import { QuizAiService } from './quiz-ai.service';
+import { QuizService } from './quiz.service';
 import { QuizGameService } from './quiz-game.service';
 import { QuizRoundStore } from './quiz-round.store';
 
@@ -12,7 +12,7 @@ async function testQuizSystem() {
   // NestJS Testing Module 생성
   const moduleRef = await Test.createTestingModule({
     imports: [ConfigModule.forRoot()],
-    providers: [QuizGameService, QuizAiService, ClovaClientService, QuizRoundStore],
+    providers: [QuizGameService, QuizService, ClovaClientService, QuizRoundStore],
   }).compile();
 
   const quizGameService = moduleRef.get<QuizGameService>(QuizGameService);
