@@ -12,7 +12,7 @@ import {
 } from './interfaces/match.interfaces';
 
 @Injectable()
-export class SessionManager {
+export class MatchSessionManager {
   private socketToUser = new Map<string, string>();
   private userToSocket = new Map<string, string>();
   private queueSessions = new Map<string, QueueSession>();
@@ -155,9 +155,11 @@ export class SessionManager {
       player1Id,
       player1SocketId,
       player1Info,
+      player1Score: 0,
       player2Id,
       player2SocketId,
       player2Info,
+      player2Score: 0,
       currentRound: 0,
       totalRounds,
       rounds: new Map(),
@@ -319,5 +321,28 @@ export class SessionManager {
     }
 
     return round;
+  }
+
+  // 플레이어에게 점수 추가
+  addScore(roomId: string, playerId: string, score: number): void {
+    const session = this.getGameSessionOrThrow(roomId);
+
+    if (playerId === session.player1Id) {
+      session.player1Score += score;
+    } else if (playerId === session.player2Id) {
+      session.player2Score += score;
+    } else {
+      throw new Error(`Player not in session: ${playerId}`);
+    }
+  }
+
+  // 게임의 현재 점수 현황 조회
+  getScores(roomId: string): { player1Score: number; player2Score: number } {
+    const session = this.getGameSessionOrThrow(roomId);
+
+    return {
+      player1Score: session.player1Score,
+      player2Score: session.player2Score,
+    };
   }
 }
