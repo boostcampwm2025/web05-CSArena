@@ -1,7 +1,40 @@
+import { useState } from 'react';
+
+import { MatchEnqueueRes } from '@/lib/socket/event';
+import { getSocket } from '@/lib/socket';
+
 import { useScene } from '@/feature/useScene.tsx';
 
 export default function Home() {
   const { setScene } = useScene();
+
+  const [isDisabled, setIsDisabled] = useState<boolean>(false);
+
+  const onClickQuickStartBtn = () => {
+    if (isDisabled) {
+      return;
+    }
+
+    setIsDisabled(true);
+
+    const socket = getSocket();
+
+    socket.once('connect', () => {
+      // 소켓 연결 완료 후 큐 진입 요청 이벤트 호출
+      socket.emit('match:enqueue', undefined, (ack: MatchEnqueueRes) => {
+        if (!ack.ok) {
+          throw new Error();
+        }
+
+        // 큐 진입 응답이 오면 매치 씬으로 전환
+        setIsDisabled(false);
+        setScene('match');
+      });
+    });
+
+    // 소켓 연결 시도
+    socket.connect();
+  };
 
   return (
     <div className="relative h-screen w-screen overflow-hidden bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
@@ -57,10 +90,9 @@ export default function Home() {
 
           {/* Quick Start Button */}
           <button
-            onClick={() => {
-              setScene('match');
-            }}
-            className="border-4 border-pink-300 bg-gradient-to-r from-pink-500 to-rose-500 py-4 text-2xl font-bold text-white shadow-lg shadow-pink-500/50 transition-all duration-200 hover:scale-105 hover:from-pink-400 hover:to-rose-400"
+            onClick={onClickQuickStartBtn}
+            disabled={isDisabled}
+            className="disabled:none border-4 border-pink-300 bg-gradient-to-r from-pink-500 to-rose-500 py-4 text-2xl font-bold text-white shadow-lg shadow-pink-500/50 transition-all duration-200 enabled:hover:scale-105 enabled:hover:from-pink-400 enabled:hover:to-rose-400 disabled:border-pink-300/40 disabled:from-pink-900/50 disabled:to-rose-900/50 disabled:text-white/70 disabled:shadow-pink-500/20"
             style={{ fontFamily: 'Orbitron' }}
           >
             <i className="ri-sword-line mr-3 text-2xl" />

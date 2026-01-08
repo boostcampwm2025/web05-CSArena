@@ -1,5 +1,3 @@
-import { useEffect, useState } from 'react';
-
 import { useMatching } from '@/feature/matching/useMatching';
 
 function formatTime(seconds: number) {
@@ -10,25 +8,7 @@ function formatTime(seconds: number) {
 }
 
 export default function Matching() {
-  // TODO: 데모 이후에는 이벤트 헨들링 함수 제거
-  const { handleMatchFound } = useMatching();
-  // const { elapsedTime } = useMatching();
-
-  // TODO: 임시 타이머 기능, 추후 제거
-  const [time, setTime] = useState(0);
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTime((prev) => prev + 1);
-
-      if (time > 60) {
-        handleMatchFound();
-      }
-    }, 1000);
-
-    return () => {
-      clearInterval(timer);
-    };
-  }, [time, handleMatchFound]);
+  const { time } = useMatching();
 
   return (
     <div className="relative z-10 flex h-full w-full flex-col items-center justify-center gap-8">
@@ -153,15 +133,6 @@ export default function Matching() {
             style={{ animationDelay: '0.4s' }}
           />
         </div>
-      </div>
-
-      {/* TODO: 데모 이후 버튼 제거 */}
-      {/* Buttons for demonstration */}
-      <div className="absolute bottom-4 left-4 z-50 flex gap-2">
-        <button
-          className="rounded border border-white/20 bg-white/10 px-3 py-2 text-white"
-          onClick={handleMatchFound}
-        />
       </div>
     </div>
   );
