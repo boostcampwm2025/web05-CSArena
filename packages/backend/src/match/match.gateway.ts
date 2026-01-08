@@ -11,6 +11,7 @@ import { Server, Socket } from 'socket.io';
 import { MatchService } from './match.service';
 import { SessionManager } from './session-manager';
 import { UserInfo } from './interfaces/user.interface';
+import { SubmitAnswerRequest, SubmitAnswerResponse } from './interfaces/match.interfaces';
 
 @WebSocketGateway({ cors: true })
 export class MatchGateway implements OnGatewayConnection, OnGatewayDisconnect {
@@ -132,6 +133,43 @@ export class MatchGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       this.matchService.removeFromQueue(session.userId);
       this.sessionManager.removeQueueSession(data.sessionId);
+
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  }
+
+  @SubscribeMessage('submit:answer')
+  async handleSubmitAnswer(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: SubmitAnswerRequest,
+  ): Promise<SubmitAnswerResponse> {
+    try {
+      const userId = this.sessionManager.getUserId(client.id);
+
+      if (!userId) {
+        return { ok: false, error: 'User not found' };
+      }
+
+      const roomId = this.sessionManager.getRoomBySocketId(client.id);
+
+      if (!roomId) {
+        return { ok: false, error: 'Room not found' };
+      }
+
+      await this.matchService.submitAnswer(roomId, userId, data.answer);
+
+      const gameSession = this.sessionManager.getGameSession(roomId);
+
+      if (gameSession) {
+        const opponentSocketId =
+          userId === gameSession.player1Id
+            ? gameSession.player2SocketId
+            : gameSession.player1SocketId;
+
+        this.server.to(opponentSocketId).emit('opponent:submitted', {});
+      }
 
       return { ok: true };
     } catch (error) {
