@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Server } from 'socket.io';
 import { IMatchQueue, Match } from './interfaces/match-queue.interface';
 import { InMemoryMatchQueue } from './queues/in-memory-queue';
-import { SessionManager } from './session-manager';
+import { MatchSessionManager } from './match-session-manager';
 import { QuizAiService } from '../quiz/quiz-ai.service';
 import { UserInfo } from './interfaces/user.interface';
 import { RoundData } from './interfaces/match.interfaces';
@@ -13,7 +13,7 @@ export class MatchService {
   private userToSessionId = new Map<string, string>();
 
   constructor(
-    private readonly sessionManager: SessionManager,
+    private readonly sessionManager: MatchSessionManager,
     private readonly aiService: QuizAiService,
   ) {
     this.matchQueue = new InMemoryMatchQueue();

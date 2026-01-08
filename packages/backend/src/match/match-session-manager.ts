@@ -335,7 +335,7 @@ export class MatchSessionManager {
       throw new Error(`Player not in session: ${playerId}`);
     }
   }
-
+  ㅇㅇㅇ;
   // 게임의 현재 점수 현황 조회
   getScores(roomId: string): { player1Score: number; player2Score: number } {
     const session = this.getGameSessionOrThrow(roomId);

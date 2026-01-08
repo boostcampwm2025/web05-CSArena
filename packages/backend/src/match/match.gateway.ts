@@ -9,7 +9,7 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { MatchService } from './match.service';
-import { SessionManager } from './session-manager';
+import { MatchSessionManager } from './match-session-manager';
 import { UserInfo } from './interfaces/user.interface';
 
 @WebSocketGateway({ cors: true })
@@ -19,7 +19,7 @@ export class MatchGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   constructor(
     private readonly matchService: MatchService,
-    private readonly sessionManager: SessionManager,
+    private readonly sessionManager: MatchSessionManager,
   ) {}
 
   handleConnection(client: Socket): void {

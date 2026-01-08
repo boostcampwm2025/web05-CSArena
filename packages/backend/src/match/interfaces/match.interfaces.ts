@@ -10,9 +10,11 @@ export interface GameSession {
   player1Id: string;
   player1SocketId: string;
   player1Info: UserInfo;
+  player1Score: number;
   player2Id: string;
   player2SocketId: string;
   player2Info: UserInfo;
+  player2Score: number;
   currentRound: number;
   totalRounds: number;
   rounds: Map<number, RoundData>;
