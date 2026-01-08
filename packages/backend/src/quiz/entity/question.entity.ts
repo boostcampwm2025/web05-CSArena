@@ -16,8 +16,8 @@ export class Question {
   })
   questionType: 'multiple' | 'short' | 'essay' | null;
 
-  @Column({ type: 'text', nullable: false })
-  content: string;
+  @Column({ type: 'jsonb', nullable: false })
+  content: string | object;
 
   @Column({
     type: 'text',
