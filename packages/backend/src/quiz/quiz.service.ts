@@ -306,10 +306,7 @@ export class QuizService {
    * - RoundResult 타입에 맞는 스키마를 전달합니다.
    */
   async gradeRound(question: Question, submissions: Submission[]): Promise<RoundResult> {
-    const answer =
-      'answer' in question
-        ? (question as { answer: string }).answer
-        : (question as unknown as { sampleAnswer: string }).sampleAnswer || '';
+    const answer = question.type === 'essay' ? question.sampleAnswer : question.answer;
 
     // 1. 채점 결과 스키마
     const schema = {
