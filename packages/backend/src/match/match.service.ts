@@ -6,6 +6,14 @@ import { MatchSessionManager } from './match-session-manager';
 import { QuizAiService } from '../quiz/quiz-ai.service';
 import { UserInfo } from './interfaces/user.interface';
 import { RoundData } from './interfaces/match.interfaces';
+import {
+  FinalResult,
+  GradeResult,
+  MultipleChoiceQuestion,
+  RoundResult,
+  Submission,
+} from '../quiz/quiz.types';
+import { SCORE_MAP } from '../quiz/quiz.constants';
 
 @Injectable()
 export class MatchService {
@@ -83,10 +91,11 @@ export class MatchService {
     return this.sessionManager.getRoundData(roomId, roundData.roundNumber);
   }
 
-  /**
-   * 정답 제출
-   */
-  async submitAnswer(roomId: string, playerId: string, answer: string) {
+  async submitAnswer(
+    roomId: string,
+    playerId: string,
+    answer: string,
+  ): Promise<RoundResult | { status: string }> {
     this.sessionManager.submitAnswer(roomId, playerId, answer);
 
     if (this.sessionManager.isAllSubmitted(roomId)) {
@@ -97,24 +106,105 @@ export class MatchService {
   }
 
   /**
-   * 채점
+   * 채점 및 결과 처리 프로세스
    */
-  private async processGrading(roomId: string) {
-    const gradingInput = this.sessionManager.getGradingInput(roomId);
+  private async processGrading(roomId: string): Promise<RoundResult> {
+    const { question, submissions } = this.sessionManager.getGradingInput(roomId);
 
-    const roundResult = await this.aiService.gradeRound(
-      gradingInput.question,
-      gradingInput.submissions,
-    );
+    let gradeResults: GradeResult[];
 
-    const session = this.sessionManager.getGameSession(roomId);
-
-    if (session) {
-      roundResult.roundNumber = session.currentRound;
+    if (question.type === 'multiple_choice') {
+      gradeResults = this.gradeMultipleChoice(question, submissions);
+    } else {
+      gradeResults = await this.aiService.gradeSubjectiveQuestion(question, submissions);
     }
 
+    // 점수 반영
+    const finalGrades = gradeResults.map((grade) => {
+      const score = grade.isCorrect ? SCORE_MAP[question.difficulty] : 0;
+
+      if (grade.isCorrect) {
+        this.sessionManager.addScore(roomId, grade.playerId, score);
+      }
+
+      return { ...grade, score };
+    });
+
+    // 현재 라운드 정보 확인
+    const session = this.sessionManager.getGameSession(roomId);
+    const isLastRound = session.currentRound === session.totalRounds;
+
+    // 결과 객체 생성
+    const roundResult: RoundResult = {
+      roundNumber: session.currentRound,
+      grades: finalGrades,
+    };
+
+    // 마지막 라운드라면 최종 승자 판별 로직 수행
+    if (isLastRound) {
+      roundResult.finalResult = this.calculateFinalResult(roomId);
+    }
+
+    // 결과 저장 및 반환
     this.sessionManager.setRoundResult(roomId, roundResult);
 
     return roundResult;
+  }
+
+  /**
+   * 최종 승자 계산 로직
+   */
+  private calculateFinalResult(roomId: string): FinalResult {
+    const session = this.sessionManager.getGameSession(roomId);
+
+    if (!session) {
+      throw new Error('Session not found');
+    }
+
+    const { player1Score, player2Score } = this.sessionManager.getScores(roomId);
+
+    const scores = {
+      [session.player1Id]: player1Score,
+      [session.player2Id]: player2Score,
+    };
+
+    let winnerId: string | null = null;
+    let isDraw = false;
+
+    // 단순 비교 로직
+    if (player1Score > player2Score) {
+      winnerId = session.player1Id;
+    } else if (player2Score > player1Score) {
+      winnerId = session.player2Id;
+    } else {
+      isDraw = true;
+    }
+
+    return {
+      winnerId,
+      scores,
+      isDraw,
+    };
+  }
+
+  /**
+   * 객관식 채점
+   */
+  private gradeMultipleChoice(
+    question: MultipleChoiceQuestion,
+    submissions: Submission[],
+  ): GradeResult[] {
+    return submissions.map((sub) => {
+      const sanitizedAnswer = sub.answer.trim().toUpperCase();
+      const isCorrect = sanitizedAnswer === question.answer;
+
+      return {
+        playerId: sub.playerId,
+        answer: sub.answer,
+        isCorrect,
+        score: 0,
+        feedback: isCorrect ? 'Correct!' : `Wrong. The answer was ${question.answer}.`,
+      };
+    });
   }
 }
