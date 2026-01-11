@@ -39,6 +39,7 @@ export type Question = MultipleChoiceQuestion | ShortAnswerQuestion | EssayQuest
 export interface Submission {
   playerId: string;
   answer: string;
+  submittedAt: number;
 }
 
 export interface GradeResult {
