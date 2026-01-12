@@ -5,12 +5,11 @@ import { getSocket } from '@/lib/socket';
 import { RoundEnd, RoundReady, RoundStart, RoundTick } from '@/lib/socket/event';
 
 type RoundState = 'preparing' | 'playing' | 'round-result';
-type Question = {
-  category: string[];
-  difficulty: string;
-  type: string;
-  content: { question: string; option: string[] } | { question: string };
-} | null;
+type QuestionContent =
+  | { type: 'multiple'; question: string; option: string[] }
+  | { type: 'short'; question: string }
+  | { type: 'essay'; question: string }
+  | null;
 
 type RoundPhaseAPI = {
   roundState: RoundState;
@@ -23,7 +22,9 @@ type RoundTickAPI = {
 };
 
 type QuestionAPI = {
-  question: Question;
+  category: string[];
+  difficulty: number;
+  content: QuestionContent;
 };
 
 type RoundScoreAPI = {
@@ -49,7 +50,9 @@ export function RoundProvider({ children }: { children: React.ReactNode }) {
   const [roundIndex, setRoundIndex] = useState<number>(0);
   const [totalRounds, setTotalRounds] = useState<number>(0);
   const [remainedSec, setRemainedSec] = useState<number>(0);
-  const [question, setQuestion] = useState<Question>(null);
+  const [category, setCategory] = useState<string[]>([]);
+  const [difficulty, setDifficulty] = useState<number>(0);
+  const [content, setContent] = useState<QuestionContent>(null);
   const [myAnswer, setMyAnswer] = useState<string>('');
   const [myDelta, setMyDelta] = useState<number>(0);
   const [myTotal, setMyTotal] = useState<number>(0);
@@ -73,7 +76,9 @@ export function RoundProvider({ children }: { children: React.ReactNode }) {
   const handleRoundStart = useCallback((payload: RoundStart) => {
     setRoundState('playing');
     setRemainedSec(payload.durationSec);
-    setQuestion(payload.question);
+    setCategory(payload.question.category);
+    setDifficulty(payload.question.difficulty);
+    setContent(payload.question.content);
   }, []);
 
   const handleRoundEnd = useCallback((payload: RoundEnd) => {
@@ -120,7 +125,7 @@ export function RoundProvider({ children }: { children: React.ReactNode }) {
       }}
     >
       <RoundTickCtx.Provider value={{ remainedSec }}>
-        <QuestionCtx.Provider value={{ question }}>
+        <QuestionCtx.Provider value={{ category, difficulty, content }}>
           <RoundScoreCtx.Provider
             value={{
               myAnswer,

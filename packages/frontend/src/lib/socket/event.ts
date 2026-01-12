@@ -18,9 +18,11 @@ export type RoundStart = {
   durationSec: number;
   question: {
     category: string[];
-    difficulty: string;
-    type: string;
-    content: { question: string; option: string[] } | { question: string };
+    difficulty: number;
+    content:
+      | { type: 'multiple'; question: string; option: string[] }
+      | { type: 'short'; question: string }
+      | { type: 'essay'; question: string };
   };
 };
 

@@ -1,7 +1,8 @@
-import { useRoundTick } from '@/feature/matching/useRound';
+import { useQuestion, useRoundTick } from '@/feature/matching/useRound';
 import { usePlaying } from '@/pages/match/hooks/usePlaying';
 
 export default function Playing() {
+  const { category, difficulty, content } = useQuestion();
   const { remainedSec } = useRoundTick();
   const { isSubmit, isSubmitting, setAnswer, onClickSubmitBtn } = usePlaying();
 
@@ -14,14 +15,40 @@ export default function Playing() {
             <div className="flex items-center gap-4">
               <div className="border-2 border-purple-300 bg-purple-500 px-4 py-2">
                 <p className="text-sm font-bold text-white" style={{ fontFamily: 'Orbitron' }}>
-                  Algorithm
+                  {category[0]}
                 </p>
               </div>
               <div className="border-2 border-amber-300 bg-amber-500 px-4 py-2">
                 <p className="text-sm font-bold text-white" style={{ fontFamily: 'Orbitron' }}>
+                  {category[1]}
+                </p>
+              </div>
+              <div className="border-2 border-emerald-300 bg-emerald-500 px-4 py-2">
+                <p className="text-sm font-bold text-white" style={{ fontFamily: 'Orbitron' }}>
                   100 PTS
                 </p>
               </div>
+              {difficulty < 3 && (
+                <div className="border-2 border-green-300 bg-green-500 px-4 py-2">
+                  <p className="text-sm font-bold text-white" style={{ fontFamily: 'Orbitron' }}>
+                    Easy
+                  </p>
+                </div>
+              )}
+              {difficulty === 3 && (
+                <div className="border-2 border-yellow-300 bg-yellow-500 px-4 py-2">
+                  <p className="text-sm font-bold text-white" style={{ fontFamily: 'Orbitron' }}>
+                    Medium
+                  </p>
+                </div>
+              )}
+              {difficulty > 3 && (
+                <div className="border-2 border-red-300 bg-red-500 px-4 py-2">
+                  <p className="text-sm font-bold text-white" style={{ fontFamily: 'Orbitron' }}>
+                    Hard
+                  </p>
+                </div>
+              )}
             </div>
             <div className="text-lg font-bold text-cyan-300" style={{ fontFamily: 'Orbitron' }}>
               <i className="ri-time-line mr-2"></i>
@@ -30,7 +57,9 @@ export default function Playing() {
           </div>
 
           <div className="text-xl leading-relaxed text-white" style={{ fontFamily: 'Orbitron' }}>
-            What is the time complexity of binary search algorithm?
+            {content?.question}
+            {content?.type === 'multiple' &&
+              `\n\nA: ${content.option[0]}\nB: ${content.option[1]}\nC: ${content.option[2]}\nD: ${content.option[3]}`}
           </div>
 
           {/* Answer Input */}
