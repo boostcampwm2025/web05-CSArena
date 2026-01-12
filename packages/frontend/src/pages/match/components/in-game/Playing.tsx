@@ -1,11 +1,9 @@
-import { useState } from 'react';
-
 import { useRoundTick } from '@/feature/matching/useRound';
+import { usePlaying } from '@/pages/match/hooks/usePlaying';
 
 export default function Playing() {
   const { remainedSec } = useRoundTick();
-
-  const [isSubmit, setIsSubmit] = useState<boolean>(false);
+  const { isSubmit, isSubmitting, setAnswer, onClickSubmitBtn } = usePlaying();
 
   return (
     <div className="flex h-full items-center justify-center">
@@ -50,10 +48,13 @@ export default function Playing() {
                 className="border-2 border-cyan-400 bg-slate-700 px-4 py-3 text-base text-white focus:border-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
                 style={{ fontFamily: 'Orbitron' }}
                 autoFocus
+                onChange={(e) => setAnswer(e.target.value)}
+                disabled={isSubmitting}
               />
               <button
                 className="w-full border-4 border-cyan-300 bg-gradient-to-r from-cyan-500 to-blue-500 py-3 font-bold text-white shadow-lg shadow-cyan-500/50 transition-all duration-200 hover:scale-105 hover:from-cyan-400 hover:to-blue-400"
-                onClick={() => setIsSubmit(true)}
+                disabled={isSubmit || isSubmitting}
+                onClick={onClickSubmitBtn}
                 style={{ fontFamily: 'Orbitron' }}
               >
                 <i className="ri-send-plane-fill mr-2"></i>
