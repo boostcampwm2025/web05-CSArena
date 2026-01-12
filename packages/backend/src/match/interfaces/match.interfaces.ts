@@ -25,6 +25,7 @@ export type RoundStatus = 'waiting' | 'in_progress' | 'completed';
 export interface Submission {
   playerId: string;
   answer: string;
+  submittedAt: number;
 }
 
 export interface RoundData {

@@ -2,7 +2,6 @@ interface BaseQuestion {
   type: QuestionType;
   difficulty: Difficulty;
   question: string;
-  explanation: string;
 }
 
 export type QuestionType = 'multiple_choice' | 'short_answer' | 'essay';
@@ -24,47 +23,18 @@ export interface MultipleChoiceQuestion extends BaseQuestion {
 
 export interface ShortAnswerQuestion extends BaseQuestion {
   type: 'short_answer';
+  question: string;
   answer: string;
-  keywords: string[];
+  keywords?: string[];
 }
 
 export interface EssayQuestion extends BaseQuestion {
   type: 'essay';
   sampleAnswer: string;
-  keywords: string[];
+  keywords?: string[];
 }
 
 export type Question = MultipleChoiceQuestion | ShortAnswerQuestion | EssayQuestion;
-
-export interface Submission {
-  playerId: string;
-  answer: string;
-}
-
-export interface GradeResult {
-  playerId: string;
-  answer: string;
-  isCorrect: boolean;
-  score: number;
-  feedback: string;
-}
-
-export interface RoundResult {
-  roundNumber: number;
-  grades: GradeResult[];
-}
-
-export type RoundStatus = 'waiting' | 'in_progress' | 'completed';
-
-export interface RoundData {
-  roundNumber: number;
-  status: RoundStatus;
-  question: Question | null;
-  submissions: {
-    [playerId: string]: Submission | null;
-  };
-  result: RoundResult | null;
-}
 
 export interface QuizSession {
   roomId: string;
@@ -78,4 +48,42 @@ export interface QuizSession {
 export interface GradingInput {
   question: Question;
   submissions: Submission[];
+}
+
+export interface Submission {
+  playerId: string;
+  answer: string;
+  submittedAt: number;
+}
+
+export interface GradeResult {
+  playerId: string;
+  answer: string;
+  isCorrect: boolean;
+  score: number;
+  feedback: string;
+}
+
+export interface FinalResult {
+  winnerId: string | null;
+  scores: Record<string, number>;
+  isDraw: boolean;
+}
+
+export interface RoundResult {
+  roundNumber: number;
+  grades: GradeResult[];
+  finalResult?: FinalResult;
+}
+
+export type RoundStatus = 'waiting' | 'in_progress' | 'completed';
+
+export interface RoundData {
+  roundNumber: number;
+  status: RoundStatus;
+  question: Question | null;
+  submissions: {
+    [playerId: string]: Submission | null;
+  };
+  result: RoundResult | null;
 }
