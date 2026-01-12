@@ -2,7 +2,6 @@ interface BaseQuestion {
   type: QuestionType;
   difficulty: Difficulty;
   question: string;
-  explanation: string;
 }
 
 export type QuestionType = 'multiple_choice' | 'short_answer' | 'essay';
@@ -24,14 +23,15 @@ export interface MultipleChoiceQuestion extends BaseQuestion {
 
 export interface ShortAnswerQuestion extends BaseQuestion {
   type: 'short_answer';
+  question: string;
   answer: string;
-  keywords: string[];
+  keywords?: string[];
 }
 
 export interface EssayQuestion extends BaseQuestion {
   type: 'essay';
   sampleAnswer: string;
-  keywords: string[];
+  keywords?: string[];
 }
 
 export type Question = MultipleChoiceQuestion | ShortAnswerQuestion | EssayQuestion;

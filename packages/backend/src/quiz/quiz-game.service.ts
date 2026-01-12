@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 
-import { QuizAiService } from './quiz-ai.service';
+import { QuizService } from './quiz.service';
 import { QuizRoundStore } from './quiz-round.store';
 import { RoundData } from './quiz.types';
 
@@ -8,7 +8,7 @@ import { RoundData } from './quiz.types';
 export class QuizGameService {
   constructor(
     private readonly store: QuizRoundStore,
-    private readonly aiService: QuizAiService,
+    private readonly aiService: QuizService,
   ) {}
 
   // 게임 방 생성 (테스트용)
