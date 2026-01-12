@@ -102,7 +102,7 @@ export function RoundProvider({ children }: { children: React.ReactNode }) {
 
   const handleRoundTick = useCallback(
     (payload: RoundTick) => {
-      setRemainedSec(endTime - payload.curServerTime);
+      setRemainedSec(Math.max(0, endTime - payload.curServerTime));
     },
     [endTime],
   );
