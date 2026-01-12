@@ -16,7 +16,12 @@ export type RoundReady = { durationSec: number; roundIndex: number; totalRounds:
 
 export type RoundStart = {
   durationSec: number;
-  question: { topic: string; difficulty: string; type: string; content: string };
+  question: {
+    category: string[];
+    difficulty: string;
+    type: string;
+    content: { question: string; option: string[] } | { question: string };
+  };
 };
 
 export type RoundEnd = {

@@ -5,7 +5,12 @@ import { getSocket } from '@/lib/socket';
 import { RoundEnd, RoundReady, RoundStart, RoundTick } from '@/lib/socket/event';
 
 type RoundState = 'preparing' | 'playing' | 'round-result';
-type Question = { topic: string; difficulty: string; type: string; content: string } | null;
+type Question = {
+  category: string[];
+  difficulty: string;
+  type: string;
+  content: { question: string; option: string[] } | { question: string };
+} | null;
 
 type RoundPhaseAPI = {
   roundState: RoundState;
