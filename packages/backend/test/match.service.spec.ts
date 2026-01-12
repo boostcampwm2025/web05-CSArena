@@ -1,13 +1,13 @@
 import { MatchService } from '../src/match/match.service';
 import { MatchSessionManager } from '../src/match/match-session-manager';
-import { QuizAiService } from '../src/quiz/quiz-ai.service';
+import { QuizService } from '../src/quiz/quiz.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Question } from '../src/quiz/entity';
 import {
     MultipleChoiceQuestion,
-    RoundData,
     ShortAnswerQuestion,
+    Question,
 } from '../src/quiz/quiz.types';
+import { RoundData } from '../src/match/interfaces/match.interfaces';
 import { SCORE_MAP, SPEED_BONUS } from '../src/quiz/quiz.constants';
 
 const mockUuid = 'user-uuid-123';
@@ -18,7 +18,7 @@ const mockP2 = 'player-2';
 describe('MatchService', () => {
     let service: MatchService;
     let sessionManager: MatchSessionManager;
-    let aiService: QuizAiService;
+    let aiService: QuizService;
 
     // Mock Objects
     const mockSessionManager = {
@@ -45,13 +45,13 @@ describe('MatchService', () => {
             providers: [
                 MatchService,
                 { provide: MatchSessionManager, useValue: mockSessionManager },
-                { provide: QuizAiService, useValue: mockAiService },
+                { provide: QuizService, useValue: mockAiService },
             ],
         }).compile();
 
         service = module.get<MatchService>(MatchService);
         sessionManager = module.get<MatchSessionManager>(MatchSessionManager);
-        aiService = module.get<QuizAiService>(QuizAiService);
+        aiService = module.get<QuizService>(QuizService);
 
         // Reset mocks
         jest.clearAllMocks();
@@ -117,7 +117,6 @@ describe('MatchService', () => {
             question: 'Test Q',
             options: { A: 'A', B: 'B', C: 'C', D: 'D' },
             answer: 'A',
-            explanation: 'exp',
         };
 
         const mockSession = {
@@ -183,7 +182,6 @@ describe('MatchService', () => {
                 question: 'Who are you?',
                 answer: 'Gemini',
                 keywords: ['Gemini'],
-                explanation: 'AI',
             };
 
             // Setup
@@ -289,7 +287,6 @@ describe('MatchService', () => {
             question: 'Q',
             options: {} as any,
             answer: 'A',
-            explanation: '',
         };
 
         beforeEach(() => {

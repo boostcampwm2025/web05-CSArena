@@ -3,7 +3,7 @@ import { Server } from 'socket.io';
 import { IMatchQueue, Match } from './interfaces/match-queue.interface';
 import { InMemoryMatchQueue } from './queues/in-memory-queue';
 import { MatchSessionManager } from './match-session-manager';
-import { QuizAiService } from '../quiz/quiz-ai.service';
+import { QuizService } from '../quiz/quiz.service';
 import { UserInfo } from './interfaces/user.interface';
 import { RoundData } from './interfaces/match.interfaces';
 import {
@@ -22,7 +22,7 @@ export class MatchService {
 
   constructor(
     private readonly sessionManager: MatchSessionManager,
-    private readonly aiService: QuizAiService,
+    private readonly aiService: QuizService,
   ) {
     this.matchQueue = new InMemoryMatchQueue();
   }

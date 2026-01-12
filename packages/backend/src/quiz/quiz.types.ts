@@ -2,7 +2,6 @@ interface BaseQuestion {
   type: QuestionType;
   difficulty: Difficulty;
   question: string;
-  explanation: string;
 }
 
 export type QuestionType = 'multiple_choice' | 'short_answer' | 'essay';
@@ -24,17 +23,32 @@ export interface MultipleChoiceQuestion extends BaseQuestion {
 
 export interface ShortAnswerQuestion extends BaseQuestion {
   type: 'short_answer';
+  question: string;
   answer: string;
-  keywords: string[];
+  keywords?: string[];
 }
 
 export interface EssayQuestion extends BaseQuestion {
   type: 'essay';
   sampleAnswer: string;
-  keywords: string[];
+  keywords?: string[];
 }
 
 export type Question = MultipleChoiceQuestion | ShortAnswerQuestion | EssayQuestion;
+
+export interface QuizSession {
+  roomId: string;
+  player1Id: string;
+  player2Id: string;
+  currentRound: number;
+  totalRounds: number;
+  rounds: Map<number, RoundData>;
+}
+
+export interface GradingInput {
+  question: Question;
+  submissions: Submission[];
+}
 
 export interface Submission {
   playerId: string;

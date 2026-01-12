@@ -21,7 +21,6 @@ describe('MatchSessionManager - Game Session Management', () => {
     type: 'multiple_choice',
     difficulty: 'medium',
     question: 'What is 2+2?',
-    explanation: 'Basic arithmetic',
     options: {
       A: '3',
       B: '4',

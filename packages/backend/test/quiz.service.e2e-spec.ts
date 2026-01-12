@@ -1,13 +1,22 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigModule } from '@nestjs/config';
+import { getRepositoryToken } from '@nestjs/typeorm';
 import { ShortAnswerQuestion, Submission } from "../src/quiz/quiz.types";
-import { QuizAiService } from "../src/quiz/quiz-ai.service";
+import { QuizService } from "../src/quiz/quiz.service";
 import { ClovaClientService } from "../src/quiz/clova/clova-client.service";
+import { Question } from "../src/quiz/entity";
 
-describe('QuizAiService 통합 테스트 (실제 AI 채점)', () => {
-    let service: QuizAiService;
+describe('QuizService 통합 테스트 (실제 AI 채점)', () => {
+    let service: QuizService;
 
     beforeEach(async () => {
+        const mockRepository = {
+            createQueryBuilder: jest.fn(),
+            find: jest.fn(),
+            findOne: jest.fn(),
+            save: jest.fn(),
+        };
+
         const module: TestingModule = await Test.createTestingModule({
             imports: [
                 // 실제 .env 환경변수를 로드합니다. (프로젝트 루트에 .env 파일 필수)
@@ -17,12 +26,16 @@ describe('QuizAiService 통합 테스트 (실제 AI 채점)', () => {
                 }),
             ],
             providers: [
-                QuizAiService,
+                QuizService,
                 ClovaClientService, // Mock이 아닌 실제 구현체 사용
+                {
+                    provide: getRepositoryToken(Question),
+                    useValue: mockRepository,
+                },
             ],
         }).compile();
 
-        service = module.get<QuizAiService>(QuizAiService);
+        service = module.get<QuizService>(QuizService);
     });
 
     // AI 응답이 늦을 수 있으므로 타임아웃을 60초로 설정
@@ -34,7 +47,6 @@ describe('QuizAiService 통합 테스트 (실제 AI 채점)', () => {
             question: 'HTTP 프로토콜이 사용하는 기본 포트 번호는 무엇인가요?',
             answer: '80', // 모범 답안
             keywords: ['80', '80번'], // 필수 키워드
-            explanation: 'HTTP는 TCP 80번 포트를 기본으로 사용합니다.',
         };
 
         // 다양한 답변 케이스 준비
