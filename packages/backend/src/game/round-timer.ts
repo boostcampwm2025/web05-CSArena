@@ -3,13 +3,20 @@ import { Injectable } from '@nestjs/common';
 interface TimerSet {
   readyTimer?: NodeJS.Timeout;
   questionTimer?: NodeJS.Timeout;
-  tickInterval?: NodeJS.Timeout;
   reviewTimer?: NodeJS.Timeout;
+}
+
+interface TickRoom {
+  endAt: number;
+  onTick: (remainedSec: number) => void;
+  active: boolean;
 }
 
 @Injectable()
 export class RoundTimer {
   private timers = new Map<string, TimerSet>();
+  private tickRooms = new Map<string, TickRoom>();
+  private globalTickInterval?: NodeJS.Timeout;
 
   /**
    * 준비 카운트다운 타이머 시작
@@ -93,14 +100,13 @@ export class RoundTimer {
   }
 
   /**
-   * 틱 인터벌만 정리
+   * 틱 인터벌 정지 (방은 유지하고 비활성화만 함)
    */
   clearTickInterval(roomId: string): void {
-    const timerSet = this.timers.get(roomId);
+    const room = this.tickRooms.get(roomId);
 
-    if (timerSet?.tickInterval) {
-      clearInterval(timerSet.tickInterval);
-      timerSet.tickInterval = undefined;
+    if (room) {
+      room.active = false;
     }
   }
 
@@ -129,32 +135,35 @@ export class RoundTimer {
   }
 
   /**
-   * 모든 타이머 정리
+   * 모든 타이머 정리 (게임 종료 시 호출)
    */
   clearAllTimers(roomId: string): void {
     const timerSet = this.timers.get(roomId);
 
-    if (!timerSet) {
-      return;
+    if (timerSet) {
+      if (timerSet.readyTimer) {
+        clearTimeout(timerSet.readyTimer);
+      }
+
+      if (timerSet.questionTimer) {
+        clearTimeout(timerSet.questionTimer);
+      }
+
+      if (timerSet.reviewTimer) {
+        clearTimeout(timerSet.reviewTimer);
+      }
+
+      this.timers.delete(roomId);
     }
 
-    if (timerSet.readyTimer) {
-      clearTimeout(timerSet.readyTimer);
-    }
+    // 게임 종료이므로 tickRooms에서 방 완전히 제거
+    this.tickRooms.delete(roomId);
 
-    if (timerSet.questionTimer) {
-      clearTimeout(timerSet.questionTimer);
+    // 모든 방이 종료되면 전역 인터벌 정리
+    if (this.tickRooms.size === 0 && this.globalTickInterval) {
+      clearInterval(this.globalTickInterval);
+      this.globalTickInterval = undefined;
     }
-
-    if (timerSet.tickInterval) {
-      clearInterval(timerSet.tickInterval);
-    }
-
-    if (timerSet.reviewTimer) {
-      clearTimeout(timerSet.reviewTimer);
-    }
-
-    this.timers.delete(roomId);
   }
 
   /**
