@@ -11,7 +11,6 @@ export default function Preparing() {
             className="animate-pulse bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-8xl font-black text-transparent"
             style={{ fontFamily: 'Press Start 2P' }}
           >
-            {/* TODO: 데모용 파라미터 사용 로직, 추후 제거 필요 */}
             {remainedSec}
           </div>
         </div>
