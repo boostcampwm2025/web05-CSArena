@@ -11,7 +11,6 @@ export default tseslint.config(
             '**/*.spec.ts',
             '**/*.test.ts',
             'jest.config.ts',
-            'src/quiz/test-quiz.ts',
             'src/quiz/test-question-service.ts'],
     },
     eslint.configs.recommended,

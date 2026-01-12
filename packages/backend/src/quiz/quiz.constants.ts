@@ -1,3 +1,13 @@
+import { Difficulty } from './quiz.types';
+
+export const SCORE_MAP: Record<Difficulty, number> = {
+  easy: 10,
+  medium: 20,
+  hard: 30,
+};
+
+export const SPEED_BONUS = 5;
+
 /**
  * Quiz 서비스 상수 정의
  */
