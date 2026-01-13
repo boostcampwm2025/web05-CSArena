@@ -4,6 +4,10 @@ import { RoundTimer } from './round-timer';
 import { GameService } from './game.service';
 import { GameSessionManager } from './game-session-manager';
 import { Difficulty, ROUND_DURATIONS } from './round-timer.constants';
+import {
+  getCategoriesForQuestion,
+  transformQuestionForClient,
+} from './transformers/question.transformer';
 
 @Injectable()
 export class RoundProgressionService {
@@ -76,20 +80,19 @@ export class RoundProgressionService {
         throw new Error(`Question not found for room ${roomId}`);
       }
 
-      // TODO: Phase 5에서 Question 변환 로직 구현
       const difficulty = question.difficulty as Difficulty;
       const questionDuration = ROUND_DURATIONS.QUESTION[difficulty];
 
-      // round:start 이벤트 발송 (임시로 간단한 형식)
+      // Question 변환 (transformer 사용)
+      const categories = getCategoriesForQuestion(question.id);
+      const transformedQuestion = transformQuestionForClient(question, categories);
+
+      // round:start 이벤트 발송
       const startedAt = Date.now();
       this.server.to(roomId).emit('round:start', {
         startedAt,
         durationSec: questionDuration,
-        question: {
-          category: ['CS', 'General'],
-          difficulty: question.difficulty,
-          content: { type: question.type, question: question.question },
-        },
+        question: transformedQuestion,
       });
 
       // 타이머 시작
