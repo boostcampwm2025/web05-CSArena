@@ -90,18 +90,18 @@ function parseContent(content: string | object): {
  */
 function mapDifficulty(numDifficulty: number | null): string {
   if (!numDifficulty) {
-    return 'medium';
+    return 'Medium';
   }
 
   if (numDifficulty <= 2) {
-    return 'easy';
+    return 'Easy';
   }
 
   if (numDifficulty === 3) {
-    return 'medium';
+    return 'Medium';
   }
 
-  return 'hard';
+  return 'Hard';
 }
 
 export { transformQuestionForClient };
