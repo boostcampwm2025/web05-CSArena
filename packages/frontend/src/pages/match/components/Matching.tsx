@@ -1,4 +1,4 @@
-import { useMatching } from '@/feature/matching/useMatching';
+import { useEffect, useState } from 'react';
 
 function formatTime(seconds: number) {
   const mins = Math.floor(seconds / 60);
@@ -8,7 +8,17 @@ function formatTime(seconds: number) {
 }
 
 export default function Matching() {
-  const { time } = useMatching();
+  const [time, setTime] = useState<number>(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTime((prev) => prev + 1);
+    }, 1000);
+
+    return () => {
+      clearInterval(timer);
+    };
+  }, []);
 
   return (
     <div className="relative z-10 flex h-full w-full flex-col items-center justify-center gap-8">
@@ -112,7 +122,6 @@ export default function Matching() {
               ELAPSED TIME
             </div>
             <div className="text-3xl font-bold text-pink-400" style={{ fontFamily: 'Orbitron' }}>
-              {/* TODO: 임의로 넣어놓은 time이 아닌 elapsedTime 사용 */}
               {formatTime(time)}
             </div>
           </div>

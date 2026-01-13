@@ -1,8 +1,5 @@
 import { useState } from 'react';
 
-import { MatchEnqueueRes } from '@/lib/socket/event';
-import { getSocket } from '@/lib/socket';
-
 import { useScene } from '@/feature/useScene.tsx';
 
 export default function Home() {
@@ -16,24 +13,7 @@ export default function Home() {
     }
 
     setIsDisabled(true);
-
-    const socket = getSocket();
-
-    socket.once('connect', () => {
-      // 소켓 연결 완료 후 큐 진입 요청 이벤트 호출
-      socket.emit('match:enqueue', undefined, (ack: MatchEnqueueRes) => {
-        if (!ack.ok) {
-          throw new Error();
-        }
-
-        // 큐 진입 응답이 오면 매치 씬으로 전환
-        setIsDisabled(false);
-        setScene('match');
-      });
-    });
-
-    // 소켓 연결 시도
-    socket.connect();
+    setScene('match');
   };
 
   return (

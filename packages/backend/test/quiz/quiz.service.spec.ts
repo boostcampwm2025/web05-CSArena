@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { QuizService } from '../../src/quiz/quiz.service';
-import { Question as QuestionEntity } from '../../src/quiz/entity';
+import { Question as QuestionEntity, Category } from '../../src/quiz/entity';
 import { ClovaClientService } from '../../src/quiz/clova/clova-client.service';
 
 describe('QuizService', () => {
@@ -9,6 +9,10 @@ describe('QuizService', () => {
 
   const mockQuestionRepository = {
     createQueryBuilder: jest.fn(),
+  };
+
+  const mockCategoryRepository = {
+    find: jest.fn(),
   };
 
   const mockClovaClient = {
@@ -22,6 +26,10 @@ describe('QuizService', () => {
         {
           provide: getRepositoryToken(QuestionEntity),
           useValue: mockQuestionRepository,
+        },
+        {
+          provide: getRepositoryToken(Category),
+          useValue: mockCategoryRepository,
         },
         {
           provide: ClovaClientService,
@@ -554,232 +562,358 @@ describe('QuizService', () => {
     });
   });
 
-  describe('gradeSubjectiveQuestion', () => {
+  describe('generateSinglePlayQuestions', () => {
     beforeEach(() => {
       jest.clearAllMocks();
     });
 
-    it('should grade short answer question with correct and incorrect answers', async () => {
-      const question = {
-        type: 'short_answer' as const,
-        question: '서브쿼리란?',
-        difficulty: 'easy' as const,
-        answer: '쿼리 안의 쿼리',
-      };
-
-      const submissions = [
-        { playerId: 'player1', answer: '쿼리 안의 쿼리', submittedAt: Date.now() },
-        { playerId: 'player2', answer: '복잡한 쿼리', submittedAt: Date.now() },
+    it('should return 10 questions from selected parent categories', async () => {
+      // Mock child categories for parent category 1 (DB)
+      const dbChildren = [
+        { id: 11 },
+        { id: 12 },
+        { id: 13 },
       ];
 
-      const mockGradeResult = {
-        grades: [
-          {
-            playerId: 'player1',
-            isCorrect: true,
-            score: 10,
-            feedback: '정확합니다! 서브쿼리는 쿼리 내부에 중첩된 쿼리를 의미합니다.',
-          },
-          {
-            playerId: 'player2',
-            isCorrect: false,
-            score: 0,
-            feedback: '서브쿼리는 단순히 복잡한 것이 아니라, 쿼리 내부에 포함된 또 다른 쿼리를 의미합니다.',
-          },
-        ],
-      };
+      // Mock child categories for parent category 2 (Network)
+      const networkChildren = [
+        { id: 21 },
+        { id: 22 },
+      ];
 
-      mockClovaClient.callClova.mockResolvedValue(mockGradeResult);
-
-      const result = await service.gradeSubjectiveQuestion(question, submissions);
-
-      expect(mockClovaClient.callClova).toHaveBeenCalledWith({
-        systemPrompt: expect.stringContaining('채점하고'),
-        userMessage: expect.stringContaining('short_answer'),
-        jsonSchema: expect.any(Object),
-      });
-
-      expect(result).toHaveLength(2);
-      expect(result[0].playerId).toBe('player1');
-      expect(result[0].answer).toBe('쿼리 안의 쿼리');
-      expect(result[0].isCorrect).toBe(true);
-      expect(result[0].score).toBe(10);
-      expect(result[1].playerId).toBe('player2');
-      expect(result[1].answer).toBe('복잡한 쿼리');
-      expect(result[1].isCorrect).toBe(false);
-      expect(result[1].score).toBe(0);
-    });
-
-    it('should grade essay question with partial scores', async () => {
-      const question = {
-        type: 'essay' as const,
-        question: 'B+tree의 특징과 장점을 설명하세요',
-        difficulty: 'hard' as const,
-        sampleAnswer:
-          'B+tree는 균형 잡힌 트리 구조로, 모든 데이터가 리프 노드에만 저장됩니다. 검색, 삽입, 삭제의 시간 복잡도가 O(log n)으로 효율적이며, 범위 검색에 유리합니다.',
-      };
-
-      const submissions = [
+      // Mock questions from DB category
+      const dbQuestions = [
         {
-          playerId: 'player1',
-          answer:
-            'B+tree는 균형 트리이고 데이터가 리프 노드에만 있습니다. 검색이 O(log n)이고 범위 검색에 좋습니다.',
-          submittedAt: Date.now(),
+          id: 1,
+          questionType: 'short' as const,
+          content: 'SQL이란?',
+          correctAnswer: 'Structured Query Language',
+          difficulty: 2,
+          isActive: true,
         },
         {
-          playerId: 'player2',
-          answer: 'B+tree는 균형 트리입니다.',
-          submittedAt: Date.now(),
+          id: 2,
+          questionType: 'multiple' as const,
+          content: { question: 'NoSQL의 특징은?', options: { A: '유연한 스키마', B: '고정 스키마', C: '느린 속도', D: '복잡함' } },
+          correctAnswer: 'A',
+          difficulty: 3,
+          isActive: true,
         },
         {
-          playerId: 'player3',
-          answer: 'B+tree는 트리 구조입니다.',
-          submittedAt: Date.now(),
+          id: 3,
+          questionType: 'essay' as const,
+          content: '트랜잭션을 설명하세요',
+          correctAnswer: '트랜잭션은 데이터베이스의 상태를 변화시키는 하나의 논리적 작업 단위입니다.',
+          difficulty: 4,
+          isActive: true,
+        },
+        {
+          id: 4,
+          questionType: 'short' as const,
+          content: 'Index란?',
+          correctAnswer: '데이터 검색 속도를 향상시키는 자료구조',
+          difficulty: 3,
+          isActive: true,
+        },
+        {
+          id: 5,
+          questionType: 'multiple' as const,
+          content: { question: 'ACID 속성에 포함되지 않는 것은?', options: { A: 'Atomicity', B: 'Consistency', C: 'Isolation', D: 'Flexibility' } },
+          correctAnswer: 'D',
+          difficulty: 3,
+          isActive: true,
         },
       ];
 
-      const mockGradeResult = {
-        grades: [
-          {
-            playerId: 'player1',
-            isCorrect: true,
-            score: 9,
-            feedback:
-              '핵심 개념을 잘 이해하고 있습니다. 균형 유지, 데이터 저장 위치, 시간 복잡도, 범위 검색 모두 언급했습니다. 조금 더 구체적으로 설명하면 완벽합니다.',
-          },
-          {
-            playerId: 'player2',
-            isCorrect: false,
-            score: 3,
-            feedback:
-              '균형 트리라는 것은 맞지만, 핵심 특징인 데이터 저장 위치(리프 노드), 시간 복잡도, 범위 검색 장점을 놓쳤습니다.',
-          },
-          {
-            playerId: 'player3',
-            isCorrect: false,
-            score: 1,
-            feedback:
-              '너무 일반적인 답변입니다. B+tree의 구체적인 특징(균형 유지, 리프 노드 데이터 저장, O(log n) 복잡도, 범위 검색 효율성)을 설명해야 합니다.',
-          },
-        ],
+      // Mock questions from Network category
+      const networkQuestions = [
+        {
+          id: 6,
+          questionType: 'short' as const,
+          content: 'HTTP란?',
+          correctAnswer: 'HyperText Transfer Protocol',
+          difficulty: 1,
+          isActive: true,
+        },
+        {
+          id: 7,
+          questionType: 'multiple' as const,
+          content: { question: 'TCP와 UDP의 차이는?', options: { A: '연결형 vs 비연결형', B: '동일함', C: '차이 없음', D: '모름' } },
+          correctAnswer: 'A',
+          difficulty: 2,
+          isActive: true,
+        },
+        {
+          id: 8,
+          questionType: 'essay' as const,
+          content: 'OSI 7계층을 설명하세요',
+          correctAnswer: 'OSI 7계층은 네트워크 프로토콜을 7개 계층으로 나눈 표준 모델입니다.',
+          difficulty: 4,
+          isActive: true,
+        },
+        {
+          id: 9,
+          questionType: 'short' as const,
+          content: 'IP란?',
+          correctAnswer: 'Internet Protocol',
+          difficulty: 1,
+          isActive: true,
+        },
+        {
+          id: 10,
+          questionType: 'multiple' as const,
+          content: { question: 'HTTPS의 기본 포트는?', options: { A: '80', B: '443', C: '8080', D: '3000' } },
+          correctAnswer: 'B',
+          difficulty: 2,
+          isActive: true,
+        },
+      ];
+
+      // Mock categoryRepository.find - 3번 호출됨 (첫 번째 루프 2회, 두 번째 루프 2회, 총 4회이지만 각 대분류당 1회씩 실제로는 총 4회)
+      mockCategoryRepository.find
+        .mockResolvedValueOnce(dbChildren) // 첫 번째 for문에서 parent 1 조회
+        .mockResolvedValueOnce(networkChildren) // 첫 번째 for문에서 parent 2 조회
+        .mockResolvedValueOnce(dbChildren) // 두 번째 for문에서 parent 1 조회
+        .mockResolvedValueOnce(networkChildren); // 두 번째 for문에서 parent 2 조회
+
+      // Mock queryBuilder for questions
+      const mockQueryBuilder = {
+        innerJoin: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        addOrderBy: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        getMany: jest.fn()
+          .mockResolvedValueOnce(dbQuestions) // DB 카테고리에서 5문제
+          .mockResolvedValueOnce(networkQuestions), // Network 카테고리에서 5문제
       };
 
-      mockClovaClient.callClova.mockResolvedValue(mockGradeResult);
+      mockQuestionRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
 
-      const result = await service.gradeSubjectiveQuestion(question, submissions);
+      const result = await service.generateSinglePlayQuestions([1, 2], 10);
 
-      expect(mockClovaClient.callClova).toHaveBeenCalledWith({
-        systemPrompt: expect.stringContaining('채점하고'),
-        userMessage: expect.stringContaining('essay'),
-        jsonSchema: expect.objectContaining({
-          properties: expect.objectContaining({
-            grades: expect.objectContaining({
-              items: expect.objectContaining({
-                properties: expect.objectContaining({
-                  score: expect.objectContaining({
-                    description: expect.stringContaining('0~10점 사이의 부분 점수'),
-                  }),
-                }),
-              }),
-            }),
-          }),
-        }),
-      });
-
-      expect(result).toHaveLength(3);
-      expect(result[0].playerId).toBe('player1');
-      expect(result[0].answer).toBe(submissions[0].answer);
-      expect(result[0].isCorrect).toBe(true);
-      expect(result[0].score).toBe(9);
-      expect(result[1].playerId).toBe('player2');
-      expect(result[1].answer).toBe(submissions[1].answer);
-      expect(result[1].isCorrect).toBe(false);
-      expect(result[1].score).toBe(3);
-      expect(result[2].playerId).toBe('player3');
-      expect(result[2].answer).toBe(submissions[2].answer);
-      expect(result[2].isCorrect).toBe(false);
-      expect(result[2].score).toBe(1);
+      expect(result).toHaveLength(10);
+      expect(mockCategoryRepository.find).toHaveBeenCalledTimes(4); // 첫 번째 루프 2회 + 두 번째 루프 2회
+      expect(mockQueryBuilder.innerJoin).toHaveBeenCalledTimes(2);
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'cq.categoryId IN (:...childIds)',
+        expect.objectContaining({ childIds: expect.any(Array) })
+      );
     });
 
-    it('should handle essay question with score exactly 7 (boundary case)', async () => {
-      const question = {
-        type: 'essay' as const,
-        question: 'TCP와 UDP의 차이를 설명하세요',
-        difficulty: 'medium' as const,
-        sampleAnswer: 'TCP는 연결 지향적이고 신뢰성을 보장하며, UDP는 비연결 지향적이고 빠르지만 신뢰성을 보장하지 않습니다.',
+    it('should distribute questions evenly across parent categories', async () => {
+      // 3개 카테고리에 10문제 분배: 4, 3, 3
+      const category1Children = [{ id: 11 }];
+      const category2Children = [{ id: 21 }];
+      const category3Children = [{ id: 31 }];
+
+      const questions1 = [
+        {
+          id: 1,
+          questionType: 'short' as const,
+          content: 'Q1',
+          correctAnswer: 'A1',
+          difficulty: 2,
+          isActive: true,
+        },
+        {
+          id: 2,
+          questionType: 'short' as const,
+          content: 'Q2',
+          correctAnswer: 'A2',
+          difficulty: 2,
+          isActive: true,
+        },
+        {
+          id: 3,
+          questionType: 'short' as const,
+          content: 'Q3',
+          correctAnswer: 'A3',
+          difficulty: 2,
+          isActive: true,
+        },
+        {
+          id: 4,
+          questionType: 'short' as const,
+          content: 'Q4',
+          correctAnswer: 'A4',
+          difficulty: 2,
+          isActive: true,
+        },
+      ];
+
+      const questions2 = [
+        {
+          id: 5,
+          questionType: 'short' as const,
+          content: 'Q5',
+          correctAnswer: 'A5',
+          difficulty: 2,
+          isActive: true,
+        },
+        {
+          id: 6,
+          questionType: 'short' as const,
+          content: 'Q6',
+          correctAnswer: 'A6',
+          difficulty: 2,
+          isActive: true,
+        },
+        {
+          id: 7,
+          questionType: 'short' as const,
+          content: 'Q7',
+          correctAnswer: 'A7',
+          difficulty: 2,
+          isActive: true,
+        },
+      ];
+
+      const questions3 = [
+        {
+          id: 8,
+          questionType: 'short' as const,
+          content: 'Q8',
+          correctAnswer: 'A8',
+          difficulty: 2,
+          isActive: true,
+        },
+        {
+          id: 9,
+          questionType: 'short' as const,
+          content: 'Q9',
+          correctAnswer: 'A9',
+          difficulty: 2,
+          isActive: true,
+        },
+        {
+          id: 10,
+          questionType: 'short' as const,
+          content: 'Q10',
+          correctAnswer: 'A10',
+          difficulty: 2,
+          isActive: true,
+        },
+      ];
+
+      mockCategoryRepository.find
+        .mockResolvedValueOnce(category1Children)
+        .mockResolvedValueOnce(category2Children)
+        .mockResolvedValueOnce(category3Children)
+        .mockResolvedValueOnce(category1Children)
+        .mockResolvedValueOnce(category2Children)
+        .mockResolvedValueOnce(category3Children);
+
+      const mockQueryBuilder = {
+        innerJoin: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        addOrderBy: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        getMany: jest.fn()
+          .mockResolvedValueOnce(questions1) // 첫 번째 카테고리: 4문제
+          .mockResolvedValueOnce(questions2) // 두 번째 카테고리: 3문제
+          .mockResolvedValueOnce(questions3), // 세 번째 카테고리: 3문제
       };
 
-      const submissions = [{ playerId: 'player1', answer: 'TCP는 연결 지향이고 UDP는 비연결 지향입니다.', submittedAt: Date.now() }];
+      mockQuestionRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
 
-      const mockGradeResult = {
-        grades: [
-          {
-            playerId: 'player1',
-            isCorrect: true,
-            score: 7,
-            feedback:
-              '기본적인 차이점을 이해하고 있습니다. 신뢰성, 속도, 사용 사례 등을 추가로 언급하면 더 완벽한 답변이 됩니다.',
-          },
-        ],
-      };
+      const result = await service.generateSinglePlayQuestions([1, 2, 3], 10);
 
-      mockClovaClient.callClova.mockResolvedValue(mockGradeResult);
-
-      const result = await service.gradeSubjectiveQuestion(question, submissions);
-
-      expect(result[0].score).toBe(7);
-      expect(result[0].isCorrect).toBe(true);
+      expect(result).toHaveLength(10);
+      expect(mockQueryBuilder.limit).toHaveBeenCalledWith(4); // 첫 번째: 3 + 1(나머지)
+      expect(mockQueryBuilder.limit).toHaveBeenCalledWith(3); // 두 번째: 3
+      expect(mockQueryBuilder.limit).toHaveBeenCalledWith(3); // 세 번째: 3
     });
 
-    it('should include question type in user message', async () => {
-      const shortAnswerQuestion = {
-        type: 'short_answer' as const,
-        question: 'Test question',
-        difficulty: 'easy' as const,
-        answer: 'Test answer',
-      };
-
-      const submissions = [{ playerId: 'player1', answer: 'Test answer', submittedAt: Date.now() }];
-
-      mockClovaClient.callClova.mockResolvedValue({
-        grades: [
-          { playerId: 'player1', isCorrect: true, score: 10, feedback: 'Good!' },
-        ],
-      });
-
-      await service.gradeSubjectiveQuestion(shortAnswerQuestion, submissions);
-
-      const callArgs = mockClovaClient.callClova.mock.calls[0][0];
-      expect(callArgs.userMessage).toContain('[문제 타입] short_answer');
-      expect(callArgs.userMessage).toContain('[문제] Test question');
-      expect(callArgs.userMessage).toContain('[정답] Test answer');
+    it('should throw error when no parent categories provided', async () => {
+      await expect(service.generateSinglePlayQuestions([], 10)).rejects.toThrow(
+        '카테고리를 선택해주세요.'
+      );
     });
 
-    it('should use sampleAnswer for essay questions in user message', async () => {
-      const essayQuestion = {
-        type: 'essay' as const,
-        question: 'Essay question',
-        difficulty: 'hard' as const,
-        sampleAnswer: 'This is a sample answer',
+    it('should throw error when no child categories found', async () => {
+      mockCategoryRepository.find.mockResolvedValue([]); // 하위 카테고리 없음
+
+      await expect(service.generateSinglePlayQuestions([1], 10)).rejects.toThrow(
+        '선택한 카테고리에 하위 카테고리가 없습니다.'
+      );
+    });
+
+    it('should throw error when no questions found', async () => {
+      const childCategories = [{ id: 11 }, { id: 12 }];
+
+      mockCategoryRepository.find
+        .mockResolvedValueOnce(childCategories)
+        .mockResolvedValueOnce(childCategories);
+
+      const mockQueryBuilder = {
+        innerJoin: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        addOrderBy: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        getMany: jest.fn().mockResolvedValue([]), // 문제 없음
       };
 
-      const submissions = [{ playerId: 'player1', answer: 'Student answer', submittedAt: Date.now() }];
+      mockQuestionRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
 
-      mockClovaClient.callClova.mockResolvedValue({
-        grades: [
-          {
-            playerId: 'player1',
-            isCorrect: true,
-            score: 8,
-            feedback: 'Good!',
-          },
-        ],
-      });
+      await expect(service.generateSinglePlayQuestions([1], 10)).rejects.toThrow(
+        '선택한 카테고리에 문제가 없습니다.'
+      );
+    });
 
-      await service.gradeSubjectiveQuestion(essayQuestion, submissions);
+    it('should query questions with correct filters', async () => {
+      const childCategories = [{ id: 11 }, { id: 12 }];
 
-      const callArgs = mockClovaClient.callClova.mock.calls[0][0];
-      expect(callArgs.userMessage).toContain('[정답] This is a sample answer');
+      const mockQuestions = [
+        {
+          id: 1,
+          questionType: 'short' as const,
+          content: 'Test question',
+          correctAnswer: 'Test answer',
+          difficulty: 2,
+          isActive: true,
+        },
+      ];
+
+      mockCategoryRepository.find
+        .mockResolvedValueOnce(childCategories)
+        .mockResolvedValueOnce(childCategories);
+
+      const mockQueryBuilder = {
+        innerJoin: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        addOrderBy: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        getMany: jest.fn().mockResolvedValue(mockQuestions),
+      };
+
+      mockQuestionRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
+
+      await service.generateSinglePlayQuestions([1], 10);
+
+      // 올바른 조인 확인
+      expect(mockQueryBuilder.innerJoin).toHaveBeenCalledWith('q.categoryQuestions', 'cq');
+
+      // 활성화된 문제만 조회
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith('q.isActive = :isActive', { isActive: true });
+
+      // 하위 카테고리 ID로 필터링
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'cq.categoryId IN (:...childIds)',
+        { childIds: [11, 12] }
+      );
+
+      // 정렬 순서 확인
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith('q.usageCount', 'ASC');
+      expect(mockQueryBuilder.addOrderBy).toHaveBeenCalledWith('q.qualityScore', 'DESC');
+      expect(mockQueryBuilder.addOrderBy).toHaveBeenCalledWith('RANDOM()');
     });
   });
 });
