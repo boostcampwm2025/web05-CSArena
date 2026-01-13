@@ -4,6 +4,7 @@ import { RoundProvider } from '@/feature/matching/useRound';
 
 import Matching from './components/Matching';
 import InGame from './components/InGame';
+import MatchResult from './components/MatchResult';
 
 export default function Match() {
   const { matchState } = useMatch();
@@ -30,6 +31,7 @@ export default function Match() {
           <InGame />
         </RoundProvider>
       )}
+      {matchState === 'match-end' && <MatchResult />}
     </div>
   );
 }

@@ -1,10 +1,10 @@
 import { createContext, useContext } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { MatchEnqueueRes, MatchFound } from '@/lib/socket/event';
+import { MatchEnd, MatchEnqueueRes, MatchFound } from '@/lib/socket/event';
 import { getSocket } from '@/lib/socket';
 
-type MatchState = 'matching' | 'inGame';
+type MatchState = 'matching' | 'inGame' | 'match-end';
 type OpponentInfo = { nickname: string; tier: string; expPoint: number } | null;
 
 type QuestionContent =
@@ -37,6 +37,7 @@ type MatchAPI = {
   matchState: MatchState;
   opponentInfo: OpponentInfo;
   matchResult: MatchResult;
+  setMatchResult: React.Dispatch<React.SetStateAction<MatchResult>>;
 };
 
 const MatchCtx = createContext<MatchAPI | null>(null);
@@ -70,11 +71,22 @@ export function MatchProvider({ children }: { children: React.ReactNode }) {
     setMatchState('inGame');
   }, []);
 
+  const handleMatchEnd = useCallback((payload: MatchEnd) => {
+    setMatchResult((prev) => ({
+      ...prev,
+      myTotalPoints: payload.finalScores.my,
+      opponentTotalPoints: payload.finalScores.opponent,
+    }));
+
+    setMatchState('match-end');
+  }, []);
+
   useEffect(() => {
     const socket = socketRef.current;
 
     socket.on('connect', handleConnect);
     socket.on('match:found', handleMatchFound);
+    socket.on('match:end', handleMatchEnd);
 
     if (!socket.connected) {
       socket.connect();
@@ -85,10 +97,11 @@ export function MatchProvider({ children }: { children: React.ReactNode }) {
     return () => {
       socket.off('connect', handleConnect);
       socket.off('match:found', handleMatchFound);
+      socket.off('match:end', handleMatchEnd);
 
       socket.disconnect();
     };
-  }, [handleConnect, handleMatchFound]);
+  }, [handleConnect, handleMatchFound, handleMatchEnd]);
 
   return (
     <MatchCtx.Provider value={{ matchState, opponentInfo, matchResult, setMatchResult }}>
