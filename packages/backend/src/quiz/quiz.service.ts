@@ -28,15 +28,15 @@ export class QuizService {
   ) {}
 
   /**
-   * 문제 생성
+   * 게임용 문제 조회 (DB 엔티티 반환)
    * - 비즈니스 로직에 따라 균형있게 5개 질문을 조회
    * - 난이도 균형: easy 2개, medium 2개, hard 1개 (2:2:1)
    * - 타입 다양성: multiple 2개, short 2개, essay 1개
    * - 사용 빈도: usageCount 낮은 것 우선
    * - 품질 우선: qualityScore 높은 것 우선
-   * @throws {InternalServerErrorException} DB에 충분한 질문이 없거나 변환 중 오류 발생 시
+   * @throws {InternalServerErrorException} DB에 충분한 질문이 없을 시
    */
-  async generateQuestion(): Promise<Question[]> {
+  async getQuestionsForGame(): Promise<QuestionEntity[]> {
     const questions: QuestionEntity[] = [];
 
     // 1. Easy 난이도 (1-2) 2개: multiple 1개, short 1개
@@ -92,7 +92,22 @@ export class QuizService {
       );
     }
 
-    // 7. Entity -> quiz.types.ts 타입으로 변환
+    return questions;
+  }
+
+  /**
+   * 문제 생성 (게임 타입으로 변환)
+   * - 비즈니스 로직에 따라 균형있게 5개 질문을 조회
+   * - 난이도 균형: easy 2개, medium 2개, hard 1개 (2:2:1)
+   * - 타입 다양성: multiple 2개, short 2개, essay 1개
+   * - 사용 빈도: usageCount 낮은 것 우선
+   * - 품질 우선: qualityScore 높은 것 우선
+   * @throws {InternalServerErrorException} DB에 충분한 질문이 없거나 변환 중 오류 발생 시
+   */
+  async generateQuestion(): Promise<Question[]> {
+    const questions = await this.getQuestionsForGame();
+
+    // Entity -> quiz.types.ts 타입으로 변환
     try {
       return questions.map((q) => this.convertToQuizType(q));
     } catch (error) {
