@@ -9,34 +9,20 @@ interface TimerSet {
 
 @Injectable()
 export class RoundTimer {
-  private timers = new Map<string, TimerSet>();
+  private readonly timers = new Map<string, TimerSet>();
 
   /**
    * 준비 카운트다운 타이머 시작
    */
   startReadyCountdown(roomId: string, duration: number, callback: () => void): void {
-    this.clearReadyTimer(roomId);
-
-    const timer = setTimeout(() => {
-      callback();
-      this.clearReadyTimer(roomId);
-    }, duration * 1000);
-
-    this.getOrCreateTimerSet(roomId).readyTimer = timer;
+    this.startTimer(roomId, 'readyTimer', duration, callback);
   }
 
   /**
    * 문제 풀이 타이머 시작
    */
   startQuestionTimer(roomId: string, duration: number, onTimeout: () => void): void {
-    this.clearQuestionTimer(roomId);
-
-    const timer = setTimeout(() => {
-      onTimeout();
-      this.clearQuestionTimer(roomId);
-    }, duration * 1000);
-
-    this.getOrCreateTimerSet(roomId).questionTimer = timer;
+    this.startTimer(roomId, 'questionTimer', duration, onTimeout);
   }
 
   /**
@@ -70,26 +56,33 @@ export class RoundTimer {
    * 결과 확인 타이머 시작
    */
   startReviewTimer(roomId: string, duration: number, callback: () => void): void {
-    this.clearReviewTimer(roomId);
+    this.startTimer(roomId, 'reviewTimer', duration, callback);
+  }
+
+  /**
+   * 공통 타이머 시작 로직
+   */
+  private startTimer(
+    roomId: string,
+    timerKey: 'readyTimer' | 'questionTimer' | 'reviewTimer',
+    duration: number,
+    callback: () => void,
+  ): void {
+    this.clearTimer(roomId, timerKey);
 
     const timer = setTimeout(() => {
       callback();
-      this.clearReviewTimer(roomId);
+      this.clearTimer(roomId, timerKey);
     }, duration * 1000);
 
-    this.getOrCreateTimerSet(roomId).reviewTimer = timer;
+    this.getOrCreateTimerSet(roomId)[timerKey] = timer;
   }
 
   /**
    * 문제 풀이 타이머만 정리
    */
   clearQuestionTimer(roomId: string): void {
-    const timerSet = this.timers.get(roomId);
-
-    if (timerSet?.questionTimer) {
-      clearTimeout(timerSet.questionTimer);
-      timerSet.questionTimer = undefined;
-    }
+    this.clearTimer(roomId, 'questionTimer');
   }
 
   /**
@@ -105,26 +98,17 @@ export class RoundTimer {
   }
 
   /**
-   * 준비 타이머만 정리
+   * 공통 타이머 정리 로직
    */
-  private clearReadyTimer(roomId: string): void {
+  private clearTimer(
+    roomId: string,
+    timerKey: 'readyTimer' | 'questionTimer' | 'reviewTimer',
+  ): void {
     const timerSet = this.timers.get(roomId);
 
-    if (timerSet?.readyTimer) {
-      clearTimeout(timerSet.readyTimer);
-      timerSet.readyTimer = undefined;
-    }
-  }
-
-  /**
-   * 결과 타이머만 정리
-   */
-  private clearReviewTimer(roomId: string): void {
-    const timerSet = this.timers.get(roomId);
-
-    if (timerSet?.reviewTimer) {
-      clearTimeout(timerSet.reviewTimer);
-      timerSet.reviewTimer = undefined;
+    if (timerSet?.[timerKey]) {
+      clearTimeout(timerSet[timerKey]);
+      timerSet[timerKey] = undefined;
     }
   }
 
