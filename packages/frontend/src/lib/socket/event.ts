@@ -24,7 +24,7 @@ export type RoundStart = {
   durationSec: number;
   question: {
     category: string[];
-    difficulty: number;
+    difficulty: 'Easy' | 'Medium' | 'Hard';
     content:
       | { type: 'multiple'; question: string; option: string[] }
       | { type: 'short'; question: string }

@@ -28,21 +28,21 @@ export default function Playing() {
                   100 PTS
                 </p>
               </div>
-              {difficulty < 3 && (
+              {difficulty === 'Easy' && (
                 <div className="border-2 border-green-300 bg-green-500 px-4 py-2">
                   <p className="text-sm font-bold text-white" style={{ fontFamily: 'Orbitron' }}>
                     Easy
                   </p>
                 </div>
               )}
-              {difficulty === 3 && (
+              {difficulty === 'Medium' && (
                 <div className="border-2 border-yellow-300 bg-yellow-500 px-4 py-2">
                   <p className="text-sm font-bold text-white" style={{ fontFamily: 'Orbitron' }}>
                     Medium
                   </p>
                 </div>
               )}
-              {difficulty > 3 && (
+              {difficulty === 'Hard' && (
                 <div className="border-2 border-red-300 bg-red-500 px-4 py-2">
                   <p className="text-sm font-bold text-white" style={{ fontFamily: 'Orbitron' }}>
                     Hard

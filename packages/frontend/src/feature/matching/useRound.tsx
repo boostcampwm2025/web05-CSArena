@@ -25,7 +25,7 @@ type RoundTickAPI = {
 
 type QuestionAPI = {
   category: string[];
-  difficulty: number;
+  difficulty: 'Easy' | 'Medium' | 'Hard';
   content: QuestionContent;
 };
 
@@ -54,7 +54,7 @@ export function RoundProvider({ children }: { children: React.ReactNode }) {
   const [endTime, setEndTime] = useState<number>(0);
   const [remainedSec, setRemainedSec] = useState<number>(0);
   const [category, setCategory] = useState<string[]>([]);
-  const [difficulty, setDifficulty] = useState<number>(0);
+  const [difficulty, setDifficulty] = useState<'Easy' | 'Medium' | 'Hard'>('Easy');
   const [content, setContent] = useState<QuestionContent>(null);
   const [myAnswer, setMyAnswer] = useState<string>('');
   const [myDelta, setMyDelta] = useState<number>(0);
