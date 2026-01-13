@@ -2,7 +2,7 @@ import { QueueSession } from './queue/queue.session';
 import { UserInfo } from '../game/interfaces/user.interface';
 import { randomUUID } from 'crypto';
 
-export class MatchSessionManager {
+export class MatchmakingSessionManager {
   private socketToUser = new Map<string, string>();
   private userToSocket = new Map<string, string>();
   private queueSessions = new Map<string, QueueSession>();

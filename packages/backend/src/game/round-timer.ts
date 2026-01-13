@@ -3,13 +3,20 @@ import { Injectable } from '@nestjs/common';
 interface TimerSet {
   readyTimer?: NodeJS.Timeout;
   questionTimer?: NodeJS.Timeout;
-  tickInterval?: NodeJS.Timeout;
   reviewTimer?: NodeJS.Timeout;
+}
+
+interface TickRoom {
+  endAt: number;
+  onTick: (remainedSec: number) => void;
+  active: boolean;
 }
 
 @Injectable()
 export class RoundTimer {
-  private readonly timers = new Map<string, TimerSet>();
+  private timers = new Map<string, TimerSet>();
+  private tickRooms = new Map<string, TickRoom>();
+  private globalTickInterval?: NodeJS.Timeout;
 
   /**
    * 준비 카운트다운 타이머 시작
@@ -26,30 +33,72 @@ export class RoundTimer {
   }
 
   /**
-   * 시간 동기화 틱 인터벌 시작
+   * 시간 동기화 틱 인터벌 시작 (전역 틱 방식)
+   *
+   * 게임 시작 시 방을 등록하고, 각 라운드마다 endAt만 업데이트합니다.
+   * 방은 게임이 완전히 종료될 때까지 유지됩니다.
    */
   startTickInterval(
     roomId: string,
     totalDuration: number,
     onTick: (remainedSec: number) => void,
   ): void {
-    this.clearTickInterval(roomId);
+    const endAt = Date.now() + totalDuration * 1000;
 
-    let remainedSec = totalDuration;
+    // 방이 이미 존재하면 endAt과 onTick만 업데이트, 없으면 새로 생성
+    const existingRoom = this.tickRooms.get(roomId);
+
+    if (existingRoom) {
+      existingRoom.endAt = endAt;
+      existingRoom.onTick = onTick;
+      existingRoom.active = true;
+    } else {
+      this.tickRooms.set(roomId, { endAt, onTick, active: true });
+    }
 
     // 즉시 첫 틱 전송
-    onTick(remainedSec);
+    onTick(totalDuration);
 
-    const interval = setInterval(() => {
-      remainedSec--;
-      onTick(remainedSec);
+    // 전역 틱 인터벌이 없으면 시작
+    if (!this.globalTickInterval) {
+      this.startGlobalTick();
+    }
+  }
 
-      if (remainedSec <= 0) {
-        this.clearTickInterval(roomId);
+  /**
+   * 전역 틱 인터벌 시작 (모든 방에 대해 1초마다 브로드캐스팅)
+   *
+   * 단일 setInterval로 모든 방의 타이머를 관리합니다.
+   * 방이 100개여도 setInterval은 1개만 사용됩니다.
+   */
+  private startGlobalTick(): void {
+    this.globalTickInterval = setInterval(() => {
+      const now = Date.now();
+      let hasActiveRoom = false;
+
+      // 모든 방을 순회하며 활성 상태인 방만 처리
+      for (const room of this.tickRooms.values()) {
+        // 비활성 방은 스킵
+        if (!room.active) {
+          continue;
+        }
+
+        hasActiveRoom = true;
+        const remainedSec = Math.max(0, Math.ceil((room.endAt - now) / 1000));
+        room.onTick(remainedSec);
+
+        // 현재 라운드 시간이 종료되면 비활성화 (다음 라운드에서 재활성화됨)
+        if (remainedSec <= 0) {
+          room.active = false;
+        }
+      }
+
+      // 활성 방이 없으면 전역 인터벌 정리 (새로운 라운드 시작 시 다시 생성됨)
+      if (!hasActiveRoom) {
+        clearInterval(this.globalTickInterval);
+        this.globalTickInterval = undefined;
       }
     }, 1000);
-
-    this.getOrCreateTimerSet(roomId).tickInterval = interval;
   }
 
   /**
@@ -86,14 +135,13 @@ export class RoundTimer {
   }
 
   /**
-   * 틱 인터벌만 정리
+   * 틱 인터벌 정지 (방은 유지하고 비활성화만 함)
    */
   clearTickInterval(roomId: string): void {
-    const timerSet = this.timers.get(roomId);
+    const room = this.tickRooms.get(roomId);
 
-    if (timerSet?.tickInterval) {
-      clearInterval(timerSet.tickInterval);
-      timerSet.tickInterval = undefined;
+    if (room) {
+      room.active = false;
     }
   }
 
@@ -113,32 +161,35 @@ export class RoundTimer {
   }
 
   /**
-   * 모든 타이머 정리
+   * 모든 타이머 정리 (게임 종료 시 호출)
    */
   clearAllTimers(roomId: string): void {
     const timerSet = this.timers.get(roomId);
 
-    if (!timerSet) {
-      return;
+    if (timerSet) {
+      if (timerSet.readyTimer) {
+        clearTimeout(timerSet.readyTimer);
+      }
+
+      if (timerSet.questionTimer) {
+        clearTimeout(timerSet.questionTimer);
+      }
+
+      if (timerSet.reviewTimer) {
+        clearTimeout(timerSet.reviewTimer);
+      }
+
+      this.timers.delete(roomId);
     }
 
-    if (timerSet.readyTimer) {
-      clearTimeout(timerSet.readyTimer);
-    }
+    // 게임 종료이므로 tickRooms에서 방 완전히 제거
+    this.tickRooms.delete(roomId);
 
-    if (timerSet.questionTimer) {
-      clearTimeout(timerSet.questionTimer);
+    // 모든 방이 종료되면 전역 인터벌 정리
+    if (this.tickRooms.size === 0 && this.globalTickInterval) {
+      clearInterval(this.globalTickInterval);
+      this.globalTickInterval = undefined;
     }
-
-    if (timerSet.tickInterval) {
-      clearInterval(timerSet.tickInterval);
-    }
-
-    if (timerSet.reviewTimer) {
-      clearTimeout(timerSet.reviewTimer);
-    }
-
-    this.timers.delete(roomId);
   }
 
   /**

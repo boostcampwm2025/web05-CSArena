@@ -1,6 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { randomUUID } from 'crypto';
-import { QueueSession } from '../matchmaking/queue/queue.session';
 import { UserInfo } from './interfaces/user.interface';
 import { Question } from '../quiz/quiz.types';
 import {
@@ -14,122 +12,48 @@ import {
 
 @Injectable()
 export class GameSessionManager {
-  private socketToUser = new Map<string, string>();
-  private userToSocket = new Map<string, string>();
-  private queueSessions = new Map<string, QueueSession>();
-  private roomSessions = new Map<string, Set<string>>();
   private gameSessions = new Map<string, GameSession>();
 
-  registerUser(socketId: string, userId: string): void {
-    this.socketToUser.set(socketId, userId);
-    this.userToSocket.set(userId, socketId);
-  }
+  /**
+   * socketId로 userId 조회 (게임 세션에서)
+   */
+  getUserIdBySocketId(socketId: string): string | null {
+    for (const session of this.gameSessions.values()) {
+      if (session.player1SocketId === socketId) {
+        return session.player1Id;
+      }
 
-  createQueueSession(socketId: string, userId: string, userInfo: UserInfo): string {
-    const sessionId = randomUUID();
-    const session: QueueSession = {
-      sessionId,
-      socketId,
-      userId,
-      userInfo,
-    };
-
-    this.socketToUser.set(socketId, userId);
-    this.userToSocket.set(userId, socketId);
-    this.queueSessions.set(sessionId, session);
-
-    return sessionId;
-  }
-
-  getQueueSession(sessionId: string): QueueSession | undefined {
-    return this.queueSessions.get(sessionId);
-  }
-
-  getQueueSessionBySocketId(socketId: string): QueueSession | undefined {
-    return Array.from(this.queueSessions.values()).find((s) => s.socketId === socketId);
-  }
-
-  getQueueSessionByUserId(userId: string): QueueSession | undefined {
-    return Array.from(this.queueSessions.values()).find((s) => s.userId === userId);
-  }
-
-  removeQueueSession(sessionId: string): void {
-    const session = this.queueSessions.get(sessionId);
-
-    if (session) {
-      this.socketToUser.delete(session.socketId);
-      this.userToSocket.delete(session.userId);
-      this.queueSessions.delete(sessionId);
-    }
-  }
-
-  getUserId(socketId: string): string | undefined {
-    return this.socketToUser.get(socketId);
-  }
-
-  addToRoom(roomId: string, userId: string): void {
-    if (!this.roomSessions.has(roomId)) {
-      this.roomSessions.set(roomId, new Set());
-    }
-
-    this.roomSessions.get(roomId).add(userId);
-  }
-
-  removeFromRoom(roomId: string, userId: string): void {
-    const room = this.roomSessions.get(roomId);
-
-    if (room) {
-      room.delete(userId);
-
-      if (room.size === 0) {
-        this.roomSessions.delete(roomId);
+      if (session.player2SocketId === socketId) {
+        return session.player2Id;
       }
     }
+
+    return null;
   }
 
-  getUserRoom(userId: string): string | undefined {
-    for (const [roomId, users] of this.roomSessions.entries()) {
-      if (users.has(userId)) {
+  /**
+   * socketId로 roomId 조회 (게임 세션에서)
+   */
+  getRoomBySocketId(socketId: string): string | null {
+    for (const [roomId, session] of this.gameSessions.entries()) {
+      if (session.player1SocketId === socketId || session.player2SocketId === socketId) {
         return roomId;
       }
     }
 
-    return undefined;
+    return null;
   }
 
-  getRoomBySocketId(socketId: string): string | undefined {
-    const userId = this.socketToUser.get(socketId);
-
-    if (!userId) {
-      return undefined;
-    }
-
-    return this.getUserRoom(userId);
-  }
-
-  disconnect(socketId: string): { userId?: string; sessionId?: string; roomId?: string } {
-    const userId = this.socketToUser.get(socketId);
-    const session = this.getQueueSessionBySocketId(socketId);
-    const roomId = userId ? this.getUserRoom(userId) : undefined;
-
-    if (session) {
-      this.removeQueueSession(session.sessionId);
-    }
-
-    if (userId && roomId) {
-      this.removeFromRoom(roomId, userId);
-    }
-
-    this.socketToUser.delete(socketId);
-
-    if (userId) {
-      this.userToSocket.delete(userId);
-    }
+  /**
+   * 게임 세션에서 연결 해제 처리
+   */
+  disconnectFromGame(socketId: string): { userId?: string; roomId?: string } {
+    const roomId = this.getRoomBySocketId(socketId);
+    const userId = this.getUserIdBySocketId(socketId);
 
     return {
-      userId,
-      sessionId: session?.sessionId,
-      roomId,
+      userId: userId || undefined,
+      roomId: roomId || undefined,
     };
   }
 
@@ -141,6 +65,7 @@ export class GameSessionManager {
     roomId: string,
     player1Id: string,
     player1SocketId: string,
+
     player1Info: UserInfo,
     player2Id: string,
     player2SocketId: string,

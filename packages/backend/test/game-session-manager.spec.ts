@@ -536,8 +536,15 @@ describe('GameSessionManager - Game Session Management', () => {
 
   describe('getRoomBySocketId', () => {
     beforeEach(() => {
-      sessionManager.registerUser('socket1', 'user1');
-      sessionManager.addToRoom('room-1', 'user1');
+      sessionManager.createGameSession(
+        'room-1',
+        'user1',
+        'socket1',
+        mockUserInfo1,
+        'user2',
+        'socket2',
+        mockUserInfo2,
+      );
     });
 
     it('socketId로 roomId를 조회할 수 있어야 함', () => {
@@ -546,18 +553,82 @@ describe('GameSessionManager - Game Session Management', () => {
       expect(roomId).toBe('room-1');
     });
 
-    it('등록되지 않은 socketId 조회 시 undefined를 반환해야 함', () => {
-      const roomId = sessionManager.getRoomBySocketId('non-existent');
-
-      expect(roomId).toBeUndefined();
-    });
-
-    it('방에 참여하지 않은 userId의 socketId 조회 시 undefined를 반환해야 함', () => {
-      sessionManager.registerUser('socket2', 'user2');
-
+    it('player2의 socketId로도 roomId를 조회할 수 있어야 함', () => {
       const roomId = sessionManager.getRoomBySocketId('socket2');
 
-      expect(roomId).toBeUndefined();
+      expect(roomId).toBe('room-1');
+    });
+
+    it('등록되지 않은 socketId 조회 시 null을 반환해야 함', () => {
+      const roomId = sessionManager.getRoomBySocketId('non-existent');
+
+      expect(roomId).toBeNull();
+    });
+
+    it('게임 세션이 없는 socketId 조회 시 null을 반환해야 함', () => {
+      const roomId = sessionManager.getRoomBySocketId('socket3');
+
+      expect(roomId).toBeNull();
+    });
+  });
+
+  describe('getUserIdBySocketId', () => {
+    beforeEach(() => {
+      sessionManager.createGameSession(
+        'room-1',
+        'user1',
+        'socket1',
+        mockUserInfo1,
+        'user2',
+        'socket2',
+        mockUserInfo2,
+      );
+    });
+
+    it('socketId로 userId를 조회할 수 있어야 함', () => {
+      const userId = sessionManager.getUserIdBySocketId('socket1');
+
+      expect(userId).toBe('user1');
+    });
+
+    it('player2의 socketId로도 userId를 조회할 수 있어야 함', () => {
+      const userId = sessionManager.getUserIdBySocketId('socket2');
+
+      expect(userId).toBe('user2');
+    });
+
+    it('등록되지 않은 socketId 조회 시 null을 반환해야 함', () => {
+      const userId = sessionManager.getUserIdBySocketId('non-existent');
+
+      expect(userId).toBeNull();
+    });
+  });
+
+  describe('disconnectFromGame', () => {
+    beforeEach(() => {
+      sessionManager.createGameSession(
+        'room-1',
+        'user1',
+        'socket1',
+        mockUserInfo1,
+        'user2',
+        'socket2',
+        mockUserInfo2,
+      );
+    });
+
+    it('socketId로 연결 해제 정보를 반환해야 함', () => {
+      const disconnectInfo = sessionManager.disconnectFromGame('socket1');
+
+      expect(disconnectInfo.userId).toBe('user1');
+      expect(disconnectInfo.roomId).toBe('room-1');
+    });
+
+    it('등록되지 않은 socketId의 경우 undefined를 반환해야 함', () => {
+      const disconnectInfo = sessionManager.disconnectFromGame('non-existent');
+
+      expect(disconnectInfo.userId).toBeUndefined();
+      expect(disconnectInfo.roomId).toBeUndefined();
     });
   });
 });

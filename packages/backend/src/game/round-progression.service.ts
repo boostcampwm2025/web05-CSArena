@@ -100,6 +100,7 @@ export class RoundProgressionService {
 
       // round:start 이벤트 발송
       const startedAt = Date.now();
+
       this.server.to(roomId).emit('round:start', {
         startedAt,
         durationSec: questionDuration,
@@ -150,9 +151,25 @@ export class RoundProgressionService {
       this.sessionManager.setPhase(roomId, 'review');
       const session = this.sessionManager.getGameSession(roomId);
       const roundResult = this.sessionManager.getRoundResult(roomId);
+      const question = this.sessionManager.getQuestion(roomId);
 
       if (!roundResult) {
         throw new Error(`Round result not found for room ${roomId}`);
+      }
+
+      if (!question) {
+        throw new Error(`Question not found for room ${roomId}`);
+      }
+
+      // 문제 타입에 따라 정답 추출
+      let bestAnswer: string;
+
+      if (question.type === 'multiple_choice') {
+        bestAnswer = question.answer;
+      } else if (question.type === 'short_answer') {
+        bestAnswer = question.answer;
+      } else {
+        bestAnswer = question.sampleAnswer;
       }
 
       const startedAt = Date.now();
@@ -180,7 +197,7 @@ export class RoundProgressionService {
           },
         },
         solution: {
-          bestAnswer: 'Correct answer here', // TODO: 실제 정답
+          bestAnswer,
           explanation: player1Grade.feedback,
         },
       });
@@ -204,7 +221,7 @@ export class RoundProgressionService {
           },
         },
         solution: {
-          bestAnswer: 'Correct answer here', // TODO: 실제 정답
+          bestAnswer,
           explanation: player2Grade.feedback,
         },
       });

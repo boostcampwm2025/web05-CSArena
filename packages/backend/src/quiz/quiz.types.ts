@@ -3,6 +3,7 @@ interface BaseQuestion {
   type: QuestionType;
   difficulty: Difficulty;
   question: string;
+  category?: string[]; // [대주제, 소주제]
 }
 
 export type QuestionType = 'multiple_choice' | 'short_answer' | 'essay';

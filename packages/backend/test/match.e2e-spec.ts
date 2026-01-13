@@ -2,8 +2,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import { io, Socket } from 'socket.io-client';
 import { GameModule } from '../src/game/game.module';
+import { MatchmakingModule } from '../src/matchmaking/matchmaking.module';
 import { QuizModule } from '../src/quiz/quiz.module';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
 
 describe('Match Gateway Integration (e2e)', () => {
   let app: INestApplication;
@@ -17,7 +19,22 @@ describe('Match Gateway Integration (e2e)', () => {
         ConfigModule.forRoot({
           isGlobal: true,
         }),
+        TypeOrmModule.forRootAsync({
+          imports: [ConfigModule],
+          useFactory: (configService: ConfigService) => ({
+            type: 'postgres',
+            host: configService.get('DB_HOST', 'localhost'),
+            port: configService.get('DB_PORT', 5432),
+            username: configService.get('DB_USERNAME', 'postgres'),
+            password: configService.get('DB_PASSWORD', 'postgres'),
+            database: configService.get('DB_DATABASE', 'boostcamp'),
+            entities: [__dirname + '/../src/**/*.entity{.ts,.js}'],
+            synchronize: true,
+          }),
+          inject: [ConfigService],
+        }),
         QuizModule,
+        MatchmakingModule,
         GameModule,
       ],
     }).compile();
@@ -38,7 +55,7 @@ describe('Match Gateway Integration (e2e)', () => {
 
   describe('매칭 기본 플로우', () => {
     it('두 클라이언트가 연결하고 매칭 요청 시 match:found 이벤트를 받아야 함', (done) => {
-      const serverUrl = `http://localhost:${port}`;
+      const serverUrl = `http://localhost:${port}/ws`;
 
       client1 = io(serverUrl, {
         transports: ['websocket'],
@@ -106,7 +123,7 @@ describe('Match Gateway Integration (e2e)', () => {
     }, 10000);
 
     it('단일 클라이언트는 match:found를 받지 않아야 함', (done) => {
-      const serverUrl = `http://localhost:${port}`;
+      const serverUrl = `http://localhost:${port}/ws`;
 
       client1 = io(serverUrl, {
         transports: ['websocket'],
@@ -135,7 +152,7 @@ describe('Match Gateway Integration (e2e)', () => {
 
   describe('매칭 취소 기능', () => {
     it('클라이언트가 match:dequeue를 통해 매칭 큐에서 나갈 수 있어야 함', (done) => {
-      const serverUrl = `http://localhost:${port}`;
+      const serverUrl = `http://localhost:${port}/ws`;
 
       client1 = io(serverUrl, {
         transports: ['websocket'],
@@ -168,7 +185,7 @@ describe('Match Gateway Integration (e2e)', () => {
     }, 5000);
 
     it('매칭 취소 후 다른 클라이언트와 매칭되지 않아야 함', (done) => {
-      const serverUrl = `http://localhost:${port}`;
+      const serverUrl = `http://localhost:${port}/ws`;
 
       client1 = io(serverUrl, {
         transports: ['websocket'],
@@ -230,7 +247,7 @@ describe('Match Gateway Integration (e2e)', () => {
 
   describe('연결 끊김 처리', () => {
     it('클라이언트 연결 끊김 시 큐에서 자동으로 제거되어야 함', (done) => {
-      const serverUrl = `http://localhost:${port}`;
+      const serverUrl = `http://localhost:${port}/ws`;
 
       client1 = io(serverUrl, {
         transports: ['websocket'],
@@ -284,7 +301,7 @@ describe('Match Gateway Integration (e2e)', () => {
 
   describe('동시 매칭 요청', () => {
     it('중복 매칭 요청 시 같은 세션 ID를 반환해야 함', (done) => {
-      const serverUrl = `http://localhost:${port}`;
+      const serverUrl = `http://localhost:${port}/ws`;
 
       client1 = io(serverUrl, {
         transports: ['websocket'],
@@ -320,7 +337,7 @@ describe('Match Gateway Integration (e2e)', () => {
 
   describe('게임 시작 플로우', () => {
     it('매칭이 완료되면 두 플레이어가 match:found를 받아야 함', (done) => {
-      const serverUrl = `http://localhost:${port}`;
+      const serverUrl = `http://localhost:${port}/ws`;
 
       client1 = io(serverUrl, {
         transports: ['websocket'],
@@ -382,7 +399,7 @@ describe('Match Gateway Integration (e2e)', () => {
 
   describe('에러 처리', () => {
     it('잘못된 세션 ID로 dequeue 시 에러 반환', (done) => {
-      const serverUrl = `http://localhost:${port}`;
+      const serverUrl = `http://localhost:${port}/ws`;
 
       client1 = io(serverUrl, {
         transports: ['websocket'],
@@ -406,7 +423,7 @@ describe('Match Gateway Integration (e2e)', () => {
 
   describe('사용자 정보 전달', () => {
     it('연결 시 user:info 이벤트로 사용자 정보를 받아야 함', (done) => {
-      const serverUrl = `http://localhost:${port}`;
+      const serverUrl = `http://localhost:${port}/ws`;
 
       client1 = io(serverUrl, {
         transports: ['websocket'],
@@ -434,7 +451,7 @@ describe('Match Gateway Integration (e2e)', () => {
 
   describe('다중 사용자 동시 매칭', () => {
     it('여러 클라이언트가 동시에 접속하면 올바르게 페어링되어야 함', (done) => {
-      const serverUrl = `http://localhost:${port}`;
+      const serverUrl = `http://localhost:${port}/ws`;
       const clients: Socket[] = [];
       const opponentNicknames: string[] = [];
       const totalClients = 6;
@@ -486,7 +503,7 @@ describe('Match Gateway Integration (e2e)', () => {
     }, 20000);
 
     it('홀수 명의 클라이언트 접속 시 마지막 한 명은 대기 상태여야 함', (done) => {
-      const serverUrl = `http://localhost:${port}`;
+      const serverUrl = `http://localhost:${port}/ws`;
       const clients: Socket[] = [];
       const totalClients = 5; // 2쌍 매칭, 1명 대기
       let matchFoundCount = 0;
@@ -530,7 +547,7 @@ describe('Match Gateway Integration (e2e)', () => {
 
   describe('match:enqueue 후 match:found 이벤트 호출 확인', () => {
     it('match:enqueue 실행 후 상대가 있으면 match:found가 호출되어야 함', (done) => {
-      const serverUrl = `http://localhost:${port}`;
+      const serverUrl = `http://localhost:${port}/ws`;
       let client1MatchFound = false;
       let client2MatchFound = false;
 
@@ -601,7 +618,7 @@ describe('Match Gateway Integration (e2e)', () => {
     }, 10000);
 
     it('match:enqueue 실행 후 상대가 없으면 match:found가 호출되지 않아야 함', (done) => {
-      const serverUrl = `http://localhost:${port}`;
+      const serverUrl = `http://localhost:${port}/ws`;
       let matchFoundCalled = false;
 
       client1 = io(serverUrl, {
@@ -633,7 +650,7 @@ describe('Match Gateway Integration (e2e)', () => {
     }, 5000);
 
     it('연속으로 match:enqueue를 호출해도 중복 매칭이 발생하지 않아야 함', (done) => {
-      const serverUrl = `http://localhost:${port}`;
+      const serverUrl = `http://localhost:${port}/ws`;
       let client1MatchCount = 0;
       let client2MatchCount = 0;
 
@@ -692,7 +709,7 @@ describe('Match Gateway Integration (e2e)', () => {
 
   describe('비동기 이벤트 순서 검증', () => {
     it('match:enqueue에 대한 응답이 match:found 이벤트보다 먼저 도착해야 함 (setImmediate 확인)', (done) => {
-      const serverUrl = `http://localhost:${port}`;
+      const serverUrl = `http://localhost:${port}/ws`;
       let enqueueResponseReceived = false;
       let matchFoundReceived = false;
 

@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
-import { Server } from 'socket.io';
 import { GameSessionManager } from './game-session-manager';
 import { QuizService } from '../quiz/quiz.service';
 import { UserInfo } from './interfaces/user.interface';
@@ -25,7 +24,10 @@ export class GameService {
     private readonly aiService: QuizService,
   ) {}
 
-  startGame(
+  /**
+   * 매칭 성공 후 게임 세션 생성
+   */
+  startGameFromMatch(
     roomId: string,
     player1Id: string,
     player1SocketId: string,
@@ -33,8 +35,8 @@ export class GameService {
     player2Id: string,
     player2SocketId: string,
     player2Info: UserInfo,
-    _server: Server,
   ): void {
+    // 게임 세션 생성
     this.sessionManager.createGameSession(
       roomId,
       player1Id,
@@ -44,10 +46,6 @@ export class GameService {
       player2SocketId,
       player2Info,
     );
-  }
-
-  handlePlayerDisconnect(_roomId: string, _userId: string): void {
-    // TODO: 연결 해제 처리 구현 예정
   }
 
   // ============================================

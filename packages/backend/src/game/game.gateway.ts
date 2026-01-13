@@ -1,7 +1,6 @@
 import {
   ConnectedSocket,
   MessageBody,
-  OnGatewayConnection,
   OnGatewayDisconnect,
   OnGatewayInit,
   SubscribeMessage,
@@ -10,7 +9,6 @@ import {
 } from '@nestjs/websockets';
 import { Logger } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
-import { MatchmakingService } from '../matchmaking/matchmaking.service';
 import { GameService } from './game.service';
 import { GameSessionManager } from './game-session-manager';
 import { RoundProgressionService } from './round-progression.service';
@@ -18,26 +16,30 @@ import { RoundTimer } from './round-timer';
 import { SubmitAnswerRequest, SubmitAnswerResponse } from './interfaces/game.interfaces';
 
 @WebSocketGateway({ namespace: '/ws', cors: true })
-export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
+export class GameGateway implements OnGatewayDisconnect, OnGatewayInit {
   private readonly logger = new Logger(GameGateway.name);
 
   @WebSocketServer()
   server: Server;
 
   constructor(
-    private readonly matchmakingService: MatchmakingService,
     private readonly gameService: GameService,
     private readonly sessionManager: GameSessionManager,
     private readonly roundProgression: RoundProgressionService,
     private readonly roundTimer: RoundTimer,
   ) {}
 
+  afterInit(server: Server): void {
+    // RoundProgressionService에 server 설정
+    this.roundProgression.setServer(server);
+  }
+
   @SubscribeMessage('submit:answer')
   async handleSubmitAnswer(
     @ConnectedSocket() client: Socket,
     @MessageBody() data: SubmitAnswerRequest,
   ): Promise<SubmitAnswerResponse> {
-    const userId = this.sessionManager.getUserId(client.id);
+    const userId = this.sessionManager.getUserIdBySocketId(client.id);
 
     if (!userId) {
       return { ok: false, error: 'User not found' };
@@ -91,12 +93,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
   }
 
   async handleDisconnect(client: Socket): Promise<void> {
-    const disconnectInfo = this.sessionManager.disconnect(client.id);
-
-    // 큐에서 제거
-    if (disconnectInfo.userId) {
-      this.matchmakingService.removeFromQueue(disconnectInfo.userId);
-    }
+    const disconnectInfo = this.sessionManager.disconnectFromGame(client.id);
 
     // 게임 중 연결 끊김 처리
     if (disconnectInfo.roomId && disconnectInfo.userId) {

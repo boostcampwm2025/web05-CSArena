@@ -3,35 +3,28 @@ import {
   MessageBody,
   OnGatewayConnection,
   OnGatewayDisconnect,
-  OnGatewayInit,
   SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
-import { Logger } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { MatchmakingService } from './matchmaking.service';
+import { GameService } from '../game/game.service';
 import { RoundProgressionService } from '../game/round-progression.service';
 import { UserInfo } from '../game/interfaces/user.interface';
-import { MatchSessionManager } from './match-session-manager';
+import { MatchmakingSessionManager } from './matchmaking-session-manager';
 
 @WebSocketGateway({ namespace: '/ws', cors: true })
-export class MatchGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
-  private readonly logger = new Logger(MatchGateway.name);
-
+export class MatchmakingGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
   constructor(
     private readonly matchmakingService: MatchmakingService,
-    private readonly sessionManager: MatchSessionManager,
+    private readonly sessionManager: MatchmakingSessionManager,
+    private readonly gameService: GameService,
     private readonly roundProgression: RoundProgressionService,
   ) {}
-
-  afterInit(server: Server): void {
-    // RoundProgressionService에 server 설정
-    this.roundProgression.setServer(server);
-  }
 
   handleConnection(client: Socket): void {
     const query = client.handshake.query;
@@ -101,8 +94,8 @@ export class MatchGateway implements OnGatewayConnection, OnGatewayDisconnect, O
               opponent: player1Session.userInfo,
             });
 
-            // 게임 시작
-            this.matchmakingService.startGame(
+            // 게임 세션 생성
+            this.gameService.startGameFromMatch(
               match.roomId,
               match.player1,
               player1Session.socketId,
@@ -110,7 +103,6 @@ export class MatchGateway implements OnGatewayConnection, OnGatewayDisconnect, O
               match.player2,
               player2Session.socketId,
               player2Session.userInfo,
-              this.server,
             );
 
             // 라운드 시퀀스 시작
@@ -147,6 +139,15 @@ export class MatchGateway implements OnGatewayConnection, OnGatewayDisconnect, O
       return { ok: true };
     } catch (error) {
       return { ok: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  }
+
+  handleDisconnect(client: Socket): void {
+    const disconnectInfo = this.sessionManager.disconnect(client.id);
+
+    // 큐에서 제거
+    if (disconnectInfo.userId) {
+      this.matchmakingService.removeFromQueue(disconnectInfo.userId);
     }
   }
 }
