@@ -311,20 +311,17 @@ export class QuizService {
     submissions: Submission[],
   ): Promise<GradeResult[]> {
     const schema = this.getGradingSchema(question.type);
-
-    // 문제 타입에 따른 정답 추출
     const answer = question.type === 'short_answer' ? question.answer : question.sampleAnswer;
 
     const userMessage = `
-    [문제 타입] ${question.type}
-    [문제] ${question.question}
-    [정답] ${answer}
-    [제출 답안 목록] ${JSON.stringify(submissions)}
+  [문제 타입] ${question.type}
+  [문제] ${question.question}
+  [정답] ${answer}
+  [제출 답안 목록] ${JSON.stringify(submissions)}
 
-    위 데이터를 바탕으로 채점해줘.
-    `;
+  위 데이터를 바탕으로 채점해줘.
+  `;
 
-    // AI 호출 결과 타입 정의
     type AiGradeResponse = {
       grades: Omit<GradeResult, 'answer'>[];
     };
@@ -335,22 +332,71 @@ export class QuizService {
       jsonSchema: schema,
     });
 
-    // 결과 매핑 (원본 답안 텍스트 복원)
-    return result.grades.map((grade) => {
-      const originalSubmission = submissions.find((s) => s.playerId === grade.playerId);
+    return this.mapGradeResults(result.grades, submissions);
+  }
+
+  private mapGradeResults(
+    grades: Omit<GradeResult, 'answer'>[],
+    submissions: Submission[],
+  ): GradeResult[] {
+    return submissions.map((submission) => {
+      const grade = grades.find((g) => g.playerId === submission.playerId);
+
+      if (!grade) {
+        return this.createDefaultGradeResult(submission);
+      }
 
       return {
         playerId: grade.playerId,
-        answer: originalSubmission ? originalSubmission.answer : '',
+        answer: submission.answer,
         isCorrect: grade.isCorrect,
-        score: grade.score,
+        score: this.validateScore(grade.score, grade.isCorrect),
         feedback: grade.feedback,
       };
     });
   }
 
+  private validateScore(score: number, isCorrect: boolean): number {
+    const MIN_SCORE = 0;
+    const MAX_SCORE = 10;
+
+    // 타입 검증
+    if (typeof score !== 'number' || isNaN(score)) {
+      this.logger.warn(`잘못된 점수 타입: ${score}`);
+
+      return isCorrect ? MAX_SCORE : MIN_SCORE;
+    }
+
+    // 범위 검증
+    if (score < MIN_SCORE || score > MAX_SCORE) {
+      this.logger.warn(`점수 범위 초과: ${score}`);
+
+      return Math.max(MIN_SCORE, Math.min(MAX_SCORE, score));
+    }
+
+    // 정답/오답 일관성 검증
+    if (!isCorrect && score > 0) {
+      this.logger.warn(`오답인데 점수 있음: ${score}`);
+
+      return MIN_SCORE;
+    }
+
+    return score;
+  }
+
+  private createDefaultGradeResult(submission: Submission): GradeResult {
+    return {
+      playerId: submission.playerId,
+      answer: submission.answer,
+      isCorrect: false,
+      score: 0,
+      feedback: '채점 오류가 발생했습니다.',
+    };
+  }
+
   private getGradingSchema(questionType: 'short_answer' | 'essay') {
-    const isEssay = questionType === 'essay';
+    const scoreDescription = this.getScoreDescription(questionType);
+    const isCorrectDescription = this.getIsCorrectDescription(questionType);
 
     return {
       type: 'object',
@@ -363,15 +409,11 @@ export class QuizService {
               playerId: { type: 'string' },
               isCorrect: {
                 type: 'boolean',
-                description: isEssay
-                  ? '7점 이상이면 true, 7점 미만이면 false'
-                  : '정답이면 true, 오답이면 false',
+                description: isCorrectDescription,
               },
               score: {
                 type: 'number',
-                description: isEssay
-                  ? '서술형 문제: 0~10점 사이의 부분 점수'
-                  : '단답형: 10점(정답) 또는 0점(오답)',
+                description: scoreDescription,
               },
               feedback: {
                 type: 'string',
@@ -384,5 +426,23 @@ export class QuizService {
       },
       required: ['grades'],
     };
+  }
+
+  private getScoreDescription(questionType: 'short_answer' | 'essay'): string {
+    switch (questionType) {
+      case 'essay':
+        return '서술형 문제: 0~10점 사이의 부분 점수';
+      case 'short_answer':
+        return '단답형: 10점(정답) 또는 0점(오답)';
+    }
+  }
+
+  private getIsCorrectDescription(questionType: 'short_answer' | 'essay'): string {
+    switch (questionType) {
+      case 'essay':
+        return '7점 이상이면 true, 7점 미만이면 false';
+      case 'short_answer':
+        return '정답이면 true, 오답이면 false';
+    }
   }
 }
