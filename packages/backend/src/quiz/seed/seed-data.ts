@@ -110,6 +110,22 @@ export const SEED_QUESTIONS: SeedQuestion[] = [
     difficulty: 3,
     categoryPath: ['DB', 'SQL'],
   },
+  {
+    questionType: 'essay',
+    content: '정규화(Normalization)의 개념과 1NF, 2NF, 3NF를 각각 설명하세요.',
+    correctAnswer:
+      '정규화는 데이터베이스 설계 시 중복을 최소화하고 무결성을 향상시키기 위해 테이블을 분해하는 과정입니다. 1NF(제1정규형)는 각 컬럼이 원자값(atomic value)만 가져야 하며, 반복 그룹이 없어야 합니다. 2NF는 1NF를 만족하고 부분 함수 종속을 제거해야 합니다. 즉, 기본키의 일부에만 종속되는 속성이 없어야 합니다. 3NF는 2NF를 만족하고 이행적 함수 종속을 제거해야 합니다. 즉, 기본키가 아닌 속성이 다른 비키 속성에 종속되지 않아야 합니다. 정규화를 통해 데이터 중복, 갱신 이상, 삽입 이상, 삭제 이상을 방지할 수 있습니다.',
+    difficulty: 4,
+    categoryPath: ['DB', 'SQL'],
+  },
+  {
+    questionType: 'essay',
+    content: '데이터베이스 락(Lock)의 종류와 데드락(Deadlock) 발생 조건 및 해결 방법을 설명하세요.',
+    correctAnswer:
+      '락은 동시성 제어를 위한 메커니즘으로, 공유 락(Shared Lock)과 배타 락(Exclusive Lock)이 있습니다. 공유 락은 읽기 작업에 사용되며 다른 공유 락과 호환되지만, 배타 락은 쓰기 작업에 사용되며 다른 어떤 락과도 호환되지 않습니다. 데드락은 두 개 이상의 트랜잭션이 서로가 점유한 자원을 기다리며 무한 대기하는 상태입니다. 발생 조건은 상호 배제(Mutual Exclusion), 점유와 대기(Hold and Wait), 비선점(No Preemption), 순환 대기(Circular Wait)입니다. 해결 방법으로는 예방(모든 자원을 한 번에 획득), 회피(은행원 알고리즘), 탐지 및 복구(타임아웃 설정, 트랜잭션 롤백), 락 순서 정의 등이 있습니다.',
+    difficulty: 5,
+    categoryPath: ['DB', 'SQL'],
+  },
 
   // ===== DB > B+tree =====
   {
@@ -387,6 +403,91 @@ export const SEED_QUESTIONS: SeedQuestion[] = [
       'Counting Sort는 비교 기반이 아닌 정렬 알고리즘으로, 각 값의 출현 횟수를 세어 정렬합니다. 0부터 k까지의 값 범위에서 각 값의 개수를 카운트 배열에 저장하고, 누적합을 계산한 후 원소를 적절한 위치에 배치합니다. 시간 복잡도는 O(n+k)로 매우 빠르지만, k가 n보다 매우 크면 비효율적입니다. 제약 조건은 정수나 정수로 표현 가능한 데이터만 정렬 가능하고, 값의 범위가 제한적이어야 합니다. O(k)의 추가 공간이 필요하며 안정 정렬입니다. 적합한 사례는 나이, 학년, 점수 등 작은 범위의 정수 데이터를 정렬할 때입니다. Radix Sort의 기반 알고리즘으로도 사용됩니다.',
     difficulty: 4,
     categoryPath: ['DB', 'Sorting'],
+  },
+  {
+    questionType: 'essay',
+    content:
+      '데이터베이스 격리 수준(Isolation Level)의 4가지 레벨을 설명하고, 각 레벨에서 발생할 수 있는 문제점을 서술하세요.',
+    correctAnswer:
+      '격리 수준은 트랜잭션 간 격리 정도를 정의합니다. Read Uncommitted는 커밋되지 않은 데이터를 읽을 수 있어 Dirty Read가 발생합니다. Read Committed는 커밋된 데이터만 읽지만, Non-Repeatable Read(한 트랜잭션 내에서 같은 쿼리의 결과가 달라짐)가 발생할 수 있습니다. Repeatable Read는 같은 쿼리의 결과를 보장하지만 Phantom Read(새로운 행이 추가되거나 삭제됨)가 발생할 수 있습니다. Serializable은 완전한 격리를 보장하여 모든 문제를 방지하지만 성능이 가장 낮습니다. MySQL InnoDB는 기본적으로 Repeatable Read를 사용하며, MVCC(Multi-Version Concurrency Control)로 Phantom Read도 대부분 방지합니다.',
+    difficulty: 5,
+    categoryPath: ['DB', 'SQL'],
+  },
+  {
+    questionType: 'essay',
+    content: '데이터베이스 샤딩(Sharding)의 개념과 샤딩 전략을 설명하고, 장단점을 서술하세요.',
+    correctAnswer:
+      '샤딩은 데이터를 여러 데이터베이스 서버에 수평 분할하여 저장하는 기법입니다. 주요 샤딩 전략으로는 범위 기반 샤딩(Range-based: ID 1-1000은 샤드1, 1001-2000은 샤드2), 해시 기반 샤딩(Hash-based: 해시 함수로 샤드 결정), 지리 기반 샤딩(Geographic: 지역별 분산), 디렉토리 기반 샤딩(Directory-based: 룩업 테이블 사용)이 있습니다. 장점은 수평 확장으로 용량과 처리량을 늘릴 수 있고, 쿼리 성능이 향상되며, 장애 격리가 가능합니다. 단점은 구조가 복잡해지고, 샤드 간 조인이 어려우며, 리샤딩 비용이 크고, 데이터 불균형이 발생할 수 있습니다.',
+    difficulty: 5,
+    categoryPath: ['DB', 'SQL'],
+  },
+  {
+    questionType: 'essay',
+    content:
+      '데이터베이스 복제(Replication)의 Master-Slave 구조를 설명하고, 동기 복제와 비동기 복제의 차이를 서술하세요.',
+    correctAnswer:
+      'Master-Slave 복제는 마스터 DB가 쓰기를 처리하고 슬레이브 DB가 읽기를 처리하는 구조입니다. 마스터의 변경 사항이 슬레이브로 복제되어 데이터 일관성을 유지합니다. 동기 복제는 마스터가 슬레이브의 복제 완료를 기다린 후 커밋하므로 데이터 일관성이 강하지만 성능이 저하됩니다. 네트워크 지연이나 슬레이브 장애 시 마스터 성능에 영향을 줍니다. 비동기 복제는 마스터가 커밋 후 즉시 응답하고 백그라운드로 복제하므로 성능이 좋지만, 마스터 장애 시 일부 데이터 손실 가능성이 있습니다. 실무에서는 준동기 복제(Semi-sync)를 사용하여 적어도 하나의 슬레이브에 복제된 후 커밋하는 절충안을 선택하기도 합니다.',
+    difficulty: 5,
+    categoryPath: ['DB', 'SQL'],
+  },
+  {
+    questionType: 'essay',
+    content: 'MVCC(Multi-Version Concurrency Control)의 동작 원리와 장점을 설명하세요.',
+    correctAnswer:
+      'MVCC는 각 트랜잭션이 데이터의 특정 버전(스냅샷)을 보는 동시성 제어 기법입니다. 데이터를 변경할 때 기존 데이터를 덮어쓰지 않고 새로운 버전을 생성합니다. 각 행에는 트랜잭션 ID가 저장되며, 트랜잭션은 자신의 시작 시점에 커밋된 데이터만 볼 수 있습니다. 읽기 작업은 스냅샷을 읽고, 쓰기 작업은 새 버전을 생성하므로 읽기와 쓰기가 서로 블로킹하지 않습니다. 장점은 읽기 성능이 뛰어나고(락 불필요), 동시성이 높으며, 일관된 읽기를 제공합니다. 단점은 오래된 버전을 정리하는 Vacuum 작업이 필요하고 추가 저장 공간이 필요합니다. PostgreSQL, MySQL InnoDB, Oracle 등이 MVCC를 사용합니다.',
+    difficulty: 5,
+    categoryPath: ['DB', 'SQL'],
+  },
+  {
+    questionType: 'essay',
+    content: 'NoSQL과 RDBMS를 비교하고, 각각 어떤 상황에서 사용하는 것이 적합한지 설명하세요.',
+    correctAnswer:
+      'RDBMS는 정형화된 스키마, ACID 트랜잭션, SQL 쿼리, 정규화된 데이터 구조를 특징으로 합니다. 복잡한 조인과 관계형 데이터 처리에 강하지만 수평 확장이 어렵습니다. NoSQL은 유연한 스키마, 수평 확장성, 높은 처리량을 특징으로 하며 Document(MongoDB), Key-Value(Redis), Column-family(Cassandra), Graph(Neo4j) 등 다양한 유형이 있습니다. RDBMS는 금융 시스템, ERP, 복잡한 트랜잭션이 필요한 경우에 적합합니다. NoSQL은 대용량 분산 데이터, 빠른 읽기/쓰기, 스키마 변경이 잦은 경우, 비정형 데이터 처리에 적합합니다. 실무에서는 Polyglot Persistence로 용도에 따라 혼용하는 추세입니다.',
+    difficulty: 4,
+    categoryPath: ['DB', 'SQL'],
+  },
+  {
+    questionType: 'essay',
+    content:
+      '데이터베이스 파티셔닝(Partitioning)의 개념과 종류를 설명하고, 샤딩과의 차이점을 서술하세요.',
+    correctAnswer:
+      '파티셔닝은 대용량 테이블을 작은 단위로 분할하여 관리하는 기법입니다. 수평 파티셔닝(Horizontal)은 행 단위로 분할하며, 범위(Range), 리스트(List), 해시(Hash), 복합(Composite) 파티셔닝이 있습니다. 수직 파티셔닝(Vertical)은 컬럼 단위로 분할하여 자주 사용하는 컬럼과 그렇지 않은 컬럼을 분리합니다. 장점은 쿼리 성능 향상(파티션 프루닝), 관리 용이성(파티션별 백업/복구), 병렬 처리 가능입니다. 샤딩과의 차이점은 파티셔닝은 논리적으로는 하나의 테이블이며 같은 DB 서버 내에서 이루어지지만, 샤딩은 물리적으로 여러 DB 서버에 분산된다는 점입니다. 파티셔닝은 단일 서버 내 성능 최적화, 샤딩은 수평 확장을 위해 사용됩니다.',
+    difficulty: 5,
+    categoryPath: ['DB', 'SQL'],
+  },
+  {
+    questionType: 'essay',
+    content: 'LSM Tree(Log-Structured Merge Tree)의 동작 원리와 B+tree와의 비교를 설명하세요.',
+    correctAnswer:
+      'LSM Tree는 쓰기 최적화 자료구조로, 메모리의 MemTable에 먼저 쓰고 일정 크기가 되면 디스크의 SSTable(Sorted String Table)로 플러시합니다. 여러 레벨의 SSTable이 있으며, 주기적으로 Compaction을 수행하여 병합하고 정리합니다. 읽기는 MemTable, 각 레벨의 SSTable을 순차적으로 확인하며 Bloom Filter로 최적화합니다. 쓰기는 순차적이어서 매우 빠르지만(O(1) amortized), 읽기는 여러 레벨을 확인해야 하므로 B+tree보다 느립니다. B+tree는 제자리 갱신(in-place update)으로 쓰기 시 랜덤 I/O가 발생하지만 읽기가 빠릅니다. LSM Tree는 쓰기가 많은 워크로드(로그, 시계열 데이터)에 적합하며 LevelDB, RocksDB, Cassandra 등에서 사용됩니다.',
+    difficulty: 5,
+    categoryPath: ['DB', 'B+tree'],
+  },
+  {
+    questionType: 'essay',
+    content: 'WAL(Write-Ahead Logging)의 개념과 데이터베이스 복구 과정에서의 역할을 설명하세요.',
+    correctAnswer:
+      'WAL은 데이터를 변경하기 전에 변경 내용을 로그에 먼저 기록하는 기법입니다. 트랜잭션이 커밋되면 로그를 디스크에 fsync하고, 실제 데이터 페이지는 나중에 백그라운드로 플러시합니다. 이를 통해 임의 I/O를 순차 I/O로 변환하여 성능을 향상시킵니다. 복구 과정에서는 Redo Log를 사용하여 커밋된 트랜잭션의 변경을 재적용하고, Undo Log로 커밋되지 않은 트랜잭션을 롤백합니다. Checkpoint를 주기적으로 생성하여 모든 더티 페이지를 플러시하고, 복구는 마지막 Checkpoint부터 시작합니다. WAL은 ACID의 Durability를 보장하며 크래시 복구를 가능하게 합니다. PostgreSQL, MySQL InnoDB 등 대부분의 DBMS가 WAL을 사용합니다.',
+    difficulty: 5,
+    categoryPath: ['DB', 'SQL'],
+  },
+  {
+    questionType: 'essay',
+    content:
+      '데이터베이스 인덱스의 Covering Index와 Composite Index의 개념과 효과적인 사용 방법을 설명하세요.',
+    correctAnswer:
+      'Covering Index는 쿼리에 필요한 모든 컬럼을 인덱스가 포함하여 테이블 접근 없이 인덱스만으로 쿼리를 처리하는 기법입니다. SELECT id, name FROM users WHERE email="x"에서 (email, id, name) 인덱스를 생성하면 테이블 조회 없이 인덱스 스캔만으로 해결됩니다. 장점은 I/O 감소로 성능이 크게 향상되지만, 인덱스 크기가 커지고 쓰기 성능이 저하될 수 있습니다. Composite Index는 여러 컬럼을 조합한 인덱스로, 컬럼 순서가 중요합니다. (A, B, C) 인덱스는 A, (A, B), (A, B, C) 조건에 사용 가능하지만 B, C 단독으로는 사용 불가합니다. 카디널리티가 높은(값의 종류가 많은) 컬럼을 앞에 배치하고, WHERE, JOIN, ORDER BY에 자주 사용되는 컬럼 조합을 고려하여 생성해야 합니다.',
+    difficulty: 5,
+    categoryPath: ['DB', 'SQL'],
+  },
+  {
+    questionType: 'essay',
+    content:
+      'CAP 정리(CAP Theorem)를 설명하고, 분산 데이터베이스 시스템에서의 의미와 사례를 서술하세요.',
+    correctAnswer:
+      'CAP 정리는 분산 시스템에서 Consistency(일관성), Availability(가용성), Partition Tolerance(분할 내성) 세 가지 속성 중 최대 두 가지만 동시에 만족할 수 있다는 이론입니다. 네트워크 분할(Partition)은 불가피하므로 실제로는 CP 또는 AP 중 선택해야 합니다. CP 시스템(MongoDB, HBase, Redis Cluster)은 일관성을 보장하지만 분할 시 일부 노드가 응답하지 않을 수 있습니다. AP 시스템(Cassandra, DynamoDB, CouchDB)은 항상 응답하지만 최신 데이터가 아닐 수 있으며, Eventual Consistency로 최종 일관성을 보장합니다. 실무에서는 BASE(Basically Available, Soft state, Eventually consistent) 모델로 절충하거나, 중요도에 따라 일관성 수준을 조정합니다. 금융 거래는 CP, 소셜 미디어는 AP가 적합합니다.',
+    difficulty: 5,
+    categoryPath: ['DB', 'Hashing'],
   },
 
   // ===== 네트워크 > TCP/IP =====
@@ -757,5 +858,95 @@ export const SEED_QUESTIONS: SeedQuestion[] = [
       '세션 계층은 응용 프로그램 간의 대화(세션)를 설정, 관리, 종료하는 역할을 합니다. 데이터 교환의 경계와 동기화를 제공하며, 세션 복구 기능을 통해 통신 중단 시 재개 지점을 관리합니다. 주요 기능으로는 세션 수립 및 해제, 대화 제어(반이중/전이중), 동기화 포인트 설정, 토큰 관리 등이 있습니다. 대표적인 프로토콜로는 NetBIOS(네트워크 기본 입출력 시스템), RPC(Remote Procedure Call), PPTP(Point-to-Point Tunneling Protocol) 등이 있습니다. 실제로 TCP/IP 모델에서는 세션 계층이 응용 계층에 통합되어 있지만, 개념적으로 세션 관리는 여전히 중요한 기능입니다.',
     difficulty: 4,
     categoryPath: ['네트워크', 'OSI 7계층'],
+  },
+  {
+    questionType: 'essay',
+    content: 'NAT(Network Address Translation)의 동작 원리와 종류를 설명하고, 장단점을 서술하세요.',
+    correctAnswer:
+      'NAT는 사설 IP 주소를 공인 IP 주소로 변환하는 기술입니다. 라우터가 내부 네트워크의 사설 IP(예: 192.168.x.x)를 외부 통신 시 공인 IP로 변환하고 NAT 테이블에 매핑 정보를 저장합니다. 종류로는 Static NAT(1:1 고정 매핑), Dynamic NAT(풀에서 동적 할당), PAT/NAPT(포트 번호 활용한 다대일 매핑)가 있습니다. 장점은 IPv4 주소 고갈 문제 완화, 내부 네트워크 보안 강화(내부 IP 숨김), 네트워크 재구성 용이입니다. 단점은 End-to-End 연결성 저해, P2P 통신 어려움, NAT Traversal 필요, 성능 오버헤드, 일부 프로토콜 호환성 문제가 있습니다. IPv6의 보급으로 NAT의 필요성이 줄어들 것으로 예상되지만, 당분간은 광범위하게 사용될 전망입니다.',
+    difficulty: 4,
+    categoryPath: ['네트워크', 'TCP/IP'],
+  },
+  {
+    questionType: 'essay',
+    content: 'QUIC 프로토콜의 특징과 TCP 대비 개선점을 설명하세요.',
+    correctAnswer:
+      'QUIC(Quick UDP Internet Connections)는 UDP 기반의 전송 계층 프로토콜로 HTTP/3에서 사용됩니다. TCP 대비 주요 개선점은 다음과 같습니다. 첫째, 0-RTT 연결 수립으로 초기 연결 시 핸드셰이크 지연을 제거하여 빠른 연결이 가능합니다. 둘째, 멀티플렉싱을 스트림 레벨에서 지원하여 TCP의 HOL Blocking 문제를 해결했습니다. 한 스트림의 패킷 손실이 다른 스트림에 영향을 주지 않습니다. 셋째, 연결 마이그레이션을 지원하여 IP 주소나 포트가 변경되어도(Wi-Fi↔LTE 전환) 연결이 유지됩니다. 넷째, 내장된 암호화(TLS 1.3 통합)로 보안이 강화되었습니다. 다섯째, 개선된 혼잡 제어와 손실 복구 알고리즘을 제공합니다. QUIC는 모바일 환경과 고지연 네트워크에서 특히 효과적입니다.',
+    difficulty: 5,
+    categoryPath: ['네트워크', 'HTTP'],
+  },
+  {
+    questionType: 'essay',
+    content:
+      'CORS(Cross-Origin Resource Sharing)의 개념과 동작 방식, 그리고 Preflight Request를 설명하세요.',
+    correctAnswer:
+      'CORS는 웹 브라우저에서 다른 출처(도메인, 프로토콜, 포트)의 리소스에 접근할 수 있도록 하는 메커니즘입니다. 동일 출처 정책(Same-Origin Policy)을 우회하기 위해 서버가 특정 출처의 요청을 허용하는지 HTTP 헤더로 명시합니다. Simple Request(GET, POST with simple content-type)는 바로 요청하고 Access-Control-Allow-Origin 헤더로 확인합니다. Preflight Request는 실제 요청 전에 OPTIONS 메서드로 서버에 허용 여부를 확인하는 과정입니다. PUT, DELETE, 커스텀 헤더 사용 시 발생하며, 서버는 Access-Control-Allow-Methods, Access-Control-Allow-Headers 등으로 응답합니다. 서버에서 올바른 CORS 헤더를 설정하지 않으면 브라우저가 응답을 차단하여 보안을 유지합니다.',
+    difficulty: 4,
+    categoryPath: ['네트워크', 'HTTP'],
+  },
+  {
+    questionType: 'essay',
+    content: 'CDN(Content Delivery Network)의 동작 원리와 성능 개선 효과를 설명하세요.',
+    correctAnswer:
+      'CDN은 전 세계에 분산된 서버 네트워크를 통해 콘텐츠를 사용자와 가까운 위치에서 제공하는 시스템입니다. 동작 원리는 다음과 같습니다. 오리진 서버의 콘텐츠를 여러 엣지 서버에 캐싱하고, DNS나 Anycast를 통해 사용자를 가장 가까운 엣지 서버로 라우팅합니다. 캐시 히트 시 엣지 서버가 즉시 응답하고, 캐시 미스 시 오리진 서버에서 가져와 캐싱 후 응답합니다. 성능 개선 효과는 첫째, 지리적 거리 단축으로 레이턴시가 감소하고, 둘째, 오리진 서버 부하가 분산되며, 셋째, 대역폭 비용이 절감되고, 넷째, DDoS 방어 등 보안이 강화됩니다. 정적 리소스(이미지, CSS, JS)뿐만 아니라 동적 콘텐츠 가속, 비디오 스트리밍에도 활용됩니다. Cloudflare, AWS CloudFront, Akamai 등이 대표적입니다.',
+    difficulty: 4,
+    categoryPath: ['네트워크', 'HTTP'],
+  },
+  {
+    questionType: 'essay',
+    content: 'WebSocket의 동작 원리를 설명하고, HTTP 폴링 및 Server-Sent Events와 비교하세요.',
+    correctAnswer:
+      'WebSocket은 HTTP 업그레이드 핸드셰이크를 통해 양방향 전이중 통신 채널을 수립하는 프로토콜입니다. 클라이언트가 HTTP GET 요청에 Upgrade: websocket 헤더를 포함하여 보내면, 서버가 101 Switching Protocols로 응답하여 연결을 WebSocket으로 전환합니다. 이후 TCP 연결 위에서 프레임 기반의 양방향 메시지 교환이 가능하며 오버헤드가 매우 적습니다. HTTP 폴링은 클라이언트가 주기적으로 서버에 요청하여 업데이트를 확인하는 방식으로, 실시간성이 떨어지고 불필요한 요청이 많습니다. Long Polling은 서버가 이벤트 발생까지 응답을 보류하여 개선했지만 여전히 오버헤드가 큽니다. Server-Sent Events(SSE)는 HTTP 기반 서버→클라이언트 단방향 스트리밍으로, 구현이 간단하지만 클라이언트→서버 통신은 별도 HTTP 요청이 필요합니다. WebSocket은 실시간 채팅, 게임, 협업 도구 등 양방향 실시간 통신이 필요한 경우에 최적입니다.',
+    difficulty: 5,
+    categoryPath: ['네트워크', 'HTTP'],
+  },
+  {
+    questionType: 'essay',
+    content: 'ARP(Address Resolution Protocol)의 동작 원리와 ARP Spoofing 공격을 설명하세요.',
+    correctAnswer:
+      'ARP는 네트워크 계층의 IP 주소를 데이터 링크 계층의 MAC 주소로 변환하는 프로토콜입니다. 동작 과정은 다음과 같습니다. 호스트가 같은 서브넷의 IP로 통신하려면 MAC 주소가 필요하므로, ARP Request를 브로드캐스트로 전송합니다("IP 주소 X.X.X.X의 MAC 주소는?"). 해당 IP를 가진 호스트가 자신의 MAC 주소를 포함한 ARP Reply를 유니캐스트로 응답합니다. 송신자는 이 정보를 ARP 캐시에 저장하여 재사용합니다. ARP Spoofing은 공격자가 위조된 ARP Reply를 보내 피해자의 ARP 캐시를 오염시키는 중간자 공격입니다. 예를 들어 공격자가 게이트웨이의 IP에 자신의 MAC을 매핑시켜 모든 트래픽을 가로챌 수 있습니다. 방어 방법으로는 정적 ARP 테이블 사용, Dynamic ARP Inspection(DAI), 암호화(VPN, HTTPS) 등이 있습니다.',
+    difficulty: 5,
+    categoryPath: ['네트워크', 'OSI 7계층'],
+  },
+  {
+    questionType: 'essay',
+    content: 'VLAN(Virtual LAN)의 개념과 장점, 그리고 VLAN Tagging(802.1Q)을 설명하세요.',
+    correctAnswer:
+      'VLAN은 물리적 네트워크 구조와 무관하게 논리적으로 네트워크를 분할하는 기술입니다. 하나의 스위치에서 여러 개의 독립적인 브로드캐스트 도메인을 만들 수 있습니다. 장점은 첫째, 브로드캐스트 트래픽 감소로 성능이 향상되고, 둘째, 보안이 강화되며(부서별 격리), 셋째, 유연한 네트워크 관리가 가능하고(물리적 이동 없이 VLAN 변경), 넷째, 리소스 활용도가 향상됩니다. VLAN Tagging(IEEE 802.1Q)은 이더넷 프레임에 4바이트 VLAN 태그를 삽입하여 VLAN을 구분하는 방식입니다. 태그에는 12비트 VLAN ID(최대 4096개 VLAN), 3비트 우선순위, 1비트 CFI가 포함됩니다. Trunk 포트는 여러 VLAN의 태그된 프레임을 전달하고, Access 포트는 하나의 VLAN에만 속하며 태그를 제거합니다. Inter-VLAN 통신은 Layer 3 스위치나 라우터가 필요합니다.',
+    difficulty: 5,
+    categoryPath: ['네트워크', 'OSI 7계층'],
+  },
+  {
+    questionType: 'essay',
+    content:
+      'BGP(Border Gateway Protocol)의 역할과 AS(Autonomous System), 그리고 BGP Hijacking을 설명하세요.',
+    correctAnswer:
+      'BGP는 인터넷의 서로 다른 AS(자율 시스템) 간의 라우팅을 담당하는 경로 벡터 프로토콜입니다. AS는 하나의 관리 주체가 운영하는 IP 네트워크 그룹으로, AS 번호로 식별됩니다. BGP는 Path Vector 알고리즘을 사용하여 최적 경로를 선택하며, AS 경로, 정책, 비용 등을 고려합니다. eBGP는 AS 간 통신에, iBGP는 AS 내부 통신에 사용됩니다. BGP Hijacking은 공격자가 자신이 소유하지 않은 IP 프리픽스를 BGP로 광고하여 트래픽을 가로채는 공격입니다. 2008년 유튜브 사건처럼 잘못된 BGP 광고로 인터넷 트래픽이 잘못된 경로로 라우팅될 수 있습니다. 방어 방법으로는 RPKI(Resource Public Key Infrastructure), BGPsec, IRR 필터링 등이 있습니다. BGP의 신뢰 기반 설계로 인해 보안 취약점이 존재합니다.',
+    difficulty: 5,
+    categoryPath: ['네트워크', 'OSI 7계층'],
+  },
+  {
+    questionType: 'essay',
+    content: 'IPv4와 IPv6의 주요 차이점을 설명하고, IPv6 전환 기술을 서술하세요.',
+    correctAnswer:
+      'IPv4는 32비트 주소 체계로 약 43억 개의 주소를 제공하지만 고갈되었습니다. IPv6는 128비트로 사실상 무한한 주소 공간(2^128)을 제공합니다. 주요 차이점은 첫째, 주소 표기법이 다릅니다(IPv4: 192.168.1.1, IPv6: 2001:0db8::1). 둘째, IPv6는 헤더가 단순화되어 라우팅 효율이 향상되었습니다. 셋째, IPv6는 IPsec이 필수로 보안이 강화되었습니다. 넷째, NAT가 불필요하여 End-to-End 연결이 복원됩니다. 다섯째, Stateless Address Autoconfiguration(SLAAC)으로 자동 설정이 가능합니다. 전환 기술로는 Dual Stack(IPv4와 IPv6 동시 운영), Tunneling(6to4, 6in4로 IPv6 패킷을 IPv4로 캡슐화), Translation(NAT64로 프로토콜 변환)이 있습니다. 완전한 전환에는 시간이 걸리지만 IPv6 채택률은 꾸준히 증가하고 있습니다.',
+    difficulty: 4,
+    categoryPath: ['네트워크', 'TCP/IP'],
+  },
+  {
+    questionType: 'essay',
+    content: '로드 밸런싱의 알고리즘 종류와 Layer 4 vs Layer 7 로드 밸런싱의 차이를 설명하세요.',
+    correctAnswer:
+      '로드 밸런싱 알고리즘으로는 Round Robin(순차 분배), Least Connections(연결 수 최소), Weighted(가중치 부여), IP Hash(출발지 IP 해싱), Least Response Time(응답 시간 최소) 등이 있습니다. Layer 4 로드 밸런싱은 전송 계층에서 동작하여 IP 주소와 포트 번호만으로 라우팅합니다. TCP/UDP 헤더만 확인하므로 빠르지만 콘텐츠 기반 라우팅은 불가능합니다. 세션 유지를 위해 Source IP 해싱을 사용합니다. Layer 7 로드 밸런싱은 응용 계층에서 동작하여 HTTP 헤더, 쿠키, URL 경로 등 콘텐츠를 분석합니다. /api는 API 서버로, /static은 정적 서버로 라우팅하는 등 세밀한 제어가 가능하지만 성능 오버헤드가 있습니다. SSL 종료, 압축, 캐싱 등 추가 기능도 제공합니다. L4는 고성능이 중요한 경우, L7은 복잡한 라우팅 로직이 필요한 경우에 적합합니다.',
+    difficulty: 5,
+    categoryPath: ['네트워크', 'HTTP'],
+  },
+  {
+    questionType: 'essay',
+    content: 'SYN Flooding 공격의 원리와 방어 기법(SYN Cookie)을 설명하세요.',
+    correctAnswer:
+      'SYN Flooding은 TCP 3-way handshake의 취약점을 이용한 DDoS 공격입니다. 공격자가 대량의 SYN 패킷을 보내고 SYN-ACK에 응답하지 않아 서버의 연결 대기 큐(backlog)를 가득 채워 정상 사용자의 연결을 차단합니다. 각 Half-Open 연결은 타임아웃까지 리소스를 점유하므로 서버가 마비됩니다. SYN Cookie는 상태를 저장하지 않고 연결을 처리하는 방어 기법입니다. 서버가 SYN을 받으면 연결 정보를 저장하지 않고, 시퀀스 번호를 암호화된 쿠키로 생성하여 SYN-ACK를 보냅니다. 클라이언트가 ACK로 응답하면 쿠키를 검증하여 연결을 수립합니다. 이로써 메모리를 절약하고 공격을 무력화합니다. 다른 방어 방법으로는 backlog 크기 증가, 타임아웃 단축, Rate Limiting, 방화벽 필터링 등이 있습니다.',
+    difficulty: 5,
+    categoryPath: ['네트워크', 'TCP/IP'],
   },
 ];

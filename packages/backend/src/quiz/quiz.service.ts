@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { ClovaClientService } from './clova/clova-client.service';
-import { Question as QuestionEntity } from './entity';
+import { Category, Question as QuestionEntity } from './entity';
 import { QUIZ_CONSTANTS, QUIZ_ERROR_MESSAGES, QUIZ_LOG_MESSAGES } from './quiz.constants';
 import { QUIZ_PROMPTS } from './quiz-prompts';
 import {
@@ -25,10 +25,110 @@ export class QuizService {
     private readonly clovaClient: ClovaClientService,
     @InjectRepository(QuestionEntity)
     private readonly questionRepository: Repository<QuestionEntity>,
+    @InjectRepository(Category)
+    private readonly categoryRepository: Repository<Category>,
   ) {}
 
   /**
-   * 문제 생성
+   * 싱글플레이 문제 생성
+   * - 사용자가 선택한 대분류 카테고리의 하위 카테고리에서 균등하게 10문제 조회
+   * - 카테고리별 균등 분배 (나머지는 앞 카테고리에 추가)
+   * - 사용 빈도: usageCount 낮은 것 우선
+   * - 품질 우선: qualityScore 높은 것 우선
+   * @param parentCategoryIds 선택된 대분류 카테고리 ID 배열 (예: DB, 네트워크)
+   * @param totalCount 총 문제 개수 (기본값: 10)
+   * @throws {InternalServerErrorException} DB에 충분한 질문이 없거나 변환 중 오류 발생 시
+   */
+  async generateSinglePlayQuestions(
+    parentCategoryIds: number[],
+    totalCount: number = 10,
+  ): Promise<Question[]> {
+    if (!parentCategoryIds || parentCategoryIds.length === 0) {
+      throw new InternalServerErrorException('카테고리를 선택해주세요.');
+    }
+
+    // 1. 각 대분류 카테고리의 하위 카테고리 ID 조회
+    const allChildCategoryIds: number[] = [];
+
+    for (const parentId of parentCategoryIds) {
+      const childCategories = await this.categoryRepository.find({
+        where: { parentId },
+        select: ['id'],
+      });
+      allChildCategoryIds.push(...childCategories.map((c) => c.id));
+    }
+
+    if (allChildCategoryIds.length === 0) {
+      throw new InternalServerErrorException('선택한 카테고리에 하위 카테고리가 없습니다.');
+    }
+
+    this.logger.log(
+      `하위 카테고리 ID: ${allChildCategoryIds.join(', ')} (총 ${allChildCategoryIds.length}개)`,
+    );
+
+    // 2. 대분류별 균등 분배
+    const questionsPerParent = Math.floor(totalCount / parentCategoryIds.length);
+    const remainder = totalCount % parentCategoryIds.length;
+
+    const allQuestions: QuestionEntity[] = [];
+
+    // 3. 각 대분류별로 문제 조회
+    for (let i = 0; i < parentCategoryIds.length; i++) {
+      const questionCount = questionsPerParent + (i < remainder ? 1 : 0);
+
+      // 해당 대분류의 하위 카테고리 ID만 추출
+      const childCategories = await this.categoryRepository.find({
+        where: { parentId: parentCategoryIds[i] },
+        select: ['id'],
+      });
+      const childIds = childCategories.map((c) => c.id);
+
+      if (childIds.length === 0) {
+        this.logger.warn(`카테고리 ID ${parentCategoryIds[i]}에 하위 카테고리가 없습니다.`);
+        continue;
+      }
+
+      // 하위 카테고리들에서 문제 조회
+      const questions = await this.questionRepository
+        .createQueryBuilder('q')
+        .innerJoin('q.categoryQuestions', 'cq')
+        .where('q.isActive = :isActive', { isActive: true })
+        .andWhere('cq.categoryId IN (:...childIds)', { childIds })
+        .orderBy('q.usageCount', 'ASC')
+        .addOrderBy('q.qualityScore', 'DESC')
+        .addOrderBy('RANDOM()')
+        .limit(questionCount)
+        .getMany();
+
+      allQuestions.push(...questions);
+    }
+
+    // 4. 문제 개수 검증
+    if (allQuestions.length < totalCount) {
+      this.logger.warn(
+        `선택한 카테고리에 충분한 문제가 없습니다. (${allQuestions.length}/${totalCount})`,
+      );
+    }
+
+    if (allQuestions.length === 0) {
+      throw new InternalServerErrorException('선택한 카테고리에 문제가 없습니다.');
+    }
+
+    // 5. 문제 섞기 (카테고리 순서대로 나오지 않도록)
+    const shuffledQuestions = allQuestions.sort(() => Math.random() - 0.5);
+
+    // 6. Entity -> quiz.types.ts 타입으로 변환
+    try {
+      return shuffledQuestions.map((q) => this.convertToQuizType(q));
+    } catch (error) {
+      this.logger.error(QUIZ_LOG_MESSAGES.CONVERSION_ERROR(error as Error));
+
+      throw new InternalServerErrorException(QUIZ_ERROR_MESSAGES.CONVERSION_ERROR);
+    }
+  }
+
+  /**
+   * 문제 생성 (멀티플레이)
    * - 비즈니스 로직에 따라 균형있게 5개 질문을 조회
    * - 난이도 균형: easy 2개, medium 2개, hard 1개 (2:2:1)
    * - 타입 다양성: multiple 2개, short 2개, essay 1개
