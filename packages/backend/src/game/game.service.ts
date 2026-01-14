@@ -118,10 +118,9 @@ export class GameService {
         score = Math.round((aiScore / 10) * maxScore);
       }
 
-      // 정답이면(만점자) 정답자 중 가장 빨리 제출한 경우 보너스 점수 추가
+      // 정답자 중 가장 빨리 제출한 경우 보너스 점수 추가
       if (
         grade.isCorrect &&
-        grade.score === 10 &&
         fastestCorrectSubmission &&
         grade.playerId === fastestCorrectSubmission.playerId
       ) {
