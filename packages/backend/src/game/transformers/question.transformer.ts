@@ -10,8 +10,10 @@ function transformQuestionForClient(
 ): {
   category: string[];
   difficulty: string;
-  type: string;
-  content: { question: string; option: string[] } | { question: string };
+  content:
+    | { type: 'multiple'; question: string; option: string[] }
+    | { type: 'short'; question: string }
+    | { type: 'essay'; question: string };
 } {
   const difficulty = mapDifficulty(question.difficulty);
 
@@ -22,8 +24,8 @@ function transformQuestionForClient(
       return {
         category,
         difficulty,
-        type: 'multiple',
         content: {
+          type: 'multiple',
           question: content.question || '',
           option: content.options
             ? [content.options.A, content.options.B, content.options.C, content.options.D]
@@ -39,8 +41,8 @@ function transformQuestionForClient(
       return {
         category,
         difficulty,
-        type: 'short',
         content: {
+          type: 'short',
           question: questionText,
         },
       };
@@ -53,8 +55,8 @@ function transformQuestionForClient(
       return {
         category,
         difficulty,
-        type: 'essay',
         content: {
+          type: 'essay',
           question: questionText,
         },
       };

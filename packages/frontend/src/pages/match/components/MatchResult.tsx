@@ -177,8 +177,19 @@ export default function MatchResult() {
                   style={{ fontFamily: 'Orbitron' }}
                 >
                   {result.question.content?.question}
-                  {result.question.content?.type === 'multiple' &&
-                    `\n\nA: ${result.question.content.option[0]}\nB: ${result.question.content.option[1]}\nC: ${result.question.content.option[2]}\nD: ${result.question.content.option[3]}`}
+                  {result.question.content?.type === 'multiple' && (
+                    <span>
+                      <br />
+                      <br />
+                      {`A: ${result.question.content?.option[0]}`}
+                      <br />
+                      {`B: ${result.question.content?.option[1]}`}
+                      <br />
+                      {`C: ${result.question.content?.option[2]}`}
+                      <br />
+                      {`D: ${result.question.content?.option[3]}`}
+                    </span>
+                  )}
                 </div>
 
                 {/* Players Answer */}

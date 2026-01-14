@@ -58,8 +58,19 @@ export default function Playing() {
 
           <div className="text-xl leading-relaxed text-white" style={{ fontFamily: 'Orbitron' }}>
             {content?.question}
-            {content?.type === 'multiple' &&
-              `\n\nA: ${content.option[0]}\nB: ${content.option[1]}\nC: ${content.option[2]}\nD: ${content.option[3]}`}
+            {content?.type === 'multiple' && (
+              <span>
+                <br />
+                <br />
+                {`A: ${content.option[0]}`}
+                <br />
+                {`B: ${content.option[1]}`}
+                <br />
+                {`C: ${content.option[2]}`}
+                <br />
+                {`D: ${content.option[3]}`}
+              </span>
+            )}
           </div>
 
           {/* Answer Input */}
