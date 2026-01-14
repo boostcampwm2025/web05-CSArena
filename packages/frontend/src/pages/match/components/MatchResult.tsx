@@ -244,7 +244,7 @@ export default function MatchResult() {
               REMATCH
             </button>
             <button
-              className="w-full border-4 border-red-300 bg-gradient-to-r from-red-500 to-rose-500 p-2 text-2xl font-bold text-white shadow-lg shadow-red-500/50 transition-all duration-200 hover:scale-105 hover:from-cyan-400 hover:to-rose-400"
+              className="w-full border-4 border-red-300 bg-gradient-to-r from-red-500 to-rose-500 p-2 text-2xl font-bold text-white shadow-lg shadow-red-500/50 transition-all duration-200 hover:scale-105 hover:from-red-400 hover:to-rose-400"
               style={{ fontFamily: 'Orbitron' }}
               onClick={onClickExitBtn}
               disabled={isClickedExitBtn}
