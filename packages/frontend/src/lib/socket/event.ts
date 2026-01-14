@@ -32,7 +32,7 @@ export type RoundStart = {
 
 export type RoundEnd = {
   durationSec: number;
-  result: {
+  results: {
     my: { submitted: string; delta: number; total: number; correct: boolean };
     opponent: { submitted: string; delta: number; total: number; correct: boolean };
   };

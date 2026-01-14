@@ -24,7 +24,7 @@ export function usePlaying() {
 
     setIsSubmitting(true);
 
-    socketRef.current.emit('submit:answer', { trimmed }, (ack: SubmitAnswerRes) => {
+    socketRef.current.emit('submit:answer', { answer: trimmed }, (ack: SubmitAnswerRes) => {
       setIsSubmitting(false);
 
       if (!ack.ok) {

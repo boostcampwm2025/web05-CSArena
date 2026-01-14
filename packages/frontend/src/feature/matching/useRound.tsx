@@ -89,22 +89,22 @@ export function RoundProvider({ children }: { children: React.ReactNode }) {
     (payload: RoundEnd) => {
       setRoundState('round-result');
       setRemainedSec(payload.durationSec);
-      setMyAnswer(payload.result.my.submitted);
-      setMyDelta(payload.result.my.delta);
-      setMyTotal(payload.result.my.total);
-      setMyIsCorrect(payload.result.my.correct);
-      setOpponentAnswer(payload.result.opponent.submitted);
-      setOpponentDelta(payload.result.opponent.delta);
-      setOpponentTotal(payload.result.opponent.total);
-      setOpponentIsCorrect(payload.result.opponent.correct);
+      setMyAnswer(payload.results.my.submitted);
+      setMyDelta(payload.results.my.delta);
+      setMyTotal(payload.results.my.total);
+      setMyIsCorrect(payload.results.my.correct);
+      setOpponentAnswer(payload.results.opponent.submitted);
+      setOpponentDelta(payload.results.opponent.delta);
+      setOpponentTotal(payload.results.opponent.total);
+      setOpponentIsCorrect(payload.results.opponent.correct);
       setBestAnswer(payload.solution.bestAnswer);
       setExplanation(payload.solution.explanation);
 
       setMatchResult((prev) => ({
-        myTotalPoints: payload.result.my.total,
-        myWinCount: payload.result.my.correct ? prev.myWinCount + 1 : prev.myWinCount,
-        opponentTotalPoints: payload.result.opponent.total,
-        opponentWinCount: payload.result.opponent.correct
+        myTotalPoints: payload.results.my.total,
+        myWinCount: payload.results.my.correct ? prev.myWinCount + 1 : prev.myWinCount,
+        opponentTotalPoints: payload.results.opponent.total,
+        opponentWinCount: payload.results.opponent.correct
           ? prev.opponentWinCount + 1
           : prev.opponentWinCount,
         roundResults: [
@@ -116,8 +116,8 @@ export function RoundProvider({ children }: { children: React.ReactNode }) {
               difficulty,
               content,
             },
-            myAnswer: payload.result.my.submitted,
-            opponentAnswer: payload.result.opponent.submitted,
+            myAnswer: payload.results.my.submitted,
+            opponentAnswer: payload.results.opponent.submitted,
             bestAnswer: payload.solution.bestAnswer,
           },
         ],
