@@ -46,9 +46,7 @@ export class RoundProgressionService {
       }
 
       // round:ready 이벤트 발송
-      const startedAt = Date.now();
       this.server.to(roomId).emit('round:ready', {
-        startedAt,
         durationSec: ROUND_DURATIONS.READY,
         roundIndex: session.currentRound,
         totalRounds: session.totalRounds,
@@ -57,6 +55,11 @@ export class RoundProgressionService {
       // 준비 카운트다운 시작
       this.roundTimer.startReadyCountdown(roomId, ROUND_DURATIONS.READY, () => {
         void this.phaseQuestion(roomId);
+      });
+
+      // 틱 인터벌 시작
+      this.roundTimer.startTickInterval(roomId, ROUND_DURATIONS.READY, (remainedSec) => {
+        this.server.to(roomId).emit('round:tick', { remainedSec });
       });
     } catch (error) {
       this.logger.error(`Error in phaseReady for room ${roomId}:`, error);
@@ -98,10 +101,7 @@ export class RoundProgressionService {
       const transformedQuestion = transformQuestionForClient(question, categories);
 
       // round:start 이벤트 발송
-      const startedAt = Date.now();
-
       this.server.to(roomId).emit('round:start', {
-        startedAt,
         durationSec: questionDuration,
         question: transformedQuestion,
       });
@@ -171,15 +171,12 @@ export class RoundProgressionService {
         bestAnswer = question.correctAnswer;
       }
 
-      const startedAt = Date.now();
-
       // 각 플레이어에게 개별적으로 round:end 이벤트 발송
       const player1Grade = roundResult.grades.find((g) => g.playerId === session.player1Id);
       const player2Grade = roundResult.grades.find((g) => g.playerId === session.player2Id);
 
       // Player 1에게 발송
       this.server.to(session.player1SocketId).emit('round:end', {
-        startedAt,
         durationSec: ROUND_DURATIONS.REVIEW,
         results: {
           my: {
@@ -203,7 +200,6 @@ export class RoundProgressionService {
 
       // Player 2에게 발송
       this.server.to(session.player2SocketId).emit('round:end', {
-        startedAt,
         durationSec: ROUND_DURATIONS.REVIEW,
         results: {
           my: {
@@ -228,6 +224,11 @@ export class RoundProgressionService {
       // 리뷰 타이머 시작
       this.roundTimer.startReviewTimer(roomId, ROUND_DURATIONS.REVIEW, () => {
         void this.transitionToNextRound(roomId);
+      });
+
+      // 틱 인터벌 시작
+      this.roundTimer.startTickInterval(roomId, ROUND_DURATIONS.REVIEW, (remainedSec) => {
+        this.server.to(roomId).emit('round:tick', { remainedSec });
       });
     } catch (error) {
       this.logger.error(`Error in phaseReview for room ${roomId}:`, error);
