@@ -2,13 +2,9 @@ import { createPortal } from 'react-dom';
 
 import { useFeedback } from '@/pages/match/hooks/useFeedback';
 
-type FeedbackProps = {
-  open: boolean;
-  onClose: () => void;
-};
-
-export default function Feedback({ open, onClose }: FeedbackProps) {
-  const { feedback, setFeedback, isSubmitting, isSubmit, onClickSubmitBtn } = useFeedback();
+export default function Feedback() {
+  const { feedback, setFeedback, isSubmitting, isSubmit, onClickSubmitBtn, onClickCloseBtn } =
+    useFeedback();
 
   if (!open) {
     return null;
@@ -22,7 +18,7 @@ export default function Feedback({ open, onClose }: FeedbackProps) {
           <button
             className="border-4 border-red-300 bg-gradient-to-r from-red-500 to-rose-500 px-3 py-2 text-2xl font-bold text-white shadow-lg shadow-red-500/50 transition-all duration-200 hover:scale-105 hover:from-red-400 hover:to-rose-400"
             style={{ fontFamily: 'Orbitron' }}
-            onClick={onClose}
+            onClick={onClickCloseBtn}
           >
             X
           </button>

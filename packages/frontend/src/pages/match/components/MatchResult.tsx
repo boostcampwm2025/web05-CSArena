@@ -1,6 +1,7 @@
 import { useUser } from '@/feature/auth/useUser';
 import { useMatch } from '@/feature/matching/useMatch';
 import { useMatchResult } from '../hooks/useMatchResult';
+import Feedback from './match-result/Feedback';
 
 export default function MatchResult() {
   const { userData } = useUser();
@@ -255,6 +256,8 @@ export default function MatchResult() {
           </div>
         </div>
       </div>
+
+      {!userData?.isSentFeedback && <Feedback />}
     </div>
   );
 }

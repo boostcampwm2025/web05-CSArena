@@ -1,9 +1,12 @@
+import { useUser } from '@/feature/auth/useUser';
 import { useState } from 'react';
 
 export function useFeedback() {
   const [feedback, setFeedback] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isSubmit, setIsSubmit] = useState<boolean>(false);
+
+  const { setUserData } = useUser();
 
   const onClickSubmitBtn = async () => {
     if (isSubmitting || isSubmit) {
@@ -31,5 +34,15 @@ export function useFeedback() {
     }
   };
 
-  return { feedback, setFeedback, isSubmitting, isSubmit, onClickSubmitBtn };
+  const onClickCloseBtn = () => {
+    setUserData((prev) => {
+      if (!prev) {
+        return prev;
+      }
+
+      return { ...prev, isSentFeedback: true };
+    });
+  };
+
+  return { feedback, setFeedback, isSubmitting, isSubmit, onClickSubmitBtn, onClickCloseBtn };
 }
