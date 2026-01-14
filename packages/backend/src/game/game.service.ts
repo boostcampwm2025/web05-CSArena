@@ -108,11 +108,20 @@ export class GameService {
     // 점수 반영
     const difficulty = this.mapDifficulty(question.difficulty);
     const finalGrades = gradeResults.map((grade) => {
-      let score = grade.isCorrect ? SCORE_MAP[difficulty] : 0;
+      let score = 0;
 
-      // 정답이면서 정답자 중 가장 빨리 제출한 경우 보너스 점수 추가
+      if (grade.isCorrect) {
+        // AI가 준 점수(0~10)를 난이도별 만점 기준으로 비율 계산
+        const aiScore = grade.score; // 0~10점
+        const maxScore = SCORE_MAP[difficulty]; // 10, 20, 30
+        // 비율 적용: (AI점수 / 10) * 난이도 만점
+        score = Math.round((aiScore / 10) * maxScore);
+      }
+
+      // 정답이면(만점자) 정답자 중 가장 빨리 제출한 경우 보너스 점수 추가
       if (
         grade.isCorrect &&
+        grade.score === 10 &&
         fastestCorrectSubmission &&
         grade.playerId === fastestCorrectSubmission.playerId
       ) {
