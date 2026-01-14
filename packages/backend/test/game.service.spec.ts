@@ -167,9 +167,9 @@ describe('GameService - AI Score Weighted Grading Logic', () => {
       const result = await gameService.processGrading(roomId);
 
       // Medium 난이도 만점 = 20점
-      // player1: (8/10) * 20 = 16점
+      // player1: (8/10) * 20 = 16점 + 스피드보너스 5점 = 21점 (먼저 제출)
       // player2: (5/10) * 20 = 10점
-      expect(result.grades[0].score).toBe(16);
+      expect(result.grades[0].score).toBe(21);
       expect(result.grades[1].score).toBe(10);
     });
 
@@ -207,9 +207,9 @@ describe('GameService - AI Score Weighted Grading Logic', () => {
       const result = await gameService.processGrading(roomId);
 
       // Hard 난이도 만점 = 30점
-      // player1: (9/10) * 30 = 27점
+      // player1: (9/10) * 30 = 27점 + 스피드보너스 5점 = 32점 (먼저 제출)
       // player2: (4/10) * 30 = 12점
-      expect(result.grades[0].score).toBe(27);
+      expect(result.grades[0].score).toBe(32);
       expect(result.grades[1].score).toBe(12);
     });
 
@@ -261,7 +261,7 @@ describe('GameService - AI Score Weighted Grading Logic', () => {
       expect(result.grades[1].score).toBe(0);
     });
 
-    it('스피드 보너스는 AI 만점자(10점)만 받음', async () => {
+    it('스피드 보너스는 정답자 중 가장 빠른 사람이 받음 (부분점수여도 가능)', async () => {
       const mockQuestion: QuestionEntity = {
         id: 5,
         questionType: 'short',
@@ -272,36 +272,36 @@ describe('GameService - AI Score Weighted Grading Logic', () => {
 
       sessionManager.setQuestion(roomId, mockQuestion);
 
-      // player1이 먼저 제출하고 AI 만점(10점)
+      // player1이 먼저 제출하고 AI 부분점수(7점)
       sessionManager.submitAnswer(roomId, player1Id, 'Domain Name System');
       await new Promise((resolve) => setTimeout(resolve, 10)); // 시간 차이
       sessionManager.submitAnswer(roomId, player2Id, 'Domain Name System');
 
-      // player1이 먼저 제출하고 만점(10점), player2는 나중 제출하고 부분점수(9점)
+      // player1이 먼저 제출하고 부분점수(7점), player2는 나중 제출하고 만점(10점)
       mockQuizService.gradeQuestion.mockResolvedValue([
         {
           playerId: player1Id,
           answer: 'Domain Name System',
           isCorrect: true,
-          score: 10, // 만점
-          feedback: 'Perfect!',
+          score: 7, // 부분 점수
+          feedback: 'Good',
         },
         {
           playerId: player2Id,
           answer: 'Domain Name System',
           isCorrect: true,
-          score: 9, // 만점 아님
-          feedback: 'Almost perfect',
+          score: 10, // 만점
+          feedback: 'Perfect!',
         },
       ]);
 
       const result = await gameService.processGrading(roomId);
 
       // Easy 난이도 만점 = 10점
-      // player1: (10/10) * 10 = 10점 + 스피드보너스 5점 = 15점 (만점자 중 가장 빠름)
-      // player2: (9/10) * 10 = 9점 (만점이 아니라서 보너스 없음)
-      expect(result.grades[0].score).toBe(15);
-      expect(result.grades[1].score).toBe(9);
+      // player1: (7/10) * 10 = 7점 + 스피드보너스 5점 = 12점 (가장 빠른 정답자)
+      // player2: (10/10) * 10 = 10점 (나중에 제출해서 보너스 없음)
+      expect(result.grades[0].score).toBe(12);
+      expect(result.grades[1].score).toBe(10);
     });
 
     it('둘 다 오답이면 0점', async () => {
@@ -412,8 +412,10 @@ describe('GameService - AI Score Weighted Grading Logic', () => {
 
       const result = await gameService.processGrading(roomId);
 
-      expect(result.grades[0].score).toBe(6); // Math.round((3/10) * 20) = 6
-      expect(result.grades[1].score).toBe(14); // Math.round((7/10) * 20) = 14
+      // player1: (3/10) * 20 = 6점 + 스피드보너스 5점 = 11점 (먼저 제출)
+      // player2: (7/10) * 20 = 14점
+      expect(result.grades[0].score).toBe(11);
+      expect(result.grades[1].score).toBe(14);
     });
   });
 
