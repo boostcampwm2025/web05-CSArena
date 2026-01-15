@@ -8,8 +8,9 @@ function createUserData(): UserData {
   const nickname = `Player${Math.floor(Math.random() * 10000)}`;
   const tier = 'bronze';
   const expPoint = 0;
+  const isSentFeedback = false;
 
-  return { userId, nickname, tier, expPoint };
+  return { userId, nickname, tier, expPoint, isSentFeedback };
 }
 
 // TODO: 추후 OAuth2 로그인 기능이 추가되면 userData 제거

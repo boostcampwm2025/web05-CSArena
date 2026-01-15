@@ -1,7 +1,13 @@
 import { createContext, useContext } from 'react';
 import { useState } from 'react';
 
-type UserData = { userId: string; nickname: string; tier: string; expPoint: number } | null;
+type UserData = {
+  userId: string;
+  nickname: string;
+  tier: string;
+  expPoint: number;
+  isSentFeedback: boolean;
+} | null;
 type UserAPI = {
   userData: UserData;
   setUserData: React.Dispatch<React.SetStateAction<UserData>>;

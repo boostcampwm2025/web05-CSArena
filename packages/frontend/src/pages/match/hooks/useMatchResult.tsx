@@ -34,5 +34,10 @@ export function useMatchResult() {
     setScene('home');
   };
 
-  return { isClickedRematchBtn, isClickedExitBtn, onClickRematchBtn, onClickExitBtn };
+  return {
+    isClickedRematchBtn,
+    isClickedExitBtn,
+    onClickRematchBtn,
+    onClickExitBtn,
+  };
 }
