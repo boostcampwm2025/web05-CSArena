@@ -4,7 +4,7 @@ import { usePlaying } from '@/pages/match/hooks/usePlaying';
 export default function Playing() {
   const { category, difficulty, point, content } = useQuestion();
   const { remainedSec } = useRoundTick();
-  const { isSubmit, isSubmitting, setAnswer, onClickSubmitBtn } = usePlaying();
+  const { isSubmit, isSubmitting, answer, setAnswer, onClickSubmitBtn } = usePlaying();
 
   return (
     <div className="flex h-full items-center justify-center">
@@ -92,8 +92,8 @@ export default function Playing() {
                 disabled={isSubmitting}
               />
               <button
-                className="w-full border-4 border-cyan-300 bg-gradient-to-r from-cyan-500 to-blue-500 py-3 font-bold text-white shadow-lg shadow-cyan-500/50 transition-all duration-200 hover:scale-105 hover:from-cyan-400 hover:to-blue-400"
-                disabled={isSubmit || isSubmitting}
+                className="w-full border-4 border-cyan-300 bg-gradient-to-r from-cyan-500 to-blue-500 py-3 font-bold text-white shadow-lg shadow-cyan-500/50 transition-all duration-200 enabled:hover:scale-105 enabled:hover:from-cyan-400 enabled:hover:to-blue-400 disabled:border-cyan-300/40 disabled:from-cyan-900/50 disabled:to-blue-900/50 disabled:text-white/70 disabled:shadow-cyan-500/20"
+                disabled={answer.trim() === '' || isSubmit || isSubmitting}
                 onClick={onClickSubmitBtn}
                 style={{ fontFamily: 'Orbitron' }}
               >

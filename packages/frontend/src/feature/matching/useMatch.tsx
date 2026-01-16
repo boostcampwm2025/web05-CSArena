@@ -70,6 +70,13 @@ export function MatchProvider({ children }: { children: React.ReactNode }) {
 
   const handleMatchFound = useCallback((payload: MatchFound) => {
     setOpponentInfo(payload.opponent);
+    setMatchResult({
+      myTotalPoints: 0,
+      myWinCount: 0,
+      opponentTotalPoints: 0,
+      opponentWinCount: 0,
+      roundResults: [],
+    });
     setMatchState('inGame');
   }, []);
 

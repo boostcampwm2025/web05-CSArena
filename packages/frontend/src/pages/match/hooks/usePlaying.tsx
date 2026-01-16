@@ -36,5 +36,5 @@ export function usePlaying() {
     });
   };
 
-  return { isSubmit, isSubmitting, setAnswer, onClickSubmitBtn };
+  return { isSubmit, isSubmitting, answer, setAnswer, onClickSubmitBtn };
 }

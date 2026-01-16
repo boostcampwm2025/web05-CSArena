@@ -79,14 +79,31 @@ export function RoundProvider({ children }: { children: React.ReactNode }) {
     setTotalRounds(payload.totalRounds);
   }, []);
 
-  const handleRoundStart = useCallback((payload: RoundStart) => {
-    setRoundState('playing');
-    setRemainedSec(payload.durationSec);
-    setCategory(payload.question.category);
-    setDifficulty(payload.question.difficulty);
-    setPoint(payload.question.point);
-    setContent(payload.question.content);
-  }, []);
+  const handleRoundStart = useCallback(
+    (payload: RoundStart) => {
+      setRoundState('playing');
+      setRemainedSec(payload.durationSec);
+      setCategory(payload.question.category);
+      setDifficulty(payload.question.difficulty);
+      setPoint(payload.question.point);
+      setContent(payload.question.content);
+
+      setMatchResult((prev) => ({
+        ...prev,
+        roundResults: [
+          ...prev.roundResults,
+          {
+            index: roundIndex,
+            question: payload.question,
+            myAnswer: '',
+            opponentAnswer: '',
+            bestAnswer: '',
+          },
+        ],
+      }));
+    },
+    [roundIndex, setMatchResult],
+  );
 
   const handleRoundEnd = useCallback(
     (payload: RoundEnd) => {
@@ -103,31 +120,29 @@ export function RoundProvider({ children }: { children: React.ReactNode }) {
       setBestAnswer(payload.solution.bestAnswer);
       setExplanation(payload.solution.explanation);
 
-      setMatchResult((prev) => ({
-        myTotalPoints: payload.results.my.total,
-        myWinCount: payload.results.my.correct ? prev.myWinCount + 1 : prev.myWinCount,
-        opponentTotalPoints: payload.results.opponent.total,
-        opponentWinCount: payload.results.opponent.correct
-          ? prev.opponentWinCount + 1
-          : prev.opponentWinCount,
-        roundResults: [
-          ...prev.roundResults,
-          {
-            index: roundIndex,
-            question: {
-              category,
-              point,
-              difficulty,
-              content,
-            },
-            myAnswer: payload.results.my.submitted,
-            opponentAnswer: payload.results.opponent.submitted,
-            bestAnswer: payload.solution.bestAnswer,
-          },
-        ],
-      }));
+      setMatchResult((prev) => {
+        const roundResult = prev.roundResults.pop();
+
+        if (!roundResult) {
+          return prev;
+        }
+
+        roundResult.myAnswer = payload.results.my.submitted;
+        roundResult.opponentAnswer = payload.results.opponent.submitted;
+        roundResult.bestAnswer = payload.solution.bestAnswer;
+
+        return {
+          myTotalPoints: payload.results.my.total,
+          myWinCount: payload.results.my.correct ? prev.myWinCount + 1 : prev.myWinCount,
+          opponentTotalPoints: payload.results.opponent.total,
+          opponentWinCount: payload.results.opponent.correct
+            ? prev.opponentWinCount + 1
+            : prev.opponentWinCount,
+          roundResults: [...prev.roundResults, roundResult],
+        };
+      });
     },
-    [roundIndex, category, point, difficulty, content, setMatchResult],
+    [setMatchResult],
   );
 
   const handleRoundTick = useCallback((payload: RoundTick) => {
