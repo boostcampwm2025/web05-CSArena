@@ -1,0 +1,7 @@
+langchain-naver>=0.1.0
+langchain>=0.2.0
+psycopg2-binary>=2.9.9
+pgvector>=0.2.0
+ragas>=0.1.0
+python-dotenv>=1.0.0
+pydantic>=2.0.0
