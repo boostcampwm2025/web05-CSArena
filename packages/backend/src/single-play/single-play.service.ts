@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   InternalServerErrorException,
   Logger,
@@ -10,6 +11,7 @@ import { Category, Question as QuestionEntity } from '../quiz/entity';
 import { QuizService } from '../quiz/quiz.service';
 import { Question } from '../quiz/quiz.types';
 import { mapDifficulty, SCORE_MAP } from '../quiz/quiz.constants';
+import { SinglePlaySessionManager } from './single-play-session-manager';
 
 @Injectable()
 export class SinglePlayService {
@@ -21,6 +23,7 @@ export class SinglePlayService {
     @InjectRepository(QuestionEntity)
     private readonly questionRepository: Repository<QuestionEntity>,
     private readonly quizService: QuizService,
+    private readonly sessionManager: SinglePlaySessionManager,
   ) {}
 
   /**
@@ -45,9 +48,9 @@ export class SinglePlayService {
   }
 
   /**
-   * 선택한 카테고리의 문제 10개 생성
+   * 선택한 카테고리의 문제 10개 생성 및 게임 시작
    */
-  async getQuestions(categoryIds: number[]): Promise<Question[]> {
+  async getQuestions(userId: string, categoryIds: number[]): Promise<Question[]> {
     try {
       // 카테고리 존재 여부 확인
       const existingCategories = await this.categoryRepository.find({
@@ -63,7 +66,13 @@ export class SinglePlayService {
       }
 
       // QuizService를 통해 문제 생성
-      return await this.quizService.generateSinglePlayQuestions(categoryIds, 10);
+      const questions = await this.quizService.generateSinglePlayQuestions(categoryIds, 10);
+
+      // 새 게임 시작
+      const questionIds = questions.map((q) => q.id);
+      this.sessionManager.createGame(userId, categoryIds, questionIds);
+
+      return questions;
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw error;
@@ -78,6 +87,7 @@ export class SinglePlayService {
    * 답안 제출 및 채점
    */
   async submitAnswer(
+    userId: string,
     questionId: number,
     answer: string,
   ): Promise<{
@@ -90,6 +100,10 @@ export class SinglePlayService {
     totalScore: number;
   }> {
     try {
+      // 게임 조회 및 문제 검증
+      const game = this.sessionManager.findGameOrThrow(userId);
+      game.validateQuestion(questionId);
+
       // 문제 조회
       const question = await this.questionRepository.findOne({
         where: { id: questionId },
@@ -118,9 +132,12 @@ export class SinglePlayService {
 
       // 난이도별 점수 환산
       const difficulty = mapDifficulty(question.difficulty);
-      const totalScore = grade.isCorrect
+      const currentScore = grade.isCorrect
         ? Math.round((grade.score / 10) * SCORE_MAP[difficulty])
         : 0;
+
+      // 게임에 답안 저장
+      game.submitAnswer(questionId, answer, grade.isCorrect, currentScore, grade.feedback);
 
       return {
         grade: {
@@ -129,10 +146,10 @@ export class SinglePlayService {
           score: grade.score,
           feedback: grade.feedback,
         },
-        totalScore,
+        totalScore: game.getTotalScore(),
       };
     } catch (error) {
-      if (error instanceof NotFoundException) {
+      if (error instanceof NotFoundException || error instanceof BadRequestException) {
         throw error;
       }
 
