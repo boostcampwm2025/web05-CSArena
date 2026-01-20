@@ -3,7 +3,7 @@ import { usePreparing } from '../hooks/usePreparing';
 export default function Preparing() {
   const {
     categories,
-    selectedCategoryId,
+    selectedCategoryIds,
     isLoadingCategories,
     isLoadingQuestions,
     onClickCategoryBtn,
@@ -79,10 +79,10 @@ export default function Preparing() {
         {/* Action Buttons */}
         <div className="flex w-full justify-end">
           <button
-            className={`border-2 ${isLoadingQuestions || selectedCategoryId.length === 0 ? 'border-slate-400/60 from-slate-600/60 to-slate-700/60 text-white/60' : 'border-slate-400 from-slate-600 to-slate-700 text-white'} bg-gradient-to-r px-6 py-3 text-2xl font-bold transition-all duration-200 enabled:hover:scale-105 enabled:hover:from-slate-500 enabled:hover:to-slate-600`}
+            className={`border-2 ${isLoadingQuestions || selectedCategoryIds.length === 0 ? 'border-slate-400/60 from-slate-600/60 to-slate-700/60 text-white/60' : 'border-slate-400 from-slate-600 to-slate-700 text-white'} bg-gradient-to-r px-6 py-3 text-2xl font-bold transition-all duration-200 enabled:hover:scale-105 enabled:hover:from-slate-500 enabled:hover:to-slate-600`}
             style={{ fontFamily: 'Orbitron' }}
             onClick={onClickStartBtn}
-            disabled={isLoadingQuestions || selectedCategoryId.length === 0}
+            disabled={isLoadingQuestions || selectedCategoryIds.length === 0}
           >
             <i className="ri-play-fill mr-2" />
             Start

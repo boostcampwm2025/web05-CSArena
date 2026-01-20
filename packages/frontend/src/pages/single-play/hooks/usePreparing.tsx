@@ -1,12 +1,18 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { usePhase } from '@/feature/single-play/useRound';
-import { useQuestion, useResult, useRound } from '@/feature/single-play/useRound';
+import {
+  useCategory,
+  usePhase,
+  useQuestion,
+  useResult,
+  useRound,
+} from '@/feature/single-play/useRound';
 
 import { CategoryItem } from '@/pages/single-play/types/types';
 import { fetchCategories, fetchQuestions } from '@/lib/api/single-play';
 
 export function usePreparing() {
+  const { selectedCategoryIds, setSelectedCategoryIds } = useCategory();
   const { setPhase } = usePhase();
   const { setCurRound, setTotalRounds } = useRound();
   const { setQuestions } = useQuestion();
@@ -32,6 +38,7 @@ export function usePreparing() {
         ]);
 
         setCategories(Object.fromEntries(entries));
+        setSelectedCategoryIds([]);
       } catch (e) {
         if (e instanceof DOMException && e.name === 'AbortError') {
           return;
@@ -49,28 +56,33 @@ export function usePreparing() {
       controller.abort();
       questionControllerRef.current?.abort();
     };
-  }, []);
+  }, [setSelectedCategoryIds]);
 
-  const onClickCategoryBtn = useCallback((categoryId: number) => {
-    setCategories((prev) => {
-      const target = prev[categoryId];
+  const onClickCategoryBtn = useCallback(
+    (categoryId: number) => {
+      setCategories((prev) => {
+        const target = prev[categoryId];
 
-      if (!target) {
-        return prev;
-      }
+        if (!target) {
+          return prev;
+        }
 
-      return {
-        ...prev,
-        [categoryId]: { ...target, isSelected: !target.isSelected },
-      };
-    });
-  }, []);
+        const next: Record<number, CategoryItem> = {
+          ...prev,
+          [categoryId]: { ...target, isSelected: !target.isSelected },
+        };
 
-  const selectedCategoryId = useMemo(() => {
-    return Object.values(categories)
-      .filter((c) => c.isSelected)
-      .map((c) => c.id);
-  }, [categories]);
+        const nextSelectedIds = Object.values(next)
+          .filter((c) => c.isSelected)
+          .map((c) => c.id);
+
+        setSelectedCategoryIds(nextSelectedIds);
+
+        return next;
+      });
+    },
+    [setSelectedCategoryIds],
+  );
 
   const onClickStartBtn = useCallback(async () => {
     questionControllerRef.current?.abort();
@@ -78,14 +90,14 @@ export function usePreparing() {
     const controller = new AbortController();
     questionControllerRef.current = controller;
 
-    if (selectedCategoryId.length === 0) {
+    if (selectedCategoryIds.length === 0) {
       return;
     }
 
     setIsLoadingQuestions(true);
 
     try {
-      const data = await fetchQuestions(selectedCategoryId, controller.signal);
+      const data = await fetchQuestions(selectedCategoryIds, controller.signal);
 
       setCurRound(0);
       setTotalRounds(data.questions.length);
@@ -105,7 +117,7 @@ export function usePreparing() {
       setIsLoadingQuestions(false);
     }
   }, [
-    selectedCategoryId,
+    selectedCategoryIds,
     setPhase,
     setCurRound,
     setTotalRounds,
@@ -117,7 +129,7 @@ export function usePreparing() {
 
   return {
     categories,
-    selectedCategoryId,
+    selectedCategoryIds,
     isLoadingCategories,
     isLoadingQuestions,
     onClickCategoryBtn,

@@ -1,11 +1,15 @@
-import { useUser } from '@/feature/auth/useUser';
-import { useQuestion, useResult, useRound } from '@/feature/single-play/useRound';
+import { useSinglePlayResult } from '../hooks/useSinglePlayResult';
 
 export default function SinglePlayResult() {
-  const { userData } = useUser();
-  const { curRound } = useRound();
-  const { questions } = useQuestion();
-  const { submitAnswers, correctCnt, totalPoints } = useResult();
+  const {
+    nickname,
+    questions,
+    submitAnswers,
+    correctCnt,
+    totalPoints,
+    onClickStudyAgainBtn,
+    onClickSelectOtherCategoryBtn,
+  } = useSinglePlayResult();
 
   return (
     <div className="relative z-10 flex h-full w-full flex-col items-center justify-center p-10">
@@ -26,7 +30,7 @@ export default function SinglePlayResult() {
               </div>
               <div className="flex flex-col text-left">
                 <div className="text-lg font-bold text-cyan-300" style={{ fontFamily: 'Orbitron' }}>
-                  {userData?.nickname}
+                  {nickname}
                 </div>
                 <div
                   className="text-2xl font-bold text-emerald-400"
@@ -148,7 +152,7 @@ export default function SinglePlayResult() {
                       You:
                     </div>
                     <div className="text-white" style={{ fontFamily: 'Orbitron' }}>
-                      {submitAnswers[index]}
+                      {submitAnswers[index].answer}
                     </div>
                   </div>
                 </div>
@@ -161,9 +165,9 @@ export default function SinglePlayResult() {
                   >
                     <i className="ri-lightbulb-line mr-1" />
                     Answer:
-                    {questions[curRound].type === 'multiple_choice' && questions[curRound].answer}
-                    {questions[curRound].type === 'short_answer' && questions[curRound].answer}
-                    {questions[curRound].type === 'essay' && questions[curRound].sampleAnswer}
+                    {questions[index].type === 'multiple_choice' && questions[index].answer}
+                    {questions[index].type === 'short_answer' && questions[index].answer}
+                    {questions[index].type === 'essay' && questions[index].sampleAnswer}
                   </span>
                 </div>
               </div>
@@ -176,6 +180,7 @@ export default function SinglePlayResult() {
           <button
             className="w-full border-4 border-cyan-300 bg-gradient-to-r from-cyan-500 to-blue-500 p-2 text-2xl font-bold text-white shadow-lg shadow-cyan-500/50 transition-all duration-200 hover:scale-105 hover:from-cyan-400 hover:to-blue-400"
             style={{ fontFamily: 'Orbitron' }}
+            onClick={onClickStudyAgainBtn}
           >
             <i className="ri-loop-right-line mr-2 text-2xl" />
             STUDY AGAIN
@@ -183,6 +188,7 @@ export default function SinglePlayResult() {
           <button
             className="w-full border-4 border-red-300 bg-gradient-to-r from-red-500 to-rose-500 p-2 text-2xl font-bold text-white shadow-lg shadow-red-500/50 transition-all duration-200 hover:scale-105 hover:from-red-400 hover:to-rose-400"
             style={{ fontFamily: 'Orbitron' }}
+            onClick={onClickSelectOtherCategoryBtn}
           >
             <i className="ri-function-line mr-2 text-2xl" />
             SELECT OTHER CATEGORY

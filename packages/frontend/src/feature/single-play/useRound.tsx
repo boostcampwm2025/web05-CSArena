@@ -3,6 +3,10 @@ import { useState } from 'react';
 
 import { Question, SinglePlayPhase } from '@/pages/single-play/types/types';
 
+type CategoryAPI = {
+  selectedCategoryIds: number[];
+  setSelectedCategoryIds: React.Dispatch<React.SetStateAction<number[]>>;
+};
 type PhaseAPI = {
   phase: SinglePlayPhase;
   setPhase: React.Dispatch<React.SetStateAction<SinglePlayPhase>>;
@@ -26,12 +30,14 @@ type ResultAPI = {
   setTotalPoints: React.Dispatch<React.SetStateAction<number>>;
 };
 
+const CategoryCtx = createContext<CategoryAPI | null>(null);
 const PhaseCtx = createContext<PhaseAPI | null>(null);
 const RoundCtx = createContext<RoundAPI | null>(null);
 const QuestionCtx = createContext<QuestionAPI | null>(null);
 const ResultCtx = createContext<ResultAPI | null>(null);
 
 export function SinglePlayProvider({ children }: { children: React.ReactNode }) {
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([]);
   const [phase, setPhase] = useState<SinglePlayPhase>('preparing');
   const [curRound, setCurRound] = useState<number>(0);
   const [totalRounds, setTotalRounds] = useState<number>(0);
@@ -41,32 +47,44 @@ export function SinglePlayProvider({ children }: { children: React.ReactNode }) 
   const [totalPoints, setTotalPoints] = useState<number>(0);
 
   return (
-    <PhaseCtx.Provider value={{ phase, setPhase }}>
-      <RoundCtx.Provider
-        value={{
-          curRound,
-          setCurRound,
-          totalRounds,
-          setTotalRounds,
-        }}
-      >
-        <QuestionCtx.Provider value={{ questions, setQuestions }}>
-          <ResultCtx.Provider
-            value={{
-              submitAnswers,
-              setSubmitAnswers,
-              correctCnt,
-              setCorrectCnt,
-              totalPoints,
-              setTotalPoints,
-            }}
-          >
-            {children}
-          </ResultCtx.Provider>
-        </QuestionCtx.Provider>
-      </RoundCtx.Provider>
-    </PhaseCtx.Provider>
+    <CategoryCtx.Provider value={{ selectedCategoryIds, setSelectedCategoryIds }}>
+      <PhaseCtx.Provider value={{ phase, setPhase }}>
+        <RoundCtx.Provider
+          value={{
+            curRound,
+            setCurRound,
+            totalRounds,
+            setTotalRounds,
+          }}
+        >
+          <QuestionCtx.Provider value={{ questions, setQuestions }}>
+            <ResultCtx.Provider
+              value={{
+                submitAnswers,
+                setSubmitAnswers,
+                correctCnt,
+                setCorrectCnt,
+                totalPoints,
+                setTotalPoints,
+              }}
+            >
+              {children}
+            </ResultCtx.Provider>
+          </QuestionCtx.Provider>
+        </RoundCtx.Provider>
+      </PhaseCtx.Provider>
+    </CategoryCtx.Provider>
   );
+}
+
+export function useCategory() {
+  const ctx = useContext(CategoryCtx);
+
+  if (!ctx) {
+    throw new Error();
+  }
+
+  return ctx;
 }
 
 export function usePhase() {
