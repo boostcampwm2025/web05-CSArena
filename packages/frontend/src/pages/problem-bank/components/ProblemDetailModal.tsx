@@ -1,15 +1,11 @@
 import { ProblemBankItem } from '@/shared/type';
 
 interface ProblemDetailModalProps {
-  problem: ProblemBankItem | null;
+  problem: ProblemBankItem;
   onClose: () => void;
 }
 
 export default function ProblemDetailModal({ problem, onClose }: ProblemDetailModalProps) {
-  if (!problem) {
-    return null;
-  }
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
       <div className="relative max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-lg border-2 border-cyan-400 bg-slate-900/95 backdrop-blur-sm">
