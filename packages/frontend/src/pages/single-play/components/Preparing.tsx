@@ -33,7 +33,7 @@ export default function Preparing() {
                     cy="50"
                     r="48"
                     fill="none"
-                    className="stroke-cyan-400"
+                    className="stroke-white"
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeDasharray="197.92 65.97"
