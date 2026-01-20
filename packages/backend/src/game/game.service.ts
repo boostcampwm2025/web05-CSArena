@@ -232,7 +232,7 @@ export class GameService {
       .returning('id')
       .execute();
 
-    return result.generatedMaps[0].id;
+    return result.generatedMaps[0].id as number;
   }
 
   /**
@@ -259,7 +259,7 @@ export class GameService {
 
     const roundIdMap = new Map<number, number>();
     result.generatedMaps.forEach((r) => {
-      roundIdMap.set(r.roundNumber, r.id);
+      roundIdMap.set(r.roundNumber as number, r.id as number);
     });
 
     return roundIdMap;
@@ -294,10 +294,15 @@ export class GameService {
       const questionType = roundData.question?.questionType;
 
       for (const [playerId, submission] of Object.entries(roundData.submissions)) {
-        if (!submission) continue;
+        if (!submission) {
+          continue;
+        }
 
         const grade = roundData.result?.grades.find((g) => g.playerId === playerId);
-        if (!grade) continue;
+
+        if (!grade) {
+          continue;
+        }
 
         answersData.push({
           userId: this.parseUserId(playerId),
@@ -350,10 +355,15 @@ export class GameService {
       const questionType = roundData.question?.questionType;
 
       for (const [playerId, submission] of Object.entries(roundData.submissions)) {
-        if (!submission) continue;
+        if (!submission) {
+          continue;
+        }
 
         const grade = roundData.result?.grades.find((g) => g.playerId === playerId);
-        if (!grade) continue;
+
+        if (!grade) {
+          continue;
+        }
 
         problemBanksData.push({
           userId: this.parseUserId(playerId),

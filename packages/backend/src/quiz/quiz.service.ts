@@ -666,8 +666,14 @@ export class QuizService {
       return isCorrect ? 'correct' : 'incorrect';
     }
 
-    if (score >= 7) return 'correct';
-    if (score >= 3) return 'partial';
+    if (score >= 7) {
+      return 'correct';
+    }
+
+    if (score >= 3) {
+      return 'partial';
+    }
+
     return 'incorrect';
   }
 }
