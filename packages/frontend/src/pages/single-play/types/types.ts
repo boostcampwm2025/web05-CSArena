@@ -35,3 +35,10 @@ export type Question =
 export type GetCategoriesRes = { categories: CategoryItem[] };
 
 export type GetQuestionsRes = { questions: Question[] };
+
+export type SubmitAnswerReq = { questionId: number; answer: string };
+
+export type SubmitAnswerRes = {
+  grade: { answer: string; isCorrect: boolean; score: number; feedback: string };
+  totalScore: number;
+};
