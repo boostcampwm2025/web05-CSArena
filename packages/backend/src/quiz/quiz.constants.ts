@@ -9,6 +9,26 @@ export const SCORE_MAP: Record<Difficulty, number> = {
 export const SPEED_BONUS = 5;
 
 /**
+ * 숫자 난이도를 문자열 난이도로 매핑
+ * 1-2: easy, 3: medium, 4-5: hard
+ */
+export function mapDifficulty(numDifficulty: number | null): Difficulty {
+  if (!numDifficulty) {
+    return 'medium';
+  }
+
+  if (numDifficulty <= 2) {
+    return 'easy';
+  }
+
+  if (numDifficulty === 3) {
+    return 'medium';
+  }
+
+  return 'hard';
+}
+
+/**
  * Quiz 서비스 상수 정의
  */
 export const QUIZ_CONSTANTS = {

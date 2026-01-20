@@ -4,6 +4,7 @@ import { AppService } from './app.service';
 import { GameModule } from './game/game.module';
 import { MatchmakingModule } from './matchmaking/matchmaking.module';
 import { QuizModule } from './quiz/quiz.module';
+import { SinglePlayModule } from './single-play/single-play.module';
 import { HealthController } from './health/health.controller';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -46,6 +47,7 @@ const metadata: ModuleMetadata = {
     MatchmakingModule,
     GameModule,
     FeedbackModule,
+    SinglePlayModule,
   ],
   controllers: [AppController, HealthController],
   providers: [AppService],
