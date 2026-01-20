@@ -100,7 +100,7 @@ export default function Home() {
               LEADERBOARD
             </button>
             <button
-              onClick={() => {}}
+              onClick={() => setScene('problem-bank')}
               className="border-4 border-emerald-300 bg-gradient-to-r from-emerald-500 to-teal-500 py-4 text-2xl font-bold text-white shadow-lg shadow-emerald-500/50 transition-all duration-200 hover:scale-105 hover:from-emerald-400 hover:to-teal-400"
               style={{ fontFamily: 'Orbitron' }}
             >

@@ -1,7 +1,7 @@
 import { createContext, useContext } from 'react';
 import { useState } from 'react';
 
-type Scene = 'home' | 'match';
+type Scene = 'home' | 'match' | 'problem-bank';
 type SceneAPI = { scene: Scene; setScene: React.Dispatch<React.SetStateAction<Scene>> };
 
 const SceneCtx = createContext<SceneAPI | null>(null);
