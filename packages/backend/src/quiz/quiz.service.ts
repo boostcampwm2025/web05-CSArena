@@ -651,4 +651,23 @@ export class QuizService {
         return '정답이면 true, 오답이면 false';
     }
   }
+
+  /**
+   * 점수와 정답 여부를 기반으로 최종 상태(AnswerStatus)를 결정
+   * - 객관식/단답형: 정답(correct) 또는 오답(incorrect)
+   * - 서술형: 7점 이상(correct), 3~6점(partial), 2점 이하(incorrect)
+   */
+  public determineAnswerStatus(
+    questionType: string | undefined,
+    isCorrect: boolean,
+    score: number,
+  ): 'correct' | 'incorrect' | 'partial' {
+    if (questionType === 'multiple' || questionType === 'short') {
+      return isCorrect ? 'correct' : 'incorrect';
+    }
+
+    if (score >= 7) return 'correct';
+    if (score >= 3) return 'partial';
+    return 'incorrect';
+  }
 }
