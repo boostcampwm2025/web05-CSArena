@@ -10,6 +10,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { FeedbackModule } from './feedback/feedback.module';
 import { feedbackLoggerConfig } from './common/winston.config';
 import { WinstonModule } from 'nest-winston';
+import { AuthModule } from './auth/auth.module';
 
 const configModule = ConfigModule.forRoot({
   isGlobal: true,
@@ -40,6 +41,7 @@ const metadata: ModuleMetadata = {
     configModule,
     typeOrmModule,
     WinstonModule.forRoot(feedbackLoggerConfig),
+    AuthModule,
     QuizModule,
     MatchmakingModule,
     GameModule,

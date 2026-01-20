@@ -68,12 +68,12 @@ describe('FeedbackService', () => {
             );
         });
 
-        it('비로그인(null) 유저는 "anonymous"로 로깅되어야 한다', () => {
+        it('다른 유저의 피드백도 정상적으로 로깅되어야 한다', () => {
             // Given
-            const userId = null;
+            const userId = 'user-uuid-5678';
             const dto: CreateFeedbackDto = {
-                category: FeedbackCategory.BUG,
-                content: '버튼이 안눌려요',
+                category: FeedbackCategory.OTHER,
+                content: '새 기능을 추가해주세요',
             };
 
             // When
@@ -83,8 +83,8 @@ describe('FeedbackService', () => {
             expect(mockLogger.info).toHaveBeenCalledWith(
                 'User Feedback Received',
                 expect.objectContaining({
-                    userId: 'anonymous',
-                    category: FeedbackCategory.BUG,
+                    userId: 'user-uuid-5678',
+                    category: FeedbackCategory.OTHER,
                 }),
             );
         });

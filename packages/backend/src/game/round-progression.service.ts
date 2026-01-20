@@ -283,9 +283,7 @@ export class RoundProgressionService {
       });
 
       // DB 저장 및 세션 정리
-      // TODO: 추후 OAuth2 도입 후 매치 데이터를 실제로 저장하도록 수정
-      await Promise.resolve();
-      //await this.gameService.saveMatchToDatabase(roomId);
+      await this.gameService.saveMatchToDatabase(roomId);
       this.sessionManager.deleteGameSession(roomId);
       this.roundTimer.clearAllTimers(roomId);
     } catch (error) {

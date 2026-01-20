@@ -243,8 +243,7 @@ export class GameService {
     const parsed = parseInt(userId, 10);
 
     if (isNaN(parsed)) {
-      // userId가 숫자가 아니면 임시로 0 반환 (실제 환경에서는 적절히 처리)
-      return 0;
+      throw new Error(`Invalid userId: ${userId}`);
     }
 
     return parsed;
