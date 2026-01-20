@@ -1,10 +1,14 @@
+import { usePhase } from '@/feature/single-play/useRound';
+
 import TopBar from './components/Topbar';
 import Preparing from './components/Preparing';
-//import Playing from './components/Playing';
-//import RoundResult from './components/RoundResult';
-//import SinglePlayResult from './components/SinglePlayResult';
+import Playing from './components/Playing';
+import RoundResult from './components/RoundResult';
+import SinglePlayResult from './components/SinglePlayResult';
 
 export default function SinglePlay() {
+  const { phase } = usePhase();
+
   return (
     <div className="relative flex h-screen w-screen flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       {/* Retro grid background */}
@@ -26,12 +30,11 @@ export default function SinglePlay() {
       </div>
 
       <div className="relative z-10 min-h-0 flex-1">
-        <Preparing />
+        {phase === 'preparing' && <Preparing />}
+        {phase === 'playing' && <Playing />}
+        {phase === 'round-result' && <RoundResult />}
+        {phase === 'result' && <SinglePlayResult />}
       </div>
-      {/* <Preparing /> */}
-      {/* <Playing /> */}
-      {/* <RoundResult /> */}
-      {/* <SinglePlayResult /> */}
     </div>
   );
 }

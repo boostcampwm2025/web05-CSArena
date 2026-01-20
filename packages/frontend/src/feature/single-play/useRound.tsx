@@ -1,35 +1,12 @@
-import React, { createContext, useContext } from 'react';
+import { createContext, useContext } from 'react';
 import { useState } from 'react';
 
-type Difficulty = 'easy' | 'medium' | 'hard';
-type MultipleChoiceOptions = { A: string; B: string; C: string; D: string };
-type Question =
-  | {
-      id: number;
-      type: 'multiple_choice';
-      qustion: string;
-      difficulty: Difficulty;
-      category: string[];
-      options: MultipleChoiceOptions;
-      answer: 'A' | 'B' | 'C' | 'D';
-    }
-  | {
-      id: number;
-      type: 'short_answer';
-      question: string;
-      difficulty: Difficulty;
-      category: string[];
-      answer: string;
-    }
-  | {
-      id: number;
-      type: 'essay';
-      question: string;
-      difficulty: Difficulty;
-      category: string[];
-      sampleAnswer: string;
-    };
+import { Question, SinglePlayPhase } from '@/pages/single-play/types/types';
 
+type PhaseAPI = {
+  phase: SinglePlayPhase;
+  setPhase: React.Dispatch<React.SetStateAction<SinglePlayPhase>>;
+};
 type RoundAPI = {
   curRound: number;
   setCurRound: React.Dispatch<React.SetStateAction<number>>;
@@ -49,11 +26,13 @@ type ResultAPI = {
   setTotalPoints: React.Dispatch<React.SetStateAction<number>>;
 };
 
+const PhaseCtx = createContext<PhaseAPI | null>(null);
 const RoundCtx = createContext<RoundAPI | null>(null);
 const QuestionCtx = createContext<QuestionAPI | null>(null);
 const ResultCtx = createContext<ResultAPI | null>(null);
 
 export function SinglePlayProvider({ children }: { children: React.ReactNode }) {
+  const [phase, setPhase] = useState<SinglePlayPhase>('preparing');
   const [curRound, setCurRound] = useState<number>(0);
   const [totalRounds, setTotalRounds] = useState<number>(0);
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -62,30 +41,42 @@ export function SinglePlayProvider({ children }: { children: React.ReactNode }) 
   const [totalPoints, setTotalPoints] = useState<number>(0);
 
   return (
-    <RoundCtx.Provider
-      value={{
-        curRound,
-        setCurRound,
-        totalRounds,
-        setTotalRounds,
-      }}
-    >
-      <QuestionCtx.Provider value={{ questions, setQuestions }}>
-        <ResultCtx.Provider
-          value={{
-            submitAnswers,
-            setSubmitAnswers,
-            correctCnt,
-            setCorrectCnt,
-            totalPoints,
-            setTotalPoints,
-          }}
-        >
-          {children}
-        </ResultCtx.Provider>
-      </QuestionCtx.Provider>
-    </RoundCtx.Provider>
+    <PhaseCtx.Provider value={{ phase, setPhase }}>
+      <RoundCtx.Provider
+        value={{
+          curRound,
+          setCurRound,
+          totalRounds,
+          setTotalRounds,
+        }}
+      >
+        <QuestionCtx.Provider value={{ questions, setQuestions }}>
+          <ResultCtx.Provider
+            value={{
+              submitAnswers,
+              setSubmitAnswers,
+              correctCnt,
+              setCorrectCnt,
+              totalPoints,
+              setTotalPoints,
+            }}
+          >
+            {children}
+          </ResultCtx.Provider>
+        </QuestionCtx.Provider>
+      </RoundCtx.Provider>
+    </PhaseCtx.Provider>
   );
+}
+
+export function usePhase() {
+  const ctx = useContext(PhaseCtx);
+
+  if (!ctx) {
+    throw new Error();
+  }
+
+  return ctx;
 }
 
 export function useRound() {

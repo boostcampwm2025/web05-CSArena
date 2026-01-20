@@ -1,7 +1,14 @@
 import { usePreparing } from '../hooks/usePreparing';
 
 export default function Preparing() {
-  const { categories, isLoading, onClickCategoryBtn } = usePreparing();
+  const {
+    categories,
+    selectedCategoryId,
+    isLoadingCategories,
+    isLoadingQuestions,
+    onClickCategoryBtn,
+    onClickStartBtn,
+  } = usePreparing();
 
   return (
     <div className="relative z-10 flex h-full w-full flex-col items-center p-4">
@@ -18,7 +25,7 @@ export default function Preparing() {
 
         {/* Category Area */}
         <div className="flex w-full flex-col items-stretch border-4 border-slate-600 bg-slate-700/50 bg-gradient-to-r from-slate-800/95 to-slate-900/95 p-10 shadow-purple-500/30">
-          {isLoading ? (
+          {isLoadingCategories ? (
             <div className="flex h-[416px] w-full items-center justify-center">
               {/* Rotating Animation */}
               <div className="relative h-48 w-48">
@@ -72,8 +79,10 @@ export default function Preparing() {
         {/* Action Buttons */}
         <div className="flex w-full justify-end">
           <button
-            className="border-2 border-slate-400 bg-gradient-to-r from-slate-600 to-slate-700 px-6 py-3 text-2xl font-bold text-white transition-all duration-200 hover:scale-105 hover:from-slate-500 hover:to-slate-600"
+            className={`border-2 ${isLoadingQuestions || selectedCategoryId.length === 0 ? 'border-slate-400/60 from-slate-600/60 to-slate-700/60 text-white/60' : 'border-slate-400 from-slate-600 to-slate-700 text-white'} bg-gradient-to-r px-6 py-3 text-2xl font-bold transition-all duration-200 enabled:hover:scale-105 enabled:hover:from-slate-500 enabled:hover:to-slate-600`}
             style={{ fontFamily: 'Orbitron' }}
+            onClick={onClickStartBtn}
+            disabled={isLoadingQuestions || selectedCategoryId.length === 0}
           >
             <i className="ri-play-fill mr-2" />
             Start
