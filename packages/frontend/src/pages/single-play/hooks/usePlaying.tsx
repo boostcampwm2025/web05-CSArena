@@ -36,7 +36,7 @@ export function usePlaying() {
         controller.signal,
       );
 
-      setSubmitAnswers((prev) => [...prev, trimmed]);
+      setSubmitAnswers((prev) => [...prev, { answer: trimmed, isCorrect: data.grade.isCorrect }]);
       setCorrectCnt((prev) => (data.grade.isCorrect ? prev + 1 : prev));
       setTotalPoints(data.totalScore);
 

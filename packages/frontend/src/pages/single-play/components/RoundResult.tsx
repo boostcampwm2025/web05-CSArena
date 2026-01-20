@@ -1,11 +1,7 @@
-import { useUser } from '@/feature/auth/useUser';
-import { useQuestion, useResult, useRound } from '@/feature/single-play/useRound';
+import { useRoundResult } from '@/pages/single-play/hooks/useRoundResult';
 
 export default function RoundResult() {
-  const { userData } = useUser();
-  const { curRound } = useRound();
-  const { questions } = useQuestion();
-  const { submitAnswers } = useResult();
+  const { nickname, curRound, question, submitAnswer, onClickNextBtn } = useRoundResult();
 
   return (
     <div className="flex h-full items-center justify-center">
@@ -24,7 +20,7 @@ export default function RoundResult() {
               <i className="ri-user-star-line text-2xl text-white" />
             </div>
             <div className="text-lg font-bold text-cyan-300" style={{ fontFamily: 'Orbitron' }}>
-              {userData?.nickname}
+              {nickname}
             </div>
           </div>
           <div className="flex flex-col gap-3">
@@ -32,14 +28,25 @@ export default function RoundResult() {
               YOUR ANSWER
             </div>
             <div className="text-base text-white" style={{ fontFamily: 'Orbitron' }}>
-              {submitAnswers[curRound]}
+              {submitAnswer.answer}
             </div>
           </div>
-          <div className="border-2 border-emerald-400 bg-emerald-500/20 py-2 text-center">
-            <p className="text-base font-bold text-emerald-400" style={{ fontFamily: 'Orbitron' }}>
-              ✓ CORRECT
-            </p>
-          </div>
+          {submitAnswer.isCorrect ? (
+            <div className="border-2 border-emerald-400 bg-emerald-500/20 py-2 text-center">
+              <p
+                className="text-base font-bold text-emerald-400"
+                style={{ fontFamily: 'Orbitron' }}
+              >
+                ✓ CORRECT
+              </p>
+            </div>
+          ) : (
+            <div className={'border-2 border-red-400 bg-red-500/20 py-2 text-center'}>
+              <p className={'text-base font-bold text-red-400'} style={{ fontFamily: 'Orbitron' }}>
+                ✗ WRONG
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Correct Answer */}
@@ -49,9 +56,9 @@ export default function RoundResult() {
             CORRECT ANSWER
           </div>
           <div className="text-base text-white" style={{ fontFamily: 'Orbitron' }}>
-            {questions[curRound].type === 'multiple_choice' && questions[curRound].answer}
-            {questions[curRound].type === 'short_answer' && questions[curRound].answer}
-            {questions[curRound].type === 'essay' && questions[curRound].sampleAnswer}
+            {question.type === 'multiple_choice' && question.answer}
+            {question.type === 'short_answer' && question.answer}
+            {question.type === 'essay' && question.sampleAnswer}
           </div>
         </div>
 
@@ -60,6 +67,7 @@ export default function RoundResult() {
           <button
             className="border-2 border-slate-400 bg-gradient-to-r from-slate-600 to-slate-700 px-6 py-3 text-2xl font-bold text-white transition-all duration-200 hover:scale-105 hover:from-slate-500 hover:to-slate-600"
             style={{ fontFamily: 'Orbitron' }}
+            onClick={onClickNextBtn}
           >
             <i className="ri-play-fill mr-2" />
             Next

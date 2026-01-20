@@ -18,8 +18,8 @@ type QuestionAPI = {
   setQuestions: React.Dispatch<React.SetStateAction<Question[]>>;
 };
 type ResultAPI = {
-  submitAnswers: string[];
-  setSubmitAnswers: React.Dispatch<React.SetStateAction<string[]>>;
+  submitAnswers: { answer: string; isCorrect: boolean }[];
+  setSubmitAnswers: React.Dispatch<React.SetStateAction<{ answer: string; isCorrect: boolean }[]>>;
   correctCnt: number;
   setCorrectCnt: React.Dispatch<React.SetStateAction<number>>;
   totalPoints: number;
@@ -36,7 +36,7 @@ export function SinglePlayProvider({ children }: { children: React.ReactNode }) 
   const [curRound, setCurRound] = useState<number>(0);
   const [totalRounds, setTotalRounds] = useState<number>(0);
   const [questions, setQuestions] = useState<Question[]>([]);
-  const [submitAnswers, setSubmitAnswers] = useState<string[]>([]);
+  const [submitAnswers, setSubmitAnswers] = useState<{ answer: string; isCorrect: boolean }[]>([]);
   const [correctCnt, setCorrectCnt] = useState<number>(0);
   const [totalPoints, setTotalPoints] = useState<number>(0);
 
