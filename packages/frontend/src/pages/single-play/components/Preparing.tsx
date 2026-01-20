@@ -1,7 +1,7 @@
 import { usePreparing } from '../hooks/usePreparing';
 
 export default function Preparing() {
-  const { categories, isLoading } = usePreparing();
+  const { categories, isLoading, onClickCategoryBtn } = usePreparing();
 
   return (
     <div className="relative z-10 flex h-full w-full flex-col items-center p-4">
@@ -45,10 +45,13 @@ export default function Preparing() {
             <div className="h-[416px] w-full overflow-y-auto pr-4 [scrollbar-gutter:stable]">
               {/* Category Grid */}
               <div className="grid w-full auto-rows-[180px] grid-cols-4 gap-6 overflow-visible py-4 pl-4">
-                {categories.map((category, index) => (
+                {Object.values(categories).map((category) => (
                   <button
-                    key={index}
-                    className="border-4 border-purple-400 bg-gradient-to-r from-slate-800/90 to-slate-900/90 p-6 shadow-lg transition-all duration-200 hover:scale-105 hover:border-pink-400 hover:shadow-purple-500/50"
+                    key={category.id}
+                    className={`border-4 border-purple-400 bg-gradient-to-r ${category.isSelected ? 'from-green-800/90 to-green-900/90' : 'from-slate-800/90 to-slate-900/90'} p-6 shadow-lg transition-all duration-200 hover:scale-105 hover:border-pink-400 hover:shadow-purple-500/50`}
+                    onClick={() => {
+                      onClickCategoryBtn(category.id);
+                    }}
                   >
                     <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center border-4 border-white bg-gradient-to-r from-cyan-500 to-blue-500">
                       <i className="ri-layout-grid-line text-4xl text-white" />
