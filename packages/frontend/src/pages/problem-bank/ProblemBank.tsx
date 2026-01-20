@@ -1,18 +1,19 @@
 import { useState } from 'react';
 import { useScene } from '@/feature/useScene.tsx';
-import { ProblemBankItem } from '@/shared/type';
+import { Category, ProblemBankItem } from '@/shared/type';
 import ProblemDetailModal from './components/ProblemDetailModal';
 
 export default function ProblemBank() {
   const { setScene } = useScene();
   const [selectedProblem, setSelectedProblem] = useState<ProblemBankItem | null>(null);
+  const [selectedParentCategory, setSelectedParentCategory] = useState<number | null>(null);
 
   // Mock data for layout
   const mockStats = {
     totalSolved: 15,
     correctCount: 8,
     incorrectCount: 7,
-    correctRate: 53.3,
+    partialCount: 1,
   };
 
   const mockProblems: ProblemBankItem[] = [
@@ -95,6 +96,32 @@ export default function ProblemBank() {
     },
   ];
 
+  // Mock categories data (대분류 - 소분류 구조)
+  const mockCategories: Category[] = [
+    { id: 1, name: 'Algorithm', parentId: null },
+    { id: 2, name: 'Database', parentId: null },
+    { id: 3, name: 'Network', parentId: null },
+    { id: 11, name: 'Tree', parentId: 1, parent: { id: 1, name: 'Algorithm', parentId: null } },
+    { id: 12, name: 'Graph', parentId: 1, parent: { id: 1, name: 'Algorithm', parentId: null } },
+    { id: 13, name: 'DP', parentId: 1, parent: { id: 1, name: 'Algorithm', parentId: null } },
+    { id: 14, name: 'Sorting', parentId: 1, parent: { id: 1, name: 'Algorithm', parentId: null } },
+    { id: 21, name: 'SQL', parentId: 2, parent: { id: 2, name: 'Database', parentId: null } },
+    { id: 22, name: 'NoSQL', parentId: 2, parent: { id: 2, name: 'Database', parentId: null } },
+    { id: 23, name: 'Indexing', parentId: 2, parent: { id: 2, name: 'Database', parentId: null } },
+    { id: 31, name: 'HTTP', parentId: 3, parent: { id: 3, name: 'Network', parentId: null } },
+    { id: 32, name: 'TCP/IP', parentId: 3, parent: { id: 3, name: 'Network', parentId: null } },
+    { id: 33, name: 'Security', parentId: 3, parent: { id: 3, name: 'Network', parentId: null } },
+  ];
+
+  // 대분류 카테고리만 추출
+  const parentCategories = mockCategories.filter((cat) => cat.parentId === null);
+
+  // 선택된 대분류의 소분류 추출
+  const childCategories =
+    selectedParentCategory !== null
+      ? mockCategories.filter((cat) => cat.parentId === selectedParentCategory)
+      : [];
+
   return (
     <div className="relative h-screen w-screen overflow-hidden bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       {/* Retro grid background */}
@@ -120,7 +147,7 @@ export default function ProblemBank() {
               className="flex items-center gap-1 text-sm text-cyan-400 transition-colors hover:text-cyan-300"
               style={{ fontFamily: 'Orbitron' }}
             >
-              <span>←</span>
+              <i className="ri-arrow-left-line" />
               <span>BACK</span>
             </button>
 
@@ -146,55 +173,59 @@ export default function ProblemBank() {
           </div>
 
           {/* Filter Section */}
-          <div className="mb-3 space-y-2 rounded border-2 border-purple-400 bg-slate-900/90 p-3 backdrop-blur-sm">
-            {/* First Row */}
-            <div className="flex flex-wrap gap-2">
+          <div className="mb-3 space-y-3 rounded border-2 border-purple-400 bg-slate-900/90 p-3 backdrop-blur-sm">
+            {/* Category Row - 대분류 */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm text-cyan-400" style={{ fontFamily: 'Orbitron' }}>
+                CATEGORY:
+              </span>
               <button
-                className="rounded border border-cyan-400 bg-cyan-400/20 px-3 py-1 text-xs text-cyan-400 transition-colors hover:bg-cyan-400/30"
+                onClick={() => setSelectedParentCategory(null)}
+                className={`rounded border px-3 py-1 text-xs transition-colors ${
+                  selectedParentCategory === null
+                    ? 'border-cyan-400 bg-cyan-400/20 text-cyan-400 hover:bg-cyan-400/30'
+                    : 'border-purple-400 bg-transparent text-purple-400 hover:bg-purple-400/20'
+                }`}
                 style={{ fontFamily: 'Orbitron' }}
               >
                 ALL
               </button>
-              <button
-                className="rounded border border-purple-400 bg-transparent px-3 py-1 text-xs text-purple-400 transition-colors hover:bg-purple-400/20"
-                style={{ fontFamily: 'Orbitron' }}
-              >
-                ARRAY
-              </button>
-              <button
-                className="rounded border border-purple-400 bg-transparent px-3 py-1 text-xs text-purple-400 transition-colors hover:bg-purple-400/20"
-                style={{ fontFamily: 'Orbitron' }}
-              >
-                STRING
-              </button>
+              {parentCategories.map((category) => (
+                <button
+                  key={category.id}
+                  onClick={() => setSelectedParentCategory(category.id)}
+                  className={`rounded border px-3 py-1 text-xs transition-colors ${
+                    selectedParentCategory === category.id
+                      ? 'border-cyan-400 bg-cyan-400/20 text-cyan-400 hover:bg-cyan-400/30'
+                      : 'border-purple-400 bg-transparent text-purple-400 hover:bg-purple-400/20'
+                  }`}
+                  style={{ fontFamily: 'Orbitron' }}
+                >
+                  {category.name.toUpperCase()}
+                </button>
+              ))}
             </div>
 
-            {/* Second Row */}
-            <div className="flex flex-wrap items-center gap-3 text-xs">
-              <div className="flex items-center gap-2">
-                <span className="text-cyan-400" style={{ fontFamily: 'Orbitron' }}>
-                  CATEGORY:
+            {/* 소분류 - 대분류 선택 시에만 표시 */}
+            {selectedParentCategory !== null && childCategories.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2 border-t border-purple-400/30 pt-2">
+                <span className="text-xs text-cyan-400/70" style={{ fontFamily: 'Orbitron' }}>
+                  SUBCATEGORY:
                 </span>
-                <button
-                  className="rounded border border-purple-400 bg-transparent px-2 py-0.5 text-xs text-purple-400 transition-colors hover:bg-purple-400/20"
-                  style={{ fontFamily: 'Orbitron' }}
-                >
-                  TREE
-                </button>
-                <button
-                  className="rounded border border-purple-400 bg-transparent px-2 py-0.5 text-xs text-purple-400 transition-colors hover:bg-purple-400/20"
-                  style={{ fontFamily: 'Orbitron' }}
-                >
-                  GRAPH
-                </button>
-                <button
-                  className="rounded border border-purple-400 bg-transparent px-2 py-0.5 text-xs text-purple-400 transition-colors hover:bg-purple-400/20"
-                  style={{ fontFamily: 'Orbitron' }}
-                >
-                  DP
-                </button>
+                {childCategories.map((category) => (
+                  <button
+                    key={category.id}
+                    className="rounded border border-purple-400 bg-transparent px-2 py-0.5 text-xs text-purple-400 transition-colors hover:bg-purple-400/20"
+                    style={{ fontFamily: 'Orbitron' }}
+                  >
+                    {category.name.toUpperCase()}
+                  </button>
+                ))}
               </div>
+            )}
 
+            {/* Difficulty & Result */}
+            <div className="flex flex-wrap items-center gap-4 border-t border-purple-400/30 pt-2 text-xs">
               <div className="flex items-center gap-2">
                 <span className="text-cyan-400" style={{ fontFamily: 'Orbitron' }}>
                   DIFFICULTY:
@@ -249,22 +280,6 @@ export default function ProblemBank() {
                 </button>
               </div>
             </div>
-
-            {/* Third Row */}
-            <div className="flex flex-wrap gap-2">
-              <button
-                className="rounded border border-purple-400 bg-transparent px-3 py-1 text-xs text-purple-400 transition-colors hover:bg-purple-400/20"
-                style={{ fontFamily: 'Orbitron' }}
-              >
-                SORTING
-              </button>
-              <button
-                className="rounded border border-purple-400 bg-transparent px-3 py-1 text-xs text-purple-400 transition-colors hover:bg-purple-400/20"
-                style={{ fontFamily: 'Orbitron' }}
-              >
-                SEARCHING
-              </button>
-            </div>
           </div>
 
           {/* Statistics Cards */}
@@ -281,8 +296,8 @@ export default function ProblemBank() {
               </div>
             </div>
 
-            <div className="rounded border-2 border-cyan-400 bg-slate-900/90 p-3 backdrop-blur-sm">
-              <div className="text-xs text-cyan-400" style={{ fontFamily: 'Orbitron' }}>
+            <div className="rounded border-2 border-green-400 bg-slate-900/90 p-3 backdrop-blur-sm">
+              <div className="text-xs text-green-400" style={{ fontFamily: 'Orbitron' }}>
                 CORRECT
               </div>
               <div
@@ -305,15 +320,15 @@ export default function ProblemBank() {
               </div>
             </div>
 
-            <div className="rounded border-2 border-cyan-400 bg-slate-900/90 p-3 backdrop-blur-sm">
-              <div className="text-xs text-cyan-400" style={{ fontFamily: 'Orbitron' }}>
-                CORRECT RATE
+            <div className="rounded border-2 border-yellow-400 bg-slate-900/90 p-3 backdrop-blur-sm">
+              <div className="text-xs text-yellow-400" style={{ fontFamily: 'Orbitron' }}>
+                PARTIAL
               </div>
               <div
                 className="mt-1 text-2xl font-bold text-white"
                 style={{ fontFamily: '"Press Start 2P"' }}
               >
-                {mockStats.correctRate}%
+                {mockStats.partialCount}
               </div>
             </div>
           </div>
@@ -335,10 +350,10 @@ export default function ProblemBank() {
             {/* Table Body */}
             <div className="divide-y divide-cyan-400/10">
               {mockProblems.map((problem) => (
-                <div
+                <button
                   key={problem.id}
                   onClick={() => setSelectedProblem(problem)}
-                  className="grid cursor-pointer grid-cols-12 gap-4 px-4 py-3 transition-colors hover:bg-purple-900/20"
+                  className="grid w-full cursor-pointer grid-cols-12 gap-4 px-4 py-3 text-left transition-colors hover:bg-purple-900/20"
                 >
                   {/* Result */}
                   <div className="col-span-1 flex items-center">
@@ -398,7 +413,7 @@ export default function ProblemBank() {
                       minute: '2-digit',
                     })}
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           </div>
@@ -423,7 +438,9 @@ export default function ProblemBank() {
       </div>
 
       {/* Problem Detail Modal */}
-      <ProblemDetailModal problem={selectedProblem} onClose={() => setSelectedProblem(null)} />
+      {selectedProblem && (
+        <ProblemDetailModal problem={selectedProblem} onClose={() => setSelectedProblem(null)} />
+      )}
     </div>
   );
 }
