@@ -7,10 +7,10 @@ import { CreateFeedbackDto } from './dto/create-feedback.dto';
 export class FeedbackService {
   constructor(@Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger) {}
 
-  create(userId: string | null, dto: CreateFeedbackDto) {
+  create(userId: string, dto: CreateFeedbackDto) {
     const feedbackData = {
       timestamp: new Date().toISOString(),
-      userId: userId ?? 'anonymous',
+      userId,
       category: dto.category,
       content: dto.content,
     };
