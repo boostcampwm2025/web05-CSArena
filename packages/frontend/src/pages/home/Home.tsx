@@ -1,8 +1,10 @@
 import { useState } from 'react';
 
 import { useScene } from '@/feature/useScene.tsx';
+import { useHome } from './hooks/useHome';
 
 export default function Home() {
+  const { userData, onClickMyPageBtn, onClickLogoutBtn } = useHome();
   const { setScene } = useScene();
 
   const [isDisabled, setIsDisabled] = useState<boolean>(false);
@@ -58,15 +60,95 @@ export default function Home() {
         </div>
 
         <div className="flex w-full max-w-3xl flex-col gap-4">
-          {/* Login Button */}
-          <button
-            onClick={() => {}}
-            className="border-4 border-cyan-300 bg-gradient-to-r from-cyan-500 to-blue-500 py-4 text-2xl font-bold text-white shadow-lg shadow-cyan-500/50 transition-all duration-200 hover:scale-105 hover:from-cyan-400 hover:to-blue-400"
-            style={{ fontFamily: 'Orbitron' }}
-          >
-            <i className="ri-login-box-line mr-3 text-xl" />
-            LOGIN
-          </button>
+          {userData ? (
+            <>
+              <div className="flex flex-col items-stretch gap-6 border-4 border-cyan-400 bg-gradient-to-r from-slate-800/90 to-slate-900/90 p-4">
+                {/* User Info */}
+                <div className="flex gap-4">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-xl border-4 border-white bg-gradient-to-br from-cyan-400 to-purple-500">
+                    <i className="ri-user-star-line text-4xl text-white" />
+                  </div>
+                  <div className="flex flex-col justify-between p-1">
+                    <h2
+                      className="text-2xl font-bold text-cyan-300"
+                      style={{ fontFamily: 'Orbitron' }}
+                    >
+                      {userData.nickname}
+                    </h2>
+                    <div className="flex gap-4">
+                      <span
+                        className="text-base font-bold text-amber-400"
+                        style={{ fontFamily: 'Orbitron' }}
+                      >
+                        <i className="ri-vip-crown-line mr-1" />
+                        {userData.tier}
+                      </span>
+                      <span
+                        className="text-base font-bold text-pink-400"
+                        style={{ fontFamily: 'Orbitron' }}
+                      >
+                        LV.42
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Experience Bar */}
+                <div className="flex flex-col gap-1">
+                  <div
+                    className="flex justify-between text-xs text-cyan-300"
+                    style={{ fontFamily: 'Orbitron' }}
+                  >
+                    <span>EXP</span>
+                    <span>{userData.expPoint} / 10000</span>
+                  </div>
+
+                  <div className="relative h-5 w-full overflow-hidden border-2 border-cyan-500 bg-slate-700">
+                    <div
+                      className="h-full bg-gradient-to-r from-cyan-400 to-purple-500 transition-all duration-500"
+                      style={{ width: `${userData.expPoint / 100}%` }}
+                    />
+                    <div
+                      className="absolute inset-0 flex items-center justify-center text-xs font-bold text-white"
+                      style={{ fontFamily: 'Orbitron' }}
+                    >
+                      {Math.round(userData.expPoint / 100)}%
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex justify-stretch gap-4">
+                  <button
+                    className="w-full border-2 border-indigo-300 bg-gradient-to-r from-indigo-500 to-purple-500 px-5 py-2 text-xl font-bold text-white transition-all duration-200 hover:scale-105 hover:from-indigo-400 hover:to-purple-400"
+                    onClick={onClickMyPageBtn}
+                  >
+                    <i className="ri-user-settings-line mr-2"></i>
+                    MY PAGE
+                  </button>
+                  <button
+                    className="w-full border-2 border-red-300 bg-gradient-to-r from-red-500 to-rose-500 px-5 py-2 text-xl font-bold text-white transition-all duration-200 hover:scale-105 hover:from-red-400 hover:to-rose-400"
+                    onClick={onClickLogoutBtn}
+                  >
+                    <i className="ri-user-settings-line mr-2"></i>
+                    LOGOUT
+                  </button>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Login Button */}
+              <button
+                onClick={() => {}}
+                className="border-4 border-cyan-300 bg-gradient-to-r from-cyan-500 to-blue-500 py-4 text-2xl font-bold text-white shadow-lg shadow-cyan-500/50 transition-all duration-200 hover:scale-105 hover:from-cyan-400 hover:to-blue-400"
+                style={{ fontFamily: 'Orbitron' }}
+              >
+                <i className="ri-login-box-line mr-3 text-xl" />
+                LOGIN
+              </button>
+            </>
+          )}
 
           {/* Quick Start Button */}
           <button
