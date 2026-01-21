@@ -1,6 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { NotFoundException, InternalServerErrorException, BadRequestException } from '@nestjs/common';
 import { SinglePlayService } from '../src/single-play/single-play.service';
 import { SinglePlaySessionManager } from '../src/single-play/single-play-session-manager';
@@ -11,54 +10,48 @@ import { SCORE_MAP } from '../src/quiz/quiz.constants';
 describe('SinglePlayService', () => {
   let service: SinglePlayService;
   let sessionManager: SinglePlaySessionManager;
-  let categoryRepository: Repository<Category>;
-  let questionRepository: Repository<QuestionEntity>;
-  let quizService: QuizService;
 
-  const mockCategoryRepository = {
-    find: jest.fn(),
-  };
+    const mockCategoryRepository = {
+        find: jest.fn(),
+    };
 
-  const mockQuestionRepository = {
-    findOne: jest.fn(),
-  };
+    const mockQuestionRepository = {
+        findOne: jest.fn(),
+    };
 
-  const mockQuizService = {
-    generateSinglePlayQuestions: jest.fn(),
-    gradeQuestion: jest.fn(),
-  };
+    const mockQuizService = {
+        generateSinglePlayQuestions: jest.fn(),
+        gradeQuestion: jest.fn(),
+    };
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        SinglePlayService,
-        SinglePlaySessionManager,
-        {
-          provide: getRepositoryToken(Category),
-          useValue: mockCategoryRepository,
-        },
-        {
-          provide: getRepositoryToken(QuestionEntity),
-          useValue: mockQuestionRepository,
-        },
-        {
-          provide: QuizService,
-          useValue: mockQuizService,
-        },
-      ],
-    }).compile();
+    beforeEach(async () => {
+        const module: TestingModule = await Test.createTestingModule({
+            providers: [
+                SinglePlayService,
+                SinglePlaySessionManager,
+                {
+                    provide: getRepositoryToken(Category),
+                    useValue: mockCategoryRepository,
+                },
+                {
+                    provide: getRepositoryToken(QuestionEntity),
+                    useValue: mockQuestionRepository,
+                },
+                {
+                    provide: QuizService,
+                    useValue: mockQuizService,
+                },
+            ],
+        }).compile();
 
-    service = module.get<SinglePlayService>(SinglePlayService);
-    sessionManager = module.get<SinglePlaySessionManager>(SinglePlaySessionManager);
-    categoryRepository = module.get<Repository<Category>>(getRepositoryToken(Category));
-    questionRepository = module.get<Repository<QuestionEntity>>(
-      getRepositoryToken(QuestionEntity),
-    );
-    quizService = module.get<QuizService>(QuizService);
-  });
+        service = module.get<SinglePlayService>(SinglePlayService);
+        sessionManager = module.get<SinglePlaySessionManager>(SinglePlaySessionManager);
+    });
 
   afterEach(() => {
     jest.clearAllMocks();
+    // SessionManager의 interval 정리
+    sessionManager.onModuleDestroy();
   });
 
   describe('getCategories', () => {
@@ -515,6 +508,58 @@ describe('SinglePlayService', () => {
 
       // Medium: (3/10) * 20 = 6점 (반올림)
       expect(result.totalScore).toBe(6);
+    });
+
+    it('중복 답안 제출 시 BadRequestException을 던져야 함', async () => {
+      const questionId = 1;
+      const answer = 'First answer';
+      const mockQuestion = {
+        id: 1,
+        questionType: 'short',
+        content: 'Question',
+        difficulty: 2,
+        correctAnswer: 'Correct',
+      } as QuestionEntity;
+
+      const mockGradeResult = [
+        {
+          playerId: 'single-player',
+          answer: 'First answer',
+          isCorrect: true,
+          score: 10,
+          feedback: 'Good',
+        },
+      ];
+
+      mockQuestionRepository.findOne.mockResolvedValue(mockQuestion);
+      mockQuizService.gradeQuestion.mockResolvedValue(mockGradeResult);
+
+      // 첫 번째 제출은 성공
+      await service.submitAnswer(userId, questionId, answer);
+
+      // 두 번째 제출은 실패해야 함
+      await expect(service.submitAnswer(userId, questionId, 'Second answer')).rejects.toThrow(
+        BadRequestException,
+      );
+      await expect(service.submitAnswer(userId, questionId, 'Second answer')).rejects.toThrow(
+        '이미 답변한 문제입니다.',
+      );
+    });
+
+    it('완료된 게임에 답안 제출 시 BadRequestException을 던져야 함', async () => {
+      const questionId = 1;
+      const answer = 'Answer';
+
+      // 게임 강제 완료
+      const game = sessionManager.findGameOrThrow(userId);
+      game.complete();
+
+      await expect(service.submitAnswer(userId, questionId, answer)).rejects.toThrow(
+        BadRequestException,
+      );
+      await expect(service.submitAnswer(userId, questionId, answer)).rejects.toThrow(
+        '이미 완료된 게임입니다.',
+      );
     });
   });
 

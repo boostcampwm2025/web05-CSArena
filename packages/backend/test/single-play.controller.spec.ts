@@ -5,28 +5,26 @@ import { GetQuestionsDto, SubmitAnswerDto } from '../src/single-play/dto';
 
 describe('SinglePlayController', () => {
   let controller: SinglePlayController;
-  let service: SinglePlayService;
 
-  const mockSinglePlayService = {
-    getCategories: jest.fn(),
-    getQuestions: jest.fn(),
-    submitAnswer: jest.fn(),
-  };
+    const mockSinglePlayService = {
+        getCategories: jest.fn(),
+        getQuestions: jest.fn(),
+        submitAnswer: jest.fn(),
+    };
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [SinglePlayController],
-      providers: [
-        {
-          provide: SinglePlayService,
-          useValue: mockSinglePlayService,
-        },
-      ],
-    }).compile();
+    beforeEach(async () => {
+        const module: TestingModule = await Test.createTestingModule({
+            controllers: [SinglePlayController],
+            providers: [
+                {
+                    provide: SinglePlayService,
+                    useValue: mockSinglePlayService,
+                },
+            ],
+        }).compile();
 
-    controller = module.get<SinglePlayController>(SinglePlayController);
-    service = module.get<SinglePlayService>(SinglePlayService);
-  });
+        controller = module.get<SinglePlayController>(SinglePlayController);
+    });
 
   afterEach(() => {
     jest.clearAllMocks();
