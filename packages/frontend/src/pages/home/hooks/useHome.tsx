@@ -53,6 +53,7 @@ export function useHome() {
   const onClickQuickStartBtn = useCallback(() => {
     if (!userData) {
       setIsOpenLoginModal(true);
+
       return;
     }
 
@@ -62,15 +63,17 @@ export function useHome() {
   const onClickSelfStudyBtn = useCallback(() => {
     if (!userData) {
       setIsOpenLoginModal(true);
+
       return;
     }
 
     // TODO: 싱글 모드 로직이 병합되면 추가할 예정
-  }, [userData, setScene]);
+  }, [userData]);
 
   const onClickProblemBankBtn = useCallback(() => {
     if (!userData) {
       setIsOpenLoginModal(true);
+
       return;
     }
 

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { getSocket } from '@/lib/socket';
 import { RoundEnd, RoundReady, RoundStart, RoundTick } from '@/lib/socket/event';
 
+import { useUser } from '@/feature/auth/useUser';
 import { useMatch } from './useMatch';
 
 type RoundState = 'preparing' | 'playing' | 'round-result';
@@ -49,6 +50,8 @@ const QuestionCtx = createContext<QuestionAPI | null>(null);
 const RoundScoreCtx = createContext<RoundScoreAPI | null>(null);
 
 export function RoundProvider({ children }: { children: React.ReactNode }) {
+  const { accessToken } = useUser();
+
   const [roundState, setRoundState] = useState<RoundState>('preparing');
   const [roundIndex, setRoundIndex] = useState<number>(0);
   const [totalRounds, setTotalRounds] = useState<number>(0);
@@ -70,7 +73,7 @@ export function RoundProvider({ children }: { children: React.ReactNode }) {
 
   const { setMatchResult } = useMatch();
 
-  const socketRef = useRef(getSocket());
+  const socketRef = useRef(getSocket(accessToken));
 
   const handleRoundReady = useCallback((payload: RoundReady) => {
     setRoundState('preparing');

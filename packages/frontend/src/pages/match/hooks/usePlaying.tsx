@@ -3,12 +3,16 @@ import { useRef, useState } from 'react';
 import { getSocket } from '@/lib/socket';
 import { SubmitAnswerRes } from '@/lib/socket/event';
 
+import { useUser } from '@/feature/auth/useUser';
+
 export function usePlaying() {
+  const { accessToken } = useUser();
+
   const [answer, setAnswer] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isSubmit, setIsSubmit] = useState<boolean>(false);
 
-  const socketRef = useRef(getSocket());
+  const socketRef = useRef(getSocket(accessToken));
 
   const onClickSubmitBtn = () => {
     if (isSubmitting || isSubmit) {
