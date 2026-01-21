@@ -58,20 +58,17 @@ export function usePreparing() {
     };
   }, [setSelectedCategoryIds]);
 
-  const onClickCategoryBtn = useCallback(
-    (categoryId: number) => {
-      setCategories((prev) => {
-        const target = prev[categoryId];
+  const onClickCategoryBtn = useCallback((categoryId: number) => {
+    setCategories((prev) => {
+      const target = prev[categoryId];
 
-        if (!target) {
-          return prev;
-        }
+      if (!target) {
+        return prev;
+      }
 
-        return { ...prev, [categoryId]: { ...target, isSelected: !target.isSelected } };
-      });
-    },
-    [setSelectedCategoryIds],
-  );
+      return { ...prev, [categoryId]: { ...target, isSelected: !target.isSelected } };
+    });
+  }, []);
 
   useEffect(() => {
     const nextSelectedIds = Object.values(categories)
