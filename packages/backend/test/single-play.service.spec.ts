@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { NotFoundException, InternalServerErrorException } from '@nestjs/common';
+import { NotFoundException, InternalServerErrorException, Logger } from '@nestjs/common';
 import { SinglePlayService } from '../src/single-play/single-play.service';
 import { QuizService } from '../src/quiz/quiz.service';
 import { Category, Question as QuestionEntity } from '../src/quiz/entity';
@@ -26,6 +26,12 @@ describe('SinglePlayService', () => {
     gradeQuestion: jest.fn(),
   };
 
+  const mockLogger = {
+    error: jest.fn(),
+    log: jest.fn(),
+    warn: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -46,6 +52,9 @@ describe('SinglePlayService', () => {
     }).compile();
 
     service = module.get<SinglePlayService>(SinglePlayService);
+    // Private logger mocking
+    (service as any).logger = mockLogger;
+
     categoryRepository = module.get<Repository<Category>>(getRepositoryToken(Category));
     questionRepository = module.get<Repository<QuestionEntity>>(
       getRepositoryToken(QuestionEntity),
