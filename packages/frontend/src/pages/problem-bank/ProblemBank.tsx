@@ -1,126 +1,136 @@
 import { useState } from 'react';
 import { useScene } from '@/feature/useScene.tsx';
-import { Category, ProblemBankItem } from '@/shared/type';
+import { ProblemBankItem } from '@/shared/type';
 import ProblemDetailModal from './components/ProblemDetailModal';
+import CategoryFilterModal from './components/CategoryFilterModal';
+import { useProblemBank } from './hooks/useProblemBank';
 
 export default function ProblemBank() {
   const { setScene } = useScene();
   const [selectedProblem, setSelectedProblem] = useState<ProblemBankItem | null>(null);
-  const [selectedParentCategory, setSelectedParentCategory] = useState<number | null>(null);
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([]);
+  const [selectedDifficulty, setSelectedDifficulty] = useState<'easy' | 'medium' | 'hard' | null>(
+    null,
+  );
+  const [selectedResult, setSelectedResult] = useState<'correct' | 'incorrect' | 'partial' | null>(
+    null,
+  );
+  const [isBookmarkedFilter, setIsBookmarkedFilter] = useState<boolean | null>(null);
+  const [searchInput, setSearchInput] = useState('');
 
-  // Mock data for layout
-  const mockStats = {
-    totalSolved: 15,
-    correctCount: 8,
-    incorrectCount: 7,
-    partialCount: 1,
+  const {
+    items,
+    statistics,
+    categories,
+    totalPages,
+    currentPage,
+    isLoading,
+    error,
+    toggleBookmark,
+    updateFilters,
+    goToPage,
+  } = useProblemBank();
+
+  // 페이지네이션 버튼 생성 (현재 페이지 기준 ±2 범위)
+  const getPageNumbers = () => {
+    if (totalPages <= 7) {
+      // 총 페이지가 7개 이하면 모두 표시
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+
+    const pages: (number | string)[] = [];
+    const range = 2; // 현재 페이지 앞뒤로 2개씩
+
+    // 항상 첫 페이지 표시
+    pages.push(1);
+
+    // 시작 범위 계산
+    const start = Math.max(2, currentPage - range);
+    const end = Math.min(totalPages - 1, currentPage + range);
+
+    // 첫 페이지와 시작 범위 사이에 간격이 있으면 ... 추가
+    if (start > 2) {
+      pages.push('...');
+    }
+
+    // 현재 페이지 주변 범위 추가
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+
+    // 끝 범위와 마지막 페이지 사이에 간격이 있으면 ... 추가
+    if (end < totalPages - 1) {
+      pages.push('...');
+    }
+
+    // 항상 마지막 페이지 표시
+    pages.push(totalPages);
+
+    return pages;
   };
 
-  const mockProblems: ProblemBankItem[] = [
-    {
-      id: 1,
-      questionId: 101,
-      questionContent: 'Two Sum - 배열에서 두 수의 합이 목표값이 되는 인덱스 찾기',
-      categories: ['Hash Table', 'Array'],
-      difficulty: 'easy',
-      answerStatus: 'correct',
-      isBookmarked: true,
-      userAnswer:
-        'Hash Map을 사용하여 O(n) 시간에 해결했습니다.\nfor (let i = 0; i < nums.length; i++) {\n  const complement = target - nums[i];\n  if (map.has(complement)) return [map.get(complement), i];\n  map.set(nums[i], i);\n}',
-      correctAnswer:
-        'Hash Map을 사용하여 배열을 한 번만 순회하면서 각 원소에 대해 target - nums[i]를 찾습니다.',
-      aiFeedback: '완벽합니다! 시간 복잡도 O(n), 공간 복잡도 O(n)으로 최적의 해법입니다.',
-      solvedAt: '2024-01-15T14:30:00.000Z',
-    },
-    {
-      id: 2,
-      questionId: 102,
-      questionContent: 'Reverse Linked List - 연결 리스트를 역순으로 뒤집기',
-      categories: ['Linked List', 'Recursion'],
-      difficulty: 'easy',
-      answerStatus: 'correct',
-      isBookmarked: false,
-      userAnswer:
-        '반복문을 사용한 방법:\nlet prev = null;\nwhile (curr) {\n  const next = curr.next;\n  curr.next = prev;\n  prev = curr;\n  curr = next;\n}\nreturn prev;',
-      correctAnswer:
-        '포인터 3개(prev, curr, next)를 사용하여 각 노드의 next를 이전 노드로 바꿉니다.',
-      aiFeedback: '정확한 구현입니다. 재귀 방식도 가능하지만 반복문이 더 효율적입니다.',
-      solvedAt: '2024-01-15T15:45:00.000Z',
-    },
-    {
-      id: 3,
-      questionId: 103,
-      questionContent: 'Binary Tree Inorder Traversal - 이진 트리의 중위 순회 구현',
-      categories: ['Tree', 'DFS', 'Stack'],
-      difficulty: 'medium',
-      answerStatus: 'incorrect',
-      isBookmarked: true,
-      userAnswer:
-        'function inorder(root) {\n  if (!root) return [];\n  return [...inorder(root.left), ...inorder(root.right), root.val];\n}',
-      correctAnswer:
-        'function inorder(root) {\n  if (!root) return [];\n  return [...inorder(root.left), root.val, ...inorder(root.right)];\n}',
-      aiFeedback:
-        '순서가 잘못되었습니다. 중위 순회는 왼쪽 → 루트 → 오른쪽 순서입니다. 현재 코드는 후위 순회입니다.',
-      solvedAt: '2024-01-15T19:20:00.000Z',
-    },
-    {
-      id: 4,
-      questionId: 104,
-      questionContent: 'Longest Substring Without Repeating - 중복 없는 가장 긴 부분 문자열 찾기',
-      categories: ['String', 'Sliding Window'],
-      difficulty: 'medium',
-      answerStatus: 'correct',
-      isBookmarked: true,
-      userAnswer:
-        'Sliding Window 기법 사용:\nlet max = 0, left = 0;\nconst set = new Set();\nfor (let right = 0; right < s.length; right++) {\n  while (set.has(s[right])) set.delete(s[left++]);\n  set.add(s[right]);\n  max = Math.max(max, right - left + 1);\n}\nreturn max;',
-      correctAnswer: 'Sliding Window와 Set을 사용하여 중복을 제거하면서 최대 길이를 추적합니다.',
-      aiFeedback:
-        '훌륭합니다! Sliding Window 패턴을 정확히 이해하고 있습니다. 시간 복잡도 O(n)입니다.',
-      solvedAt: '2024-01-15T11:30:00.000Z',
-    },
-    {
-      id: 5,
-      questionId: 105,
-      questionContent: 'Merge K Sorted Lists - K개의 정렬된 연결 리스트 병합하기',
-      categories: ['Heap', 'Divide and Conquer'],
-      difficulty: 'hard',
-      answerStatus: 'incorrect',
-      isBookmarked: false,
-      userAnswer:
-        '2개씩 병합하는 방식으로 시도했습니다.\nfunction merge(l1, l2) { ... }\nlet result = lists[0];\nfor (let i = 1; i < lists.length; i++) result = merge(result, lists[i]);',
-      correctAnswer:
-        'Min Heap을 사용하여 각 리스트의 헤드를 비교하면서 병합하거나, Divide and Conquer로 2개씩 병합합니다.',
-      aiFeedback:
-        '접근 방법은 맞지만 시간 복잡도가 O(kN)입니다. Min Heap을 사용하면 O(N log k)로 개선할 수 있습니다.',
-      solvedAt: '2024-01-11T02:15:00.000Z',
-    },
-  ];
+  // 선택된 카테고리 정보 가져오기
+  const selectedCategories = categories.filter((cat) => selectedCategoryIds.includes(cat.id));
 
-  // Mock categories data (대분류 - 소분류 구조)
-  const mockCategories: Category[] = [
-    { id: 1, name: 'Algorithm', parentId: null },
-    { id: 2, name: 'Database', parentId: null },
-    { id: 3, name: 'Network', parentId: null },
-    { id: 11, name: 'Tree', parentId: 1, parent: { id: 1, name: 'Algorithm', parentId: null } },
-    { id: 12, name: 'Graph', parentId: 1, parent: { id: 1, name: 'Algorithm', parentId: null } },
-    { id: 13, name: 'DP', parentId: 1, parent: { id: 1, name: 'Algorithm', parentId: null } },
-    { id: 14, name: 'Sorting', parentId: 1, parent: { id: 1, name: 'Algorithm', parentId: null } },
-    { id: 21, name: 'SQL', parentId: 2, parent: { id: 2, name: 'Database', parentId: null } },
-    { id: 22, name: 'NoSQL', parentId: 2, parent: { id: 2, name: 'Database', parentId: null } },
-    { id: 23, name: 'Indexing', parentId: 2, parent: { id: 2, name: 'Database', parentId: null } },
-    { id: 31, name: 'HTTP', parentId: 3, parent: { id: 3, name: 'Network', parentId: null } },
-    { id: 32, name: 'TCP/IP', parentId: 3, parent: { id: 3, name: 'Network', parentId: null } },
-    { id: 33, name: 'Security', parentId: 3, parent: { id: 3, name: 'Network', parentId: null } },
-  ];
+  // 카테고리 필터 적용
+  const handleApplyCategoryFilter = (categoryIds: number[]) => {
+    setSelectedCategoryIds(categoryIds);
+    updateFilters({
+      categoryIds,
+      page: 1,
+    });
+  };
 
-  // 대분류 카테고리만 추출
-  const parentCategories = mockCategories.filter((cat) => cat.parentId === null);
+  // 개별 카테고리 제거
+  const handleRemoveCategory = (categoryId: number) => {
+    const newIds = selectedCategoryIds.filter((id) => id !== categoryId);
+    setSelectedCategoryIds(newIds);
+    updateFilters({
+      categoryIds: newIds,
+      page: 1,
+    });
+  };
 
-  // 선택된 대분류의 소분류 추출
-  const childCategories =
-    selectedParentCategory !== null
-      ? mockCategories.filter((cat) => cat.parentId === selectedParentCategory)
-      : [];
+  const handleDifficultyChange = (difficulty: 'easy' | 'medium' | 'hard' | null) => {
+    setSelectedDifficulty(difficulty);
+    updateFilters({
+      difficulty: difficulty || undefined,
+      page: 1,
+    });
+  };
+
+  const handleResultChange = (result: 'correct' | 'incorrect' | 'partial' | null) => {
+    setSelectedResult(result);
+    updateFilters({
+      result: result || undefined,
+      page: 1,
+    });
+  };
+
+  const handleBookmarkFilterChange = (isBookmarked: boolean | null) => {
+    setIsBookmarkedFilter(isBookmarked);
+    updateFilters({
+      isBookmarked: isBookmarked === null ? undefined : isBookmarked,
+      page: 1,
+    });
+  };
+
+  const handleSearch = (keyword: string) => {
+    updateFilters({
+      search: keyword || undefined,
+      page: 1,
+    });
+  };
+
+  const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchInput(e.target.value);
+  };
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleSearch(searchInput);
+  };
 
   return (
     <div className="relative h-screen w-screen overflow-hidden bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
@@ -159,70 +169,66 @@ export default function ProblemBank() {
               <span>MY PROBLEM BANK</span>
             </h1>
 
-            <div className="relative">
+            <form onSubmit={handleSearchSubmit} className="relative">
               <input
                 type="text"
                 placeholder="Search problems..."
+                value={searchInput}
+                onChange={handleSearchInputChange}
                 className="w-48 rounded border border-cyan-400 bg-slate-900/90 px-3 py-1 text-sm text-cyan-400 placeholder-cyan-400/50 focus:outline-none focus:ring-1 focus:ring-cyan-400"
                 style={{ fontFamily: 'Orbitron' }}
               />
-              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-cyan-400">
+              <button
+                type="submit"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-cyan-400"
+              >
                 🔍
-              </span>
-            </div>
+              </button>
+            </form>
           </div>
 
           {/* Filter Section */}
           <div className="mb-3 space-y-3 rounded border-2 border-purple-400 bg-slate-900/90 p-3 backdrop-blur-sm">
-            {/* Category Row - 대분류 */}
+            {/* Category Row */}
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-sm text-cyan-400" style={{ fontFamily: 'Orbitron' }}>
                 CATEGORY:
               </span>
+
+              {/* 선택된 카테고리 태그들 */}
+              {selectedCategories.length > 0 ? (
+                <>
+                  {selectedCategories.map((category) => (
+                    <span
+                      key={category.id}
+                      className="flex items-center gap-1 rounded border border-cyan-400 bg-cyan-400/20 px-2 py-1 text-xs text-cyan-400"
+                      style={{ fontFamily: 'Orbitron' }}
+                    >
+                      {category.name.toUpperCase()}
+                      <button
+                        onClick={() => handleRemoveCategory(category.id)}
+                        className="ml-1 text-cyan-400 hover:text-cyan-300"
+                      >
+                        ✕
+                      </button>
+                    </span>
+                  ))}
+                </>
+              ) : (
+                <span className="text-xs text-gray-400" style={{ fontFamily: 'Orbitron' }}>
+                  No category filter
+                </span>
+              )}
+
+              {/* 필터 추가 버튼 */}
               <button
-                onClick={() => setSelectedParentCategory(null)}
-                className={`rounded border px-3 py-1 text-xs transition-colors ${
-                  selectedParentCategory === null
-                    ? 'border-cyan-400 bg-cyan-400/20 text-cyan-400 hover:bg-cyan-400/30'
-                    : 'border-purple-400 bg-transparent text-purple-400 hover:bg-purple-400/20'
-                }`}
+                onClick={() => setIsCategoryModalOpen(true)}
+                className="ml-2 rounded border border-purple-400 bg-transparent px-3 py-1 text-xs text-purple-400 transition-colors hover:bg-purple-400/20"
                 style={{ fontFamily: 'Orbitron' }}
               >
-                ALL
+                + ADD FILTER
               </button>
-              {parentCategories.map((category) => (
-                <button
-                  key={category.id}
-                  onClick={() => setSelectedParentCategory(category.id)}
-                  className={`rounded border px-3 py-1 text-xs transition-colors ${
-                    selectedParentCategory === category.id
-                      ? 'border-cyan-400 bg-cyan-400/20 text-cyan-400 hover:bg-cyan-400/30'
-                      : 'border-purple-400 bg-transparent text-purple-400 hover:bg-purple-400/20'
-                  }`}
-                  style={{ fontFamily: 'Orbitron' }}
-                >
-                  {category.name.toUpperCase()}
-                </button>
-              ))}
             </div>
-
-            {/* 소분류 - 대분류 선택 시에만 표시 */}
-            {selectedParentCategory !== null && childCategories.length > 0 && (
-              <div className="flex flex-wrap items-center gap-2 border-t border-purple-400/30 pt-2">
-                <span className="text-xs text-cyan-400/70" style={{ fontFamily: 'Orbitron' }}>
-                  SUBCATEGORY:
-                </span>
-                {childCategories.map((category) => (
-                  <button
-                    key={category.id}
-                    className="rounded border border-purple-400 bg-transparent px-2 py-0.5 text-xs text-purple-400 transition-colors hover:bg-purple-400/20"
-                    style={{ fontFamily: 'Orbitron' }}
-                  >
-                    {category.name.toUpperCase()}
-                  </button>
-                ))}
-              </div>
-            )}
 
             {/* Difficulty & Result */}
             <div className="flex flex-wrap items-center gap-4 border-t border-purple-400/30 pt-2 text-xs">
@@ -231,25 +237,45 @@ export default function ProblemBank() {
                   DIFFICULTY:
                 </span>
                 <button
-                  className="rounded border border-cyan-400 bg-cyan-400/20 px-2 py-0.5 text-xs text-cyan-400 transition-colors hover:bg-cyan-400/30"
+                  onClick={() => handleDifficultyChange(null)}
+                  className={`rounded border px-2 py-0.5 text-xs transition-colors ${
+                    selectedDifficulty === null
+                      ? 'border-cyan-400 bg-cyan-400/20 text-cyan-400 hover:bg-cyan-400/30'
+                      : 'border-purple-400 bg-transparent text-purple-400 hover:bg-purple-400/20'
+                  }`}
                   style={{ fontFamily: 'Orbitron' }}
                 >
                   ALL
                 </button>
                 <button
-                  className="rounded border border-purple-400 bg-transparent px-2 py-0.5 text-xs text-purple-400 transition-colors hover:bg-purple-400/20"
+                  onClick={() => handleDifficultyChange('easy')}
+                  className={`rounded border px-2 py-0.5 text-xs transition-colors ${
+                    selectedDifficulty === 'easy'
+                      ? 'border-cyan-400 bg-cyan-400/20 text-cyan-400 hover:bg-cyan-400/30'
+                      : 'border-purple-400 bg-transparent text-purple-400 hover:bg-purple-400/20'
+                  }`}
                   style={{ fontFamily: 'Orbitron' }}
                 >
                   EASY
                 </button>
                 <button
-                  className="rounded border border-purple-400 bg-transparent px-2 py-0.5 text-xs text-purple-400 transition-colors hover:bg-purple-400/20"
+                  onClick={() => handleDifficultyChange('medium')}
+                  className={`rounded border px-2 py-0.5 text-xs transition-colors ${
+                    selectedDifficulty === 'medium'
+                      ? 'border-cyan-400 bg-cyan-400/20 text-cyan-400 hover:bg-cyan-400/30'
+                      : 'border-purple-400 bg-transparent text-purple-400 hover:bg-purple-400/20'
+                  }`}
                   style={{ fontFamily: 'Orbitron' }}
                 >
                   MEDIUM
                 </button>
                 <button
-                  className="rounded border border-purple-400 bg-transparent px-2 py-0.5 text-xs text-purple-400 transition-colors hover:bg-purple-400/20"
+                  onClick={() => handleDifficultyChange('hard')}
+                  className={`rounded border px-2 py-0.5 text-xs transition-colors ${
+                    selectedDifficulty === 'hard'
+                      ? 'border-cyan-400 bg-cyan-400/20 text-cyan-400 hover:bg-cyan-400/30'
+                      : 'border-purple-400 bg-transparent text-purple-400 hover:bg-purple-400/20'
+                  }`}
                   style={{ fontFamily: 'Orbitron' }}
                 >
                   HARD
@@ -261,185 +287,327 @@ export default function ProblemBank() {
                   RESULT:
                 </span>
                 <button
-                  className="rounded border border-cyan-400 bg-cyan-400/20 px-2 py-0.5 text-xs text-cyan-400 transition-colors hover:bg-cyan-400/30"
+                  onClick={() => handleResultChange(null)}
+                  className={`rounded border px-2 py-0.5 text-xs transition-colors ${
+                    selectedResult === null
+                      ? 'border-cyan-400 bg-cyan-400/20 text-cyan-400 hover:bg-cyan-400/30'
+                      : 'border-purple-400 bg-transparent text-purple-400 hover:bg-purple-400/20'
+                  }`}
                   style={{ fontFamily: 'Orbitron' }}
                 >
                   ALL
                 </button>
                 <button
-                  className="rounded border border-purple-400 bg-transparent px-2 py-0.5 text-xs text-purple-400 transition-colors hover:bg-purple-400/20"
+                  onClick={() => handleResultChange('correct')}
+                  className={`rounded border px-2 py-0.5 text-xs transition-colors ${
+                    selectedResult === 'correct'
+                      ? 'border-cyan-400 bg-cyan-400/20 text-cyan-400 hover:bg-cyan-400/30'
+                      : 'border-purple-400 bg-transparent text-purple-400 hover:bg-purple-400/20'
+                  }`}
                   style={{ fontFamily: 'Orbitron' }}
                 >
                   CORRECT
                 </button>
                 <button
-                  className="rounded border border-purple-400 bg-transparent px-2 py-0.5 text-xs text-purple-400 transition-colors hover:bg-purple-400/20"
+                  onClick={() => handleResultChange('incorrect')}
+                  className={`rounded border px-2 py-0.5 text-xs transition-colors ${
+                    selectedResult === 'incorrect'
+                      ? 'border-cyan-400 bg-cyan-400/20 text-cyan-400 hover:bg-cyan-400/30'
+                      : 'border-purple-400 bg-transparent text-purple-400 hover:bg-purple-400/20'
+                  }`}
                   style={{ fontFamily: 'Orbitron' }}
                 >
                   INCORRECT
+                </button>
+                <button
+                  onClick={() => handleResultChange('partial')}
+                  className={`rounded border px-2 py-0.5 text-xs transition-colors ${
+                    selectedResult === 'partial'
+                      ? 'border-cyan-400 bg-cyan-400/20 text-cyan-400 hover:bg-cyan-400/30'
+                      : 'border-purple-400 bg-transparent text-purple-400 hover:bg-purple-400/20'
+                  }`}
+                  style={{ fontFamily: 'Orbitron' }}
+                >
+                  PARTIAL
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() =>
+                    handleBookmarkFilterChange(isBookmarkedFilter === true ? null : true)
+                  }
+                  className={`rounded border px-3 py-1 text-xs transition-colors ${
+                    isBookmarkedFilter === true
+                      ? 'border-yellow-400 bg-yellow-400/20 text-yellow-400 hover:bg-yellow-400/30'
+                      : 'border-purple-400 bg-transparent text-purple-400 hover:bg-purple-400/20'
+                  }`}
+                  style={{ fontFamily: 'Orbitron' }}
+                >
+                  {isBookmarkedFilter === true ? '⭐ BOOKMARKED ONLY' : '☆ SHOW BOOKMARKED'}
                 </button>
               </div>
             </div>
           </div>
 
           {/* Statistics Cards */}
-          <div className="mb-3 grid grid-cols-4 gap-3">
-            <div className="rounded border-2 border-cyan-400 bg-slate-900/90 p-3 backdrop-blur-sm">
-              <div className="text-xs text-cyan-400" style={{ fontFamily: 'Orbitron' }}>
-                TOTAL SOLVED
+          {statistics && (
+            <div className="mb-3 grid grid-cols-4 gap-3">
+              <div className="rounded border-2 border-cyan-400 bg-slate-900/90 p-3 backdrop-blur-sm">
+                <div className="text-xs text-cyan-400" style={{ fontFamily: 'Orbitron' }}>
+                  TOTAL SOLVED
+                </div>
+                <div
+                  className="mt-1 text-2xl font-bold text-white"
+                  style={{ fontFamily: '"Press Start 2P"' }}
+                >
+                  {statistics.totalSolved}
+                </div>
               </div>
-              <div
-                className="mt-1 text-2xl font-bold text-white"
-                style={{ fontFamily: '"Press Start 2P"' }}
-              >
-                {mockStats.totalSolved}
-              </div>
-            </div>
 
-            <div className="rounded border-2 border-green-400 bg-slate-900/90 p-3 backdrop-blur-sm">
-              <div className="text-xs text-green-400" style={{ fontFamily: 'Orbitron' }}>
-                CORRECT
+              <div className="rounded border-2 border-green-400 bg-slate-900/90 p-3 backdrop-blur-sm">
+                <div className="text-xs text-green-400" style={{ fontFamily: 'Orbitron' }}>
+                  CORRECT
+                </div>
+                <div
+                  className="mt-1 text-2xl font-bold text-white"
+                  style={{ fontFamily: '"Press Start 2P"' }}
+                >
+                  {statistics.correctCount}
+                </div>
               </div>
-              <div
-                className="mt-1 text-2xl font-bold text-white"
-                style={{ fontFamily: '"Press Start 2P"' }}
-              >
-                {mockStats.correctCount}
-              </div>
-            </div>
 
-            <div className="rounded border-2 border-pink-400 bg-slate-900/90 p-3 backdrop-blur-sm">
-              <div className="text-xs text-pink-400" style={{ fontFamily: 'Orbitron' }}>
-                INCORRECT
+              <div className="rounded border-2 border-pink-400 bg-slate-900/90 p-3 backdrop-blur-sm">
+                <div className="text-xs text-pink-400" style={{ fontFamily: 'Orbitron' }}>
+                  INCORRECT
+                </div>
+                <div
+                  className="mt-1 text-2xl font-bold text-white"
+                  style={{ fontFamily: '"Press Start 2P"' }}
+                >
+                  {statistics.incorrectCount}
+                </div>
               </div>
-              <div
-                className="mt-1 text-2xl font-bold text-white"
-                style={{ fontFamily: '"Press Start 2P"' }}
-              >
-                {mockStats.incorrectCount}
-              </div>
-            </div>
 
-            <div className="rounded border-2 border-yellow-400 bg-slate-900/90 p-3 backdrop-blur-sm">
-              <div className="text-xs text-yellow-400" style={{ fontFamily: 'Orbitron' }}>
-                PARTIAL
-              </div>
-              <div
-                className="mt-1 text-2xl font-bold text-white"
-                style={{ fontFamily: '"Press Start 2P"' }}
-              >
-                {mockStats.partialCount}
+              <div className="rounded border-2 border-yellow-400 bg-slate-900/90 p-3 backdrop-blur-sm">
+                <div className="text-xs text-yellow-400" style={{ fontFamily: 'Orbitron' }}>
+                  PARTIAL
+                </div>
+                <div
+                  className="mt-1 text-2xl font-bold text-white"
+                  style={{ fontFamily: '"Press Start 2P"' }}
+                >
+                  {statistics.partialCount}
+                </div>
               </div>
             </div>
-          </div>
+          )}
+
+          {/* Error State */}
+          {error && (
+            <div className="mb-3 rounded border-2 border-red-400 bg-slate-900/90 p-4 text-center text-red-400 backdrop-blur-sm">
+              {error}
+            </div>
+          )}
+
+          {/* Loading State */}
+          {isLoading && (
+            <div className="mb-3 rounded border-2 border-cyan-400 bg-slate-900/90 p-4 text-center text-cyan-400 backdrop-blur-sm">
+              Loading...
+            </div>
+          )}
 
           {/* Problem Table */}
-          <div className="rounded border-2 border-cyan-400 bg-slate-900/90 backdrop-blur-sm">
-            {/* Table Header */}
-            <div
-              className="grid grid-cols-12 gap-4 border-b border-cyan-400/30 px-4 py-2 text-xs text-cyan-400"
-              style={{ fontFamily: 'Orbitron' }}
-            >
-              <div className="col-span-1">RESULT</div>
-              <div className="col-span-5">TITLE</div>
-              <div className="col-span-3">TAGS</div>
-              <div className="col-span-1">DIFFICULTY</div>
-              <div className="col-span-2">SOLVED AT</div>
-            </div>
-
-            {/* Table Body */}
-            <div className="divide-y divide-cyan-400/10">
-              {mockProblems.map((problem) => (
-                <button
-                  key={problem.id}
-                  onClick={() => setSelectedProblem(problem)}
-                  className="grid w-full cursor-pointer grid-cols-12 gap-4 px-4 py-3 text-left transition-colors hover:bg-purple-900/20"
-                >
-                  {/* Result */}
-                  <div className="col-span-1 flex items-center">
-                    {problem.answerStatus === 'correct' ? (
-                      <span className="text-xl text-green-400">✓</span>
-                    ) : problem.answerStatus === 'incorrect' ? (
-                      <span className="text-xl text-red-400">✗</span>
-                    ) : (
-                      <span className="text-xl text-yellow-400">◐</span>
-                    )}
-                  </div>
-
-                  {/* Title */}
-                  <div className="col-span-5 flex items-center text-sm text-white">
-                    {problem.questionContent}
-                  </div>
-
-                  {/* Tags */}
-                  <div className="col-span-3 flex flex-wrap items-center gap-1">
-                    {problem.categories.map((tag, idx) => (
-                      <span
-                        key={idx}
-                        className="rounded border border-cyan-400 bg-cyan-400/10 px-2 py-0.5 text-xs text-cyan-400"
-                        style={{ fontFamily: 'Orbitron' }}
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-
-                  {/* Difficulty */}
-                  <div className="col-span-1 flex items-center">
-                    <span
-                      className={`rounded px-2 py-0.5 text-xs font-bold ${
-                        problem.difficulty === 'easy'
-                          ? 'bg-green-500/20 text-green-400'
-                          : problem.difficulty === 'medium'
-                            ? 'bg-yellow-500/20 text-yellow-400'
-                            : 'bg-red-500/20 text-red-400'
-                      }`}
-                      style={{ fontFamily: 'Orbitron' }}
-                    >
-                      {problem.difficulty.toUpperCase()}
-                    </span>
-                  </div>
-
-                  {/* Solved At */}
-                  <div
-                    className="col-span-2 flex items-center text-xs text-gray-400"
-                    style={{ fontFamily: 'Orbitron' }}
-                  >
-                    {new Date(problem.solvedAt).toLocaleString('ko-KR', {
-                      year: 'numeric',
-                      month: '2-digit',
-                      day: '2-digit',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Pagination */}
-          <div className="mt-3 flex justify-center gap-2">
-            {[1, 2, 3].map((page) => (
-              <button
-                key={page}
-                className={`h-8 w-8 rounded border ${
-                  page === 1
-                    ? 'border-cyan-400 bg-cyan-400/20 text-cyan-400'
-                    : 'border-purple-400 bg-transparent text-purple-400 hover:bg-purple-400/20'
-                } text-sm transition-colors`}
+          {!isLoading && !error && (
+            <div className="rounded border-2 border-cyan-400 bg-slate-900/90 backdrop-blur-sm">
+              {/* Table Header */}
+              <div
+                className="grid grid-cols-[auto_1fr_auto_auto_auto_auto] gap-4 border-b border-cyan-400/30 px-4 py-2 text-xs text-cyan-400"
                 style={{ fontFamily: 'Orbitron' }}
               >
-                {page}
+                <div className="w-8">STAT</div>
+                <div className="min-w-0">TITLE</div>
+                <div className="w-48">TAGS</div>
+                <div className="w-20">LEVEL</div>
+                <div className="w-32">SOLVED AT</div>
+                <div className="w-8 text-right">MARK</div>
+              </div>
+
+              {/* Table Body */}
+              <div className="divide-y divide-cyan-400/10">
+                {items.length === 0 ? (
+                  <div className="p-8 text-center text-gray-400">No problems found</div>
+                ) : (
+                  items.map((problem) => (
+                    <div
+                      key={problem.id}
+                      className="grid grid-cols-[auto_1fr_auto_auto_auto_auto] gap-4 px-4 py-3 transition-colors hover:bg-purple-900/20"
+                    >
+                      {/* Result */}
+                      <div className="flex w-8 items-center justify-center">
+                        {problem.answerStatus === 'correct' ? (
+                          <span className="text-xl text-green-400">✓</span>
+                        ) : problem.answerStatus === 'incorrect' ? (
+                          <span className="text-xl text-red-400">✗</span>
+                        ) : (
+                          <span className="text-xl text-yellow-400">◐</span>
+                        )}
+                      </div>
+
+                      {/* Title */}
+                      <button
+                        onClick={() => setSelectedProblem(problem)}
+                        className="min-w-0 cursor-pointer text-left text-sm text-white hover:text-cyan-400"
+                      >
+                        {problem.questionContent}
+                      </button>
+
+                      {/* Tags */}
+                      <div className="flex w-48 flex-wrap items-center gap-1">
+                        {problem.categories.slice(0, 2).map((tag, idx) => (
+                          <span
+                            key={idx}
+                            className="rounded border border-cyan-400 bg-cyan-400/10 px-2 py-0.5 text-xs text-cyan-400"
+                            style={{ fontFamily: 'Orbitron' }}
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                        {problem.categories.length > 2 && (
+                          <span className="text-xs text-gray-400">
+                            +{problem.categories.length - 2}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Difficulty */}
+                      <div className="flex w-20 items-center">
+                        <span
+                          className={`rounded px-2 py-0.5 text-xs font-bold ${
+                            problem.difficulty === 'easy'
+                              ? 'bg-green-500/20 text-green-400'
+                              : problem.difficulty === 'medium'
+                                ? 'bg-yellow-500/20 text-yellow-400'
+                                : 'bg-red-500/20 text-red-400'
+                          }`}
+                          style={{ fontFamily: 'Orbitron' }}
+                        >
+                          {problem.difficulty.toUpperCase()}
+                        </span>
+                      </div>
+
+                      {/* Solved At */}
+                      <div
+                        className="flex w-32 items-center text-xs text-gray-400"
+                        style={{ fontFamily: 'Orbitron' }}
+                      >
+                        {new Date(problem.solvedAt).toLocaleString('ko-KR', {
+                          month: '2-digit',
+                          day: '2-digit',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </div>
+
+                      {/* Bookmark */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void toggleBookmark(problem.id, problem.isBookmarked);
+                        }}
+                        className="flex w-8 items-center justify-center text-lg transition-colors hover:scale-110"
+                      >
+                        {problem.isBookmarked ? (
+                          <span className="text-yellow-400">⭐</span>
+                        ) : (
+                          <span className="text-gray-600 hover:text-gray-400">☆</span>
+                        )}
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Pagination */}
+          {!isLoading && !error && totalPages > 0 && (
+            <div className="mt-3 flex items-center justify-center gap-2">
+              {/* Previous Button */}
+              <button
+                onClick={() => goToPage(currentPage - 1)}
+                disabled={currentPage === 1}
+                className={`h-8 rounded border px-3 text-sm transition-colors ${
+                  currentPage === 1
+                    ? 'cursor-not-allowed border-gray-600 bg-transparent text-gray-600'
+                    : 'border-purple-400 bg-transparent text-purple-400 hover:bg-purple-400/20'
+                }`}
+                style={{ fontFamily: 'Orbitron' }}
+              >
+                ◀
               </button>
-            ))}
-          </div>
+
+              {/* Page Numbers */}
+              {getPageNumbers().map((page, idx) =>
+                typeof page === 'string' ? (
+                  <span
+                    key={`ellipsis-${idx}`}
+                    className="px-2 text-purple-400"
+                    style={{ fontFamily: 'Orbitron' }}
+                  >
+                    {page}
+                  </span>
+                ) : (
+                  <button
+                    key={page}
+                    onClick={() => goToPage(page)}
+                    className={`h-8 w-8 rounded border ${
+                      page === currentPage
+                        ? 'border-cyan-400 bg-cyan-400/20 text-cyan-400'
+                        : 'border-purple-400 bg-transparent text-purple-400 hover:bg-purple-400/20'
+                    } text-sm transition-colors`}
+                    style={{ fontFamily: 'Orbitron' }}
+                  >
+                    {page}
+                  </button>
+                ),
+              )}
+
+              {/* Next Button */}
+              <button
+                onClick={() => goToPage(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className={`h-8 rounded border px-3 text-sm transition-colors ${
+                  currentPage === totalPages
+                    ? 'cursor-not-allowed border-gray-600 bg-transparent text-gray-600'
+                    : 'border-purple-400 bg-transparent text-purple-400 hover:bg-purple-400/20'
+                }`}
+                style={{ fontFamily: 'Orbitron' }}
+              >
+                ▶
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Problem Detail Modal */}
       {selectedProblem && (
-        <ProblemDetailModal problem={selectedProblem} onClose={() => setSelectedProblem(null)} />
+        <ProblemDetailModal
+          problem={selectedProblem}
+          onClose={() => setSelectedProblem(null)}
+          onBookmarkToggle={toggleBookmark}
+        />
+      )}
+
+      {/* Category Filter Modal */}
+      {isCategoryModalOpen && (
+        <CategoryFilterModal
+          categories={categories}
+          selectedCategoryIds={selectedCategoryIds}
+          onApply={handleApplyCategoryFilter}
+          onClose={() => setIsCategoryModalOpen(false)}
+        />
       )}
     </div>
   );
