@@ -169,20 +169,23 @@ export default function ProblemBank() {
               <span>MY PROBLEM BANK</span>
             </h1>
 
-            <form onSubmit={handleSearchSubmit} className="relative">
-              <input
-                type="text"
-                placeholder="Search problems..."
-                value={searchInput}
-                onChange={handleSearchInputChange}
-                className="w-48 rounded border border-cyan-400 bg-slate-900/90 px-3 py-1 text-sm text-cyan-400 placeholder-cyan-400/50 focus:outline-none focus:ring-1 focus:ring-cyan-400"
-                style={{ fontFamily: 'Orbitron' }}
-              />
+            <form onSubmit={handleSearchSubmit} className="flex items-center gap-2">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search problems..."
+                  value={searchInput}
+                  onChange={handleSearchInputChange}
+                  className="w-48 rounded border border-cyan-400 bg-slate-900/90 px-3 py-1 text-sm text-cyan-400 placeholder-cyan-400/50 focus:outline-none focus:ring-1 focus:ring-cyan-400"
+                  style={{ fontFamily: 'Orbitron' }}
+                />
+              </div>
               <button
                 type="submit"
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-cyan-400"
+                className="rounded border border-cyan-400 bg-cyan-400/20 px-3 py-1 text-xs text-cyan-400 transition-colors hover:bg-cyan-400/40"
+                style={{ fontFamily: 'Orbitron' }}
               >
-                🔍
+                SEARCH
               </button>
             </form>
           </div>
