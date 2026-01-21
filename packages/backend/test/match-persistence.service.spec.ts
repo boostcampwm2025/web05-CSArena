@@ -156,11 +156,17 @@ describe('MatchPersistenceService', () => {
       expect(mockQueryBuilder.into).toHaveBeenCalledWith(UserProblemBank);
     });
 
-    it('트랜잭션 중 에러 발생 시 예외를 던져야 함', async () => {
-        mockDataSource.transaction.mockRejectedValue(new Error('DB Error'));
+    it('트랜잭션 중 에러 발생 시 재시도 후 로깅하고 정상 종료해야 함', async () => {
+      jest.useFakeTimers();
+      mockDataSource.transaction.mockRejectedValue(new Error('DB Error'));
 
-        await expect(service.saveMatchToDatabase(roomId, finalResult))
-            .rejects.toThrow('DB Error');
+      const promise = service.saveMatchToDatabase(roomId, finalResult);
+
+      // 모든 재시도 타이머 실행
+      await jest.runAllTimersAsync();
+
+      await expect(promise).resolves.toBeUndefined();
+      jest.useRealTimers();
     });
   });
 });
