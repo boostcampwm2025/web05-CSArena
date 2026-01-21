@@ -9,10 +9,10 @@ import {
 } from '@nestjs/websockets';
 import { Logger } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
-import { GameService } from './game.service';
 import { GameSessionManager } from './game-session-manager';
 import { RoundProgressionService } from './round-progression.service';
 import { RoundTimer } from './round-timer';
+import { MatchPersistenceService } from './match-persistence.service';
 import { SubmitAnswerRequest, SubmitAnswerResponse } from './interfaces/game.interfaces';
 
 @WebSocketGateway({ namespace: '/ws', cors: true })
@@ -23,10 +23,10 @@ export class GameGateway implements OnGatewayDisconnect, OnGatewayInit {
   server: Server;
 
   constructor(
-    private readonly gameService: GameService,
     private readonly sessionManager: GameSessionManager,
     private readonly roundProgression: RoundProgressionService,
     private readonly roundTimer: RoundTimer,
+    private readonly matchPersistence: MatchPersistenceService,
   ) {}
 
   afterInit(server: Server): void {
@@ -137,9 +137,17 @@ export class GameGateway implements OnGatewayDisconnect, OnGatewayInit {
         },
       });
 
-      // DB 저장 (연결 끊김 기록)
+      // DB 저장 (연결 끊김 기록) - 상대방이 승자
       try {
-        await this.gameService.saveMatchToDatabase(disconnectInfo.roomId);
+        const finalResult = {
+          winnerId: opponentId,
+          scores: {
+            [gameSession.player1Id]: gameSession.player1Score,
+            [gameSession.player2Id]: gameSession.player2Score,
+          },
+          isDraw: false,
+        };
+        await this.matchPersistence.saveMatchToDatabase(disconnectInfo.roomId, finalResult);
       } catch (error) {
         this.logger.error(
           `Failed to save match after disconnect: ${error instanceof Error ? error.message : 'Unknown error'}`,
