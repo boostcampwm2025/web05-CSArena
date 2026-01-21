@@ -6,12 +6,15 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, EntityManager, In, Repository } from 'typeorm';
 import { Category, Question as QuestionEntity } from '../quiz/entity';
 import { QuizService } from '../quiz/quiz.service';
 import { Question } from '../quiz/quiz.types';
 import { mapDifficulty, SCORE_MAP } from '../quiz/quiz.constants';
 import { SinglePlaySessionManager } from './single-play-session-manager';
+import { SinglePlayGame } from './domain/single-play-game';
+import { Match } from '../match/entity';
+import { UserProblemBank } from '../problem-bank/entity';
 
 @Injectable()
 export class SinglePlayService {
@@ -22,6 +25,7 @@ export class SinglePlayService {
     private readonly categoryRepository: Repository<Category>,
     @InjectRepository(QuestionEntity)
     private readonly questionRepository: Repository<QuestionEntity>,
+    private readonly connection: DataSource,
     private readonly quizService: QuizService,
     private readonly sessionManager: SinglePlaySessionManager,
   ) {}
@@ -162,5 +166,117 @@ export class SinglePlayService {
       this.logger.error(`Failed to submit answer: ${(error as Error).message}`);
       throw new InternalServerErrorException('채점 중 오류가 발생했습니다.');
     }
+  }
+
+  // ============================================
+  // Database Persistence
+  // ============================================
+
+  /**
+   * 게임 종료 후 DB에 결과 저장 (트랜잭션)
+   */
+  async saveGameToDatabase(userId: string): Promise<void> {
+    const game = this.sessionManager.findGameOrThrow(userId);
+
+    // questionIds로 QuestionEntity 조회 (questionType 필요)
+    const questions = await this.questionRepository.find({
+      where: { id: In(game.questionIds) },
+      select: ['id', 'questionType'],
+    });
+    const questionTypeMap = new Map(questions.map((q) => [q.id, q.questionType]));
+
+    await this.connection.transaction(async (manager) => {
+      const matchId = await this.insertMatch(manager, game);
+      await this.insertUserProblemBanks(manager, matchId, game, questionTypeMap);
+    });
+
+    this.logger.log(`싱글 플레이 게임 결과 저장 완료: userId=${userId}`);
+  }
+
+  /**
+   * Match 테이블에 INSERT
+   */
+  private async insertMatch(manager: EntityManager, game: SinglePlayGame): Promise<number> {
+    const result = await manager
+      .createQueryBuilder()
+      .insert()
+      .into(Match)
+      .values({
+        player1Id: this.parseUserId(game.userId),
+        player2Id: null,
+        winnerId: null,
+        matchType: 'single',
+      })
+      .returning('id')
+      .execute();
+
+    return result.generatedMaps[0].id as number;
+  }
+
+  /**
+   * UserProblemBanks 테이블에 Bulk INSERT
+   */
+  private async insertUserProblemBanks(
+    manager: EntityManager,
+    matchId: number,
+    game: SinglePlayGame,
+    questionTypeMap: Map<number, string | null>,
+  ): Promise<void> {
+    const problemBanksData = this.prepareProblemBanksData(matchId, game, questionTypeMap);
+
+    if (problemBanksData.length > 0) {
+      await manager
+        .createQueryBuilder()
+        .insert()
+        .into(UserProblemBank)
+        .values(problemBanksData)
+        .execute();
+    }
+  }
+
+  /**
+   * UserProblemBanks INSERT용 데이터 준비
+   */
+  private prepareProblemBanksData(
+    matchId: number,
+    game: SinglePlayGame,
+    questionTypeMap: Map<number, string | null>,
+  ): Partial<UserProblemBank>[] {
+    const problemBanksData: Partial<UserProblemBank>[] = [];
+    const userId = this.parseUserId(game.userId);
+
+    for (const [questionId, submission] of game.answers) {
+      const questionType = questionTypeMap.get(questionId);
+
+      if (!questionType) {
+        this.logger.warn(`문제 타입을 찾을 수 없어 저장을 건너뜁니다: questionId=${questionId}`);
+        continue;
+      }
+
+      problemBanksData.push({
+        userId,
+        questionId,
+        matchId,
+        userAnswer: submission.answer || '',
+        answerStatus: this.quizService.determineAnswerStatus(
+          questionType,
+          submission.isCorrect,
+          submission.score,
+        ),
+        aiFeedback: submission.feedback,
+      });
+    }
+
+    return problemBanksData;
+  }
+
+  private parseUserId(userId: string): number {
+    const parsed = parseInt(userId, 10);
+
+    if (isNaN(parsed)) {
+      throw new Error(`유효하지 않은 userId: ${userId}`);
+    }
+
+    return parsed;
   }
 }
