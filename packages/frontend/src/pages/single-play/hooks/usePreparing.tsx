@@ -67,22 +67,19 @@ export function usePreparing() {
           return prev;
         }
 
-        const next: Record<number, CategoryItem> = {
-          ...prev,
-          [categoryId]: { ...target, isSelected: !target.isSelected },
-        };
-
-        const nextSelectedIds = Object.values(next)
-          .filter((c) => c.isSelected)
-          .map((c) => c.id);
-
-        setSelectedCategoryIds(nextSelectedIds);
-
-        return next;
+        return { ...prev, [categoryId]: { ...target, isSelected: !target.isSelected } };
       });
     },
     [setSelectedCategoryIds],
   );
+
+  useEffect(() => {
+    const nextSelectedIds = Object.values(categories)
+      .filter((c) => c.isSelected)
+      .map((c) => c.id);
+
+    setSelectedCategoryIds(nextSelectedIds);
+  }, [categories, setSelectedCategoryIds]);
 
   const onClickStartBtn = useCallback(async () => {
     questionControllerRef.current?.abort();
