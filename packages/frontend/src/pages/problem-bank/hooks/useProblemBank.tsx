@@ -28,6 +28,11 @@ export function useProblemBank() {
     search: '',
   });
 
+  // UI States
+  const [selectedProblem, setSelectedProblem] = useState<ProblemBankItem | null>(null);
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [searchInput, setSearchInput] = useState('');
+
   const loadData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -98,6 +103,48 @@ export function useProblemBank() {
     setFilters((prev) => ({ ...prev, page }));
   }, []);
 
+  // Filter Handlers
+  const handleDifficultyChange = useCallback(
+    (difficulty: 'easy' | 'medium' | 'hard' | null) => {
+      updateFilters({ difficulty: difficulty || undefined });
+    },
+    [updateFilters],
+  );
+
+  const handleResultChange = useCallback(
+    (result: 'correct' | 'incorrect' | 'partial' | null) => {
+      updateFilters({ result: result || undefined });
+    },
+    [updateFilters],
+  );
+
+  const handleBookmarkFilterChange = useCallback(
+    (isBookmarked: boolean | null) => {
+      updateFilters({ isBookmarked: isBookmarked === null ? undefined : isBookmarked });
+    },
+    [updateFilters],
+  );
+
+  const applySearch = useCallback(() => {
+    updateFilters({ search: searchInput || undefined });
+  }, [updateFilters, searchInput]);
+
+  const handleCategoryApply = useCallback(
+    (categoryIds: number[]) => {
+      updateFilters({ categoryIds });
+    },
+    [updateFilters],
+  );
+
+  const handleCategoryRemove = useCallback(
+    (categoryId: number) => {
+      const currentIds = filters.categoryIds || [];
+      const newIds = currentIds.filter((id) => id !== categoryId);
+      updateFilters({ categoryIds: newIds });
+    },
+    [filters.categoryIds, updateFilters],
+  );
+
   useEffect(() => {
     void loadData();
   }, [loadData]);
@@ -116,9 +163,22 @@ export function useProblemBank() {
     isLoading,
     error,
     filters,
+    // UI States & Actions
+    selectedProblem,
+    setSelectedProblem,
+    isCategoryModalOpen,
+    setIsCategoryModalOpen,
+    searchInput,
+    setSearchInput,
+    // Actions
     loadData,
     toggleBookmark,
-    updateFilters,
     goToPage,
+    handleDifficultyChange,
+    handleResultChange,
+    handleBookmarkFilterChange,
+    applySearch,
+    handleCategoryApply,
+    handleCategoryRemove,
   };
 }

@@ -1,24 +1,10 @@
-import { useState } from 'react';
 import { useScene } from '@/feature/useScene.tsx';
-import { ProblemBankItem } from '@/shared/type';
 import ProblemDetailModal from './components/ProblemDetailModal';
 import CategoryFilterModal from './components/CategoryFilterModal';
 import { useProblemBank } from './hooks/useProblemBank';
 
 export default function ProblemBank() {
   const { setScene } = useScene();
-  const [selectedProblem, setSelectedProblem] = useState<ProblemBankItem | null>(null);
-  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
-  const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([]);
-  const [selectedDifficulty, setSelectedDifficulty] = useState<'easy' | 'medium' | 'hard' | null>(
-    null,
-  );
-  const [selectedResult, setSelectedResult] = useState<'correct' | 'incorrect' | 'partial' | null>(
-    null,
-  );
-  const [isBookmarkedFilter, setIsBookmarkedFilter] = useState<boolean | null>(null);
-  const [searchInput, setSearchInput] = useState('');
-
   const {
     items,
     statistics,
@@ -27,9 +13,23 @@ export default function ProblemBank() {
     currentPage,
     isLoading,
     error,
+    filters,
+    // UI States
+    selectedProblem,
+    setSelectedProblem,
+    isCategoryModalOpen,
+    setIsCategoryModalOpen,
+    searchInput,
+    setSearchInput,
+    // Actions
     toggleBookmark,
-    updateFilters,
     goToPage,
+    handleDifficultyChange,
+    handleResultChange,
+    handleBookmarkFilterChange,
+    applySearch,
+    handleCategoryApply,
+    handleCategoryRemove,
   } = useProblemBank();
 
   // 페이지네이션 버튼 생성 (현재 페이지 기준 ±2 범위)
@@ -71,57 +71,9 @@ export default function ProblemBank() {
   };
 
   // 선택된 카테고리 정보 가져오기
-  const selectedCategories = categories.filter((cat) => selectedCategoryIds.includes(cat.id));
-
-  // 카테고리 필터 적용
-  const handleApplyCategoryFilter = (categoryIds: number[]) => {
-    setSelectedCategoryIds(categoryIds);
-    updateFilters({
-      categoryIds,
-      page: 1,
-    });
-  };
-
-  // 개별 카테고리 제거
-  const handleRemoveCategory = (categoryId: number) => {
-    const newIds = selectedCategoryIds.filter((id) => id !== categoryId);
-    setSelectedCategoryIds(newIds);
-    updateFilters({
-      categoryIds: newIds,
-      page: 1,
-    });
-  };
-
-  const handleDifficultyChange = (difficulty: 'easy' | 'medium' | 'hard' | null) => {
-    setSelectedDifficulty(difficulty);
-    updateFilters({
-      difficulty: difficulty || undefined,
-      page: 1,
-    });
-  };
-
-  const handleResultChange = (result: 'correct' | 'incorrect' | 'partial' | null) => {
-    setSelectedResult(result);
-    updateFilters({
-      result: result || undefined,
-      page: 1,
-    });
-  };
-
-  const handleBookmarkFilterChange = (isBookmarked: boolean | null) => {
-    setIsBookmarkedFilter(isBookmarked);
-    updateFilters({
-      isBookmarked: isBookmarked === null ? undefined : isBookmarked,
-      page: 1,
-    });
-  };
-
-  const handleSearch = (keyword: string) => {
-    updateFilters({
-      search: keyword || undefined,
-      page: 1,
-    });
-  };
+  const selectedCategories = categories.filter((cat) =>
+    (filters.categoryIds || []).includes(cat.id),
+  );
 
   const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchInput(e.target.value);
@@ -129,7 +81,7 @@ export default function ProblemBank() {
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    handleSearch(searchInput);
+    applySearch();
   };
 
   return (
@@ -209,7 +161,7 @@ export default function ProblemBank() {
                     >
                       {category.name.toUpperCase()}
                       <button
-                        onClick={() => handleRemoveCategory(category.id)}
+                        onClick={() => handleCategoryRemove(category.id)}
                         className="ml-1 text-cyan-400 hover:text-cyan-300"
                       >
                         ✕
@@ -242,7 +194,7 @@ export default function ProblemBank() {
                 <button
                   onClick={() => handleDifficultyChange(null)}
                   className={`rounded border px-2 py-0.5 text-xs transition-colors ${
-                    selectedDifficulty === null
+                    filters.difficulty === undefined
                       ? 'border-cyan-400 bg-cyan-400/20 text-cyan-400 hover:bg-cyan-400/30'
                       : 'border-purple-400 bg-transparent text-purple-400 hover:bg-purple-400/20'
                   }`}
@@ -253,7 +205,7 @@ export default function ProblemBank() {
                 <button
                   onClick={() => handleDifficultyChange('easy')}
                   className={`rounded border px-2 py-0.5 text-xs transition-colors ${
-                    selectedDifficulty === 'easy'
+                    filters.difficulty === 'easy'
                       ? 'border-cyan-400 bg-cyan-400/20 text-cyan-400 hover:bg-cyan-400/30'
                       : 'border-purple-400 bg-transparent text-purple-400 hover:bg-purple-400/20'
                   }`}
@@ -264,7 +216,7 @@ export default function ProblemBank() {
                 <button
                   onClick={() => handleDifficultyChange('medium')}
                   className={`rounded border px-2 py-0.5 text-xs transition-colors ${
-                    selectedDifficulty === 'medium'
+                    filters.difficulty === 'medium'
                       ? 'border-cyan-400 bg-cyan-400/20 text-cyan-400 hover:bg-cyan-400/30'
                       : 'border-purple-400 bg-transparent text-purple-400 hover:bg-purple-400/20'
                   }`}
@@ -275,7 +227,7 @@ export default function ProblemBank() {
                 <button
                   onClick={() => handleDifficultyChange('hard')}
                   className={`rounded border px-2 py-0.5 text-xs transition-colors ${
-                    selectedDifficulty === 'hard'
+                    filters.difficulty === 'hard'
                       ? 'border-cyan-400 bg-cyan-400/20 text-cyan-400 hover:bg-cyan-400/30'
                       : 'border-purple-400 bg-transparent text-purple-400 hover:bg-purple-400/20'
                   }`}
@@ -292,7 +244,7 @@ export default function ProblemBank() {
                 <button
                   onClick={() => handleResultChange(null)}
                   className={`rounded border px-2 py-0.5 text-xs transition-colors ${
-                    selectedResult === null
+                    filters.result === undefined
                       ? 'border-cyan-400 bg-cyan-400/20 text-cyan-400 hover:bg-cyan-400/30'
                       : 'border-purple-400 bg-transparent text-purple-400 hover:bg-purple-400/20'
                   }`}
@@ -303,7 +255,7 @@ export default function ProblemBank() {
                 <button
                   onClick={() => handleResultChange('correct')}
                   className={`rounded border px-2 py-0.5 text-xs transition-colors ${
-                    selectedResult === 'correct'
+                    filters.result === 'correct'
                       ? 'border-cyan-400 bg-cyan-400/20 text-cyan-400 hover:bg-cyan-400/30'
                       : 'border-purple-400 bg-transparent text-purple-400 hover:bg-purple-400/20'
                   }`}
@@ -314,7 +266,7 @@ export default function ProblemBank() {
                 <button
                   onClick={() => handleResultChange('incorrect')}
                   className={`rounded border px-2 py-0.5 text-xs transition-colors ${
-                    selectedResult === 'incorrect'
+                    filters.result === 'incorrect'
                       ? 'border-cyan-400 bg-cyan-400/20 text-cyan-400 hover:bg-cyan-400/30'
                       : 'border-purple-400 bg-transparent text-purple-400 hover:bg-purple-400/20'
                   }`}
@@ -325,7 +277,7 @@ export default function ProblemBank() {
                 <button
                   onClick={() => handleResultChange('partial')}
                   className={`rounded border px-2 py-0.5 text-xs transition-colors ${
-                    selectedResult === 'partial'
+                    filters.result === 'partial'
                       ? 'border-cyan-400 bg-cyan-400/20 text-cyan-400 hover:bg-cyan-400/30'
                       : 'border-purple-400 bg-transparent text-purple-400 hover:bg-purple-400/20'
                   }`}
@@ -338,16 +290,16 @@ export default function ProblemBank() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() =>
-                    handleBookmarkFilterChange(isBookmarkedFilter === true ? null : true)
+                    handleBookmarkFilterChange(filters.isBookmarked === true ? null : true)
                   }
                   className={`rounded border px-3 py-1 text-xs transition-colors ${
-                    isBookmarkedFilter === true
+                    filters.isBookmarked === true
                       ? 'border-yellow-400 bg-yellow-400/20 text-yellow-400 hover:bg-yellow-400/30'
                       : 'border-purple-400 bg-transparent text-purple-400 hover:bg-purple-400/20'
                   }`}
                   style={{ fontFamily: 'Orbitron' }}
                 >
-                  {isBookmarkedFilter === true ? '⭐ BOOKMARKED ONLY' : '☆ SHOW BOOKMARKED'}
+                  {filters.isBookmarked === true ? '⭐ BOOKMARKED ONLY' : '☆ SHOW BOOKMARKED'}
                 </button>
               </div>
             </div>
@@ -607,8 +559,8 @@ export default function ProblemBank() {
       {isCategoryModalOpen && (
         <CategoryFilterModal
           categories={categories}
-          selectedCategoryIds={selectedCategoryIds}
-          onApply={handleApplyCategoryFilter}
+          selectedCategoryIds={filters.categoryIds || []}
+          onApply={handleCategoryApply}
           onClose={() => setIsCategoryModalOpen(false)}
         />
       )}
