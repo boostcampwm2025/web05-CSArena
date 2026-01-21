@@ -1,20 +1,11 @@
 import { BadRequestException } from '@nestjs/common';
-
-export interface AnswerSubmission {
-  questionId: number;
-  answer: string;
-  submittedAt: number;
-  isCorrect: boolean;
-  score: number;
-  feedback: string;
-}
+import { AnswerSubmission } from '../interfaces/single-play-session.interface';
 
 export class SinglePlayGame {
   private readonly _userId: string;
   private readonly _categoryIds: number[];
   private readonly _questionIds: number[];
   private readonly _answers: Map<number, AnswerSubmission>;
-  private readonly _scores: Map<number, number>;
   private _status: 'playing' | 'completed';
   private readonly _createdAt: number;
 
@@ -23,7 +14,6 @@ export class SinglePlayGame {
     this._categoryIds = categoryIds;
     this._questionIds = questionIds;
     this._answers = new Map();
-    this._scores = new Map();
     this._status = 'playing';
     this._createdAt = Date.now();
   }
@@ -85,6 +75,11 @@ export class SinglePlayGame {
   ): void {
     this.validateQuestion(questionId);
 
+    // 중복 답안 제출 방지
+    if (this.hasAnswered(questionId)) {
+      throw new BadRequestException('이미 답변한 문제입니다.');
+    }
+
     const submission: AnswerSubmission = {
       questionId,
       answer,
@@ -95,7 +90,6 @@ export class SinglePlayGame {
     };
 
     this._answers.set(questionId, submission);
-    this._scores.set(questionId, score);
   }
 
   /**
@@ -104,8 +98,8 @@ export class SinglePlayGame {
   getTotalScore(): number {
     let total = 0;
 
-    for (const score of this._scores.values()) {
-      total += score;
+    for (const answer of this._answers.values()) {
+      total += answer.score;
     }
 
     return total;
@@ -129,7 +123,12 @@ export class SinglePlayGame {
   /**
    * 게임 통계 조회
    */
-  getStats() {
+  getStats(): {
+    totalQuestions: number;
+    answeredQuestions: number;
+    correctAnswers: number;
+    totalScore: number;
+  } {
     return {
       totalQuestions: this._questionIds.length,
       answeredQuestions: this._answers.size,
