@@ -1,9 +1,4 @@
-import { useEffect } from 'react';
-
-import { getUserData } from '@/lib/socket';
-
 import { useScene } from '@/feature/useScene';
-import { useUser } from '@/feature/auth/useUser';
 
 import { MatchProvider } from '@/feature/matching/useMatch';
 
@@ -13,9 +8,6 @@ import ProblemBank from '@/pages/problem-bank/ProblemBank';
 
 export default function App() {
   const { scene } = useScene();
-  const { setUserData } = useUser();
-
-  useEffect(() => setUserData(getUserData()), [setUserData]);
 
   switch (scene) {
     case 'home':

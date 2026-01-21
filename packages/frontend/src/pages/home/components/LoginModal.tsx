@@ -1,8 +1,12 @@
 import { createPortal } from 'react-dom';
 
+import { useLoginModal } from '@/pages/home/hooks/useLoginModal';
+
 type Props = { onClose: () => void };
 
 export default function LoginModal({ onClose }: Props) {
+  const { onClickLoginWithGithubBtn } = useLoginModal();
+
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="relative flex h-full max-h-[30vh] w-full max-w-[40vw] flex-col items-stretch gap-4 border-4 border-purple-400 bg-gradient-to-r from-slate-800/95 to-slate-900/95 p-6 shadow-2xl shadow-purple-500/30">
@@ -28,6 +32,7 @@ export default function LoginModal({ onClose }: Props) {
           <button
             className="flex w-full items-center justify-center border-4 border-gray-700 bg-gray-900 px-6 py-4 font-bold text-white transition-all duration-200 hover:scale-105 hover:bg-gray-800"
             style={{ fontFamily: 'Orbitron' }}
+            onClick={onClickLoginWithGithubBtn}
           >
             <i className="ri-github-fill mr-3 text-2xl" />
             Continue with Github
