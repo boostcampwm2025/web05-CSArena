@@ -15,7 +15,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../auth/strategies/jwt.strategy';
 
-@Controller('api/singleplay')
+@Controller('singleplay')
 export class SinglePlayController {
   constructor(private readonly singlePlayService: SinglePlayService) {}
 
@@ -62,5 +62,16 @@ export class SinglePlayController {
       submitDto.questionId,
       submitDto.answer,
     );
+  }
+
+  /**
+   * 게임 종료 API
+   * POST /api/singleplay/end
+   */
+  @Post('end')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  endGame(@CurrentUser() user: AuthenticatedUser) {
+    return this.singlePlayService.endGame(user.id);
   }
 }
