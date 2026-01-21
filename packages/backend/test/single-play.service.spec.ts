@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
 import { NotFoundException, InternalServerErrorException, BadRequestException } from '@nestjs/common';
 import { SinglePlayService } from '../src/single-play/single-play.service';
 import { SinglePlaySessionManager } from '../src/single-play/single-play-session-manager';
@@ -17,11 +18,17 @@ describe('SinglePlayService', () => {
 
     const mockQuestionRepository = {
         findOne: jest.fn(),
+        find: jest.fn(),
+    };
+
+    const mockDataSource = {
+        transaction: jest.fn(),
     };
 
     const mockQuizService = {
         generateSinglePlayQuestions: jest.fn(),
         gradeQuestion: jest.fn(),
+        determineAnswerStatus: jest.fn(),
     };
 
     beforeEach(async () => {
@@ -36,6 +43,10 @@ describe('SinglePlayService', () => {
                 {
                     provide: getRepositoryToken(QuestionEntity),
                     useValue: mockQuestionRepository,
+                },
+                {
+                    provide: DataSource,
+                    useValue: mockDataSource,
                 },
                 {
                     provide: QuizService,
@@ -568,6 +579,95 @@ describe('SinglePlayService', () => {
       expect(SCORE_MAP.easy).toBe(10);
       expect(SCORE_MAP.medium).toBe(20);
       expect(SCORE_MAP.hard).toBe(30);
+    });
+  });
+
+  describe('saveGameToDatabase', () => {
+    const saveUserId = '999';
+
+    beforeEach(() => {
+      // 게임 세션 생성 및 답안 제출 시뮬레이션
+      const game = sessionManager.createGame(saveUserId, [1], [1, 2]);
+      game.submitAnswer(1, 'answer1', true, 10, 'Good');
+      game.submitAnswer(2, 'answer2', false, 0, 'Wrong');
+    });
+
+    it('게임 결과를 DB에 정상적으로 저장해야 함', async () => {
+      const mockQuestions = [
+        { id: 1, questionType: 'short' },
+        { id: 2, questionType: 'multiple' },
+      ];
+
+      mockQuestionRepository.find.mockResolvedValue(mockQuestions);
+      mockQuizService.determineAnswerStatus
+        .mockReturnValueOnce('correct')
+        .mockReturnValueOnce('incorrect');
+      mockDataSource.transaction.mockImplementation(async (callback) => {
+        const mockManager = {
+          createQueryBuilder: jest.fn().mockReturnValue({
+            insert: jest.fn().mockReturnThis(),
+            into: jest.fn().mockReturnThis(),
+            values: jest.fn().mockReturnThis(),
+            returning: jest.fn().mockReturnThis(),
+            execute: jest.fn().mockResolvedValue({
+              generatedMaps: [{ id: 1 }],
+            }),
+          }),
+        };
+        await callback(mockManager);
+      });
+
+      await service.saveGameToDatabase(saveUserId);
+
+      expect(mockQuestionRepository.find).toHaveBeenCalled();
+      expect(mockDataSource.transaction).toHaveBeenCalled();
+    });
+
+    it('게임 세션이 없으면 NotFoundException을 던져야 함', async () => {
+      const invalidUserId = '888';
+
+      await expect(service.saveGameToDatabase(invalidUserId)).rejects.toThrow(
+        '게임 세션을 찾을 수 없습니다',
+      );
+    });
+
+    it('트랜잭션 실패 시 에러를 던져야 함', async () => {
+      const mockQuestions = [
+        { id: 1, questionType: 'short' },
+        { id: 2, questionType: 'multiple' },
+      ];
+
+      mockQuestionRepository.find.mockResolvedValue(mockQuestions);
+      mockDataSource.transaction.mockRejectedValue(new Error('DB 연결 실패'));
+
+      await expect(service.saveGameToDatabase(saveUserId)).rejects.toThrow('DB 연결 실패');
+    });
+
+    it('questionType이 없는 문제는 건너뛰고 저장해야 함', async () => {
+      const mockQuestions = [
+        { id: 1, questionType: 'short' },
+        // id: 2는 조회되지 않음 (questionType 없음)
+      ];
+
+      mockQuestionRepository.find.mockResolvedValue(mockQuestions);
+      mockQuizService.determineAnswerStatus.mockReturnValue('correct');
+      mockDataSource.transaction.mockImplementation(async (callback) => {
+        const mockManager = {
+          createQueryBuilder: jest.fn().mockReturnValue({
+            insert: jest.fn().mockReturnThis(),
+            into: jest.fn().mockReturnThis(),
+            values: jest.fn().mockReturnThis(),
+            returning: jest.fn().mockReturnThis(),
+            execute: jest.fn().mockResolvedValue({
+              generatedMaps: [{ id: 1 }],
+            }),
+          }),
+        };
+        await callback(mockManager);
+      });
+
+      // 에러 없이 완료되어야 함 (questionType 없는 문제는 스킵)
+      await expect(service.saveGameToDatabase(saveUserId)).resolves.toBeUndefined();
     });
   });
 });
