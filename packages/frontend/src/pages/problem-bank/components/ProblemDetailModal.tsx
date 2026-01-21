@@ -3,9 +3,14 @@ import { ProblemBankItem } from '@/shared/type';
 interface ProblemDetailModalProps {
   problem: ProblemBankItem;
   onClose: () => void;
+  onBookmarkToggle: (id: number, currentState: boolean) => void;
 }
 
-export default function ProblemDetailModal({ problem, onClose }: ProblemDetailModalProps) {
+export default function ProblemDetailModal({
+  problem,
+  onClose,
+  onBookmarkToggle,
+}: ProblemDetailModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
       <div className="relative max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-lg border-2 border-cyan-400 bg-slate-900/95 backdrop-blur-sm">
@@ -119,10 +124,21 @@ export default function ProblemDetailModal({ problem, onClose }: ProblemDetailMo
         </div>
 
         {/* Footer */}
-        <div className="sticky bottom-0 border-t-2 border-cyan-400 bg-slate-900/95 p-4 backdrop-blur-sm">
+        <div className="sticky bottom-0 flex gap-2 border-t-2 border-cyan-400 bg-slate-900/95 p-4 backdrop-blur-sm">
+          <button
+            onClick={() => onBookmarkToggle(problem.id, problem.isBookmarked)}
+            className={`flex-1 rounded border-2 py-2 text-sm font-bold transition-colors ${
+              problem.isBookmarked
+                ? 'border-yellow-400 bg-yellow-400/20 text-yellow-400 hover:bg-yellow-400/30'
+                : 'border-purple-400 bg-transparent text-purple-400 hover:bg-purple-400/20'
+            }`}
+            style={{ fontFamily: 'Orbitron' }}
+          >
+            {problem.isBookmarked ? '⭐ BOOKMARKED' : '☆ BOOKMARK'}
+          </button>
           <button
             onClick={onClose}
-            className="w-full rounded border-2 border-cyan-400 bg-cyan-400/20 py-2 text-sm font-bold text-cyan-400 transition-colors hover:bg-cyan-400/30"
+            className="flex-1 rounded border-2 border-cyan-400 bg-cyan-400/20 py-2 text-sm font-bold text-cyan-400 transition-colors hover:bg-cyan-400/30"
             style={{ fontFamily: 'Orbitron' }}
           >
             CLOSE
