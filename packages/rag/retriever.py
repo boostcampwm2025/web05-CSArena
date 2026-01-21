@@ -4,6 +4,7 @@ from config import config
 from db import get_connection, get_cursor
 from category_loader import get_leaf_category_with_least_questions
 from hyde_generator import generate_hyde_query
+from token_calculator import TokenUsage
 
 
 @dataclass
@@ -117,7 +118,9 @@ def extract_keywords_from_category(category: "CategoryInfo") -> str:
     return path_words
 
 
-def retrieve_chunks(category: "CategoryInfo", top_k: int = 5) -> list[RetrievedChunk]:
+def retrieve_chunks(
+    category: "CategoryInfo", top_k: int = 5
+) -> tuple[list[RetrievedChunk], TokenUsage]:
     """HyDE + Vector 전략으로 청크 검색 (메인 검색 함수)
 
     Args:
@@ -125,16 +128,18 @@ def retrieve_chunks(category: "CategoryInfo", top_k: int = 5) -> list[RetrievedC
         top_k: 검색할 청크 수
 
     Returns:
-        검색된 청크 리스트
+        (검색된 청크 리스트, HyDE 생성 토큰 사용량)
     """
-    # 1. HyDE 쿼리 생성
-    hyde_query = generate_hyde_query(category)
+    # 1. HyDE 쿼리 생성 (토큰 사용량 포함)
+    hyde_query, usage = generate_hyde_query(category)
 
     # 2. 쿼리 임베딩
     query_embedding = get_query_embedding(hyde_query)
 
     # 3. Vector 유사도 검색
-    return retrieve_similar_chunks(query_embedding, top_k)
+    chunks = retrieve_similar_chunks(query_embedding, top_k)
+
+    return chunks, usage
 
 
 if __name__ == "__main__":

@@ -11,6 +11,7 @@ from schemas import (
     QuestionGenerationContext,
 )
 from prompts import SYSTEM_PROMPT, build_generation_prompt
+from token_calculator import count_input_tokens, calculate_cost, TokenUsage
 
 
 # Structured Output을 위한 JSON 스키마
@@ -42,7 +43,7 @@ QUESTION_SCHEMA = {
                     },
                     "explanation": {
                         "type": "string",
-                        "description": "해설 (1-2문장)",
+                        "description": "해설 (1-2문장으로 문제에 대한 답변을 설명)",
                     },
                     "options": {
                         "type": "array",
@@ -51,7 +52,9 @@ QUESTION_SCHEMA = {
                     },
                     "correct_index": {
                         "type": "integer",
-                        "description": "정답 인덱스 (0-3, 객관식만 해당)",
+                        "minimum": 0,
+                        "maximum": 3,
+                        "description": "정답 인덱스 (반드시 0-3 사이의 '정수' 하나여야 하며, [0]과 같은 배열/리스트 형태는 절대 금지)",
                     },
                     "chunk_ids": {
                         "type": "array",
@@ -81,9 +84,9 @@ def call_clova_structured(
     user_prompt: str,
     schema: dict,
     temperature: float = 0.5,
-    max_tokens: int = 4096,
-) -> dict:
-    """HyperCLOVA X API 직접 호출 (Structured Output)
+    max_tokens: int = 8192,
+) -> tuple[dict, TokenUsage]:
+    """HyperCLOVA X API 직접 호출 (Reasoning + JSON Prompt)
 
     Args:
         system_prompt: 시스템 프롬프트
@@ -93,7 +96,7 @@ def call_clova_structured(
         max_tokens: 최대 토큰 수
 
     Returns:
-        파싱된 JSON 응답
+        (파싱된 JSON 응답, 토큰 사용량)
     """
     url = f"https://clovastudio.stream.ntruss.com/v3/chat-completions/{config.LLM_MODEL}"
     headers = {
@@ -101,41 +104,90 @@ def call_clova_structured(
         "Content-Type": "application/json",
     }
 
+    # 스키마를 프롬프트에 포함 (Structured Output 대용)
+    schema_str = json.dumps(schema, ensure_ascii=False, indent=2)
+    schema_instruction = f"""
+
+## Output Format (JSON Only)
+You must output the result in strict JSON format adhering to the following schema.
+Do not include any other text, explanations, or thinking process in the final output.
+
+```json
+{schema_str}
+```
+"""
+    final_user_prompt = user_prompt + schema_instruction
+
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": final_user_prompt},
+    ]
+
     data = {
-        "messages": [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ],
+        "messages": messages,
         "topP": 0.8,
         "topK": 0,
         "maxCompletionTokens": max_tokens,
         "temperature": temperature,
         "repetitionPenalty": 1.1,
-        "thinking": {"effort": "none"},
+        "thinking": {"effort": "high"},
         "stop": [],
-        "responseFormat": {
-            "type": "json",
-            "schema": schema,
-        },
+        # responseFormat 제거됨 (Reasoning 모델 사용 시 프롬프트 지시로 대체)
     }
 
+    # 입력 토큰 계산
+    input_tokens = count_input_tokens(messages)
+
+    # API 호출
     response = requests.post(url, headers=headers, json=data)
     response.raise_for_status()
 
     result = response.json()
-    content = result["result"]["message"]["content"]
+    message = result["result"]["message"]
+    content = message["content"]
+    usage_info = result["result"].get("usage", {})
 
-    return json.loads(content)
+    # 추론 토큰(Thinking Tokens) 추출 및 출력
+    thinking_tokens = usage_info.get("completionTokensDetails", {}).get("thinkingTokens", 0)
+    if thinking_tokens > 0:
+        print(f"   [Reasoning] 추론 토큰 사용량: {thinking_tokens} tokens")
+
+    # Markdown Code Block 제거 (```json ... ```)
+    if "```" in content:
+        content = content.replace("```json", "").replace("```", "").strip()
+
+    # JSON 파싱 시도
+    try:
+        parsed_content = json.loads(content)
+    except json.JSONDecodeError as e:
+        print(f"[오류] JSON 파싱 실패. 원본 응답:\n{content}")
+        raise e
+
+    # 토큰 사용량 정보 업데이트 (API 응답값 우선 사용)
+    if usage_info:
+        input_tokens = usage_info.get("promptTokens", input_tokens)
+        output_tokens = usage_info.get("completionTokens", 0)
+    else:
+        # 응답에 usage가 없는 경우 수동 계산
+        output_messages = [{"role": "assistant", "content": content}]
+        output_tokens = count_input_tokens(output_messages)
+
+    # 비용 계산 (질문 생성은 config.LLM_MODEL 사용)
+    usage = calculate_cost(input_tokens, output_tokens, model=config.LLM_MODEL)
+
+    return parsed_content, usage
 
 
-def generate_questions(context: QuestionGenerationContext) -> list[GeneratedQuestion]:
+def generate_questions(
+    context: QuestionGenerationContext,
+) -> tuple[list[GeneratedQuestion], TokenUsage]:
     """문제 생성
 
     Args:
         context: 문제 생성 컨텍스트 (카테고리 정보 + 청크)
 
     Returns:
-        생성된 문제 리스트
+        (생성된 문제 리스트, 토큰 사용량)
     """
     # 청크 데이터 준비 (ID, 내용 튜플)
     chunks_with_ids = list(zip(context.chunk_ids, context.chunks))
@@ -149,7 +201,7 @@ def generate_questions(context: QuestionGenerationContext) -> list[GeneratedQues
     )
 
     # HyperCLOVA X API 직접 호출
-    response = call_clova_structured(
+    response, usage = call_clova_structured(
         system_prompt=SYSTEM_PROMPT,
         user_prompt=user_prompt,
         schema=QUESTION_SCHEMA,
@@ -188,33 +240,42 @@ def generate_questions(context: QuestionGenerationContext) -> list[GeneratedQues
         else:
             print(f"[경고] 문제 검증 실패: {msg}")
 
-    return questions
+    return questions, usage
 
 
 def generate_questions_batch(
     contexts: list[QuestionGenerationContext],
-) -> dict[int, list[GeneratedQuestion]]:
+) -> tuple[dict[int, list[GeneratedQuestion]], TokenUsage]:
     """여러 카테고리에 대해 일괄 문제 생성
 
     Args:
         contexts: 문제 생성 컨텍스트 리스트
 
     Returns:
-        카테고리 ID를 키로 하는 문제 리스트 딕셔너리
+        (카테고리 ID를 키로 하는 문제 리스트 딕셔너리, 총 토큰 사용량)
     """
     results = {}
+    total_usage = TokenUsage()
 
     for i, context in enumerate(contexts):
         print(f"[{i+1}/{len(contexts)}] {context.category_name} 문제 생성 중...")
         try:
-            questions = generate_questions(context)
+            questions, usage = generate_questions(context)
             results[context.category_id] = questions
-            print(f"  → {len(questions)}개 문제 생성 완료")
+
+            # 토큰 사용량 누적
+            total_usage.input_tokens += usage.input_tokens
+            total_usage.output_tokens += usage.output_tokens
+            total_usage.input_cost += usage.input_cost
+            total_usage.output_cost += usage.output_cost
+            total_usage.total_cost += usage.total_cost
+
+            print(f"  → {len(questions)}개 문제 생성 완료 (비용: {usage.total_cost:.2f}원)")
         except Exception as e:
             print(f"  → 실패: {e}")
             results[context.category_id] = []
 
-    return results
+    return results, total_usage
 
 
 if __name__ == "__main__":
@@ -260,8 +321,12 @@ if __name__ == "__main__":
     # 4. 문제 생성
     print("\n3. 문제 생성 중...")
     try:
-        questions = generate_questions(context)
+        questions, usage = generate_questions(context)
         print(f"\n   [성공] {len(questions)}개 문제 생성 완료")
+        print(f"\n   [토큰 사용량]")
+        print(f"   Input:  {usage.input_tokens} 토큰 → {usage.input_cost:.2f}원")
+        print(f"   Output: {usage.output_tokens} 토큰 → {usage.output_cost:.2f}원")
+        print(f"   총 비용: {usage.total_cost:.2f}원")
 
         # 결과 출력 (전체)
         print("\n4. 생성된 문제 목록:")

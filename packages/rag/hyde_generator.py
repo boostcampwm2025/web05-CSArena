@@ -2,6 +2,7 @@ from langchain_naver import ChatClovaX
 from langchain_core.messages import SystemMessage, HumanMessage
 from config import config
 from category_loader import CategoryInfo, get_leaf_category_with_least_questions
+from token_calculator import count_input_tokens, calculate_cost, TokenUsage
 
 SYSTEM_PROMPT = """당신은 IT 기술 문서 검색 전문가입니다.
 주어진 주제에 대해 의미론적 검색(semantic search)에 최적화된 쿼리를 생성합니다.
@@ -14,8 +15,12 @@ SYSTEM_PROMPT = """당신은 IT 기술 문서 검색 전문가입니다.
 5. 100단어 이내로 작성합니다."""
 
 
-def generate_hyde_query(category: CategoryInfo) -> str:
-    """HyDE 기반 검색 최적화 쿼리 생성"""
+def generate_hyde_query(category: CategoryInfo) -> tuple[str, TokenUsage]:
+    """HyDE 기반 검색 최적화 쿼리 생성
+
+    Returns:
+        (생성된 쿼리, 토큰 사용량)
+    """
     llm = ChatClovaX(
         model=config.LLM_MODEL,
         temperature=config.TEMPERATURE,
@@ -29,8 +34,24 @@ Category Path: {category.path}"""
         HumanMessage(content=user_input),
     ]
 
+    # 입력 토큰 계산
+    messages_for_tokenize = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": user_input},
+    ]
+    input_tokens = count_input_tokens(messages_for_tokenize)
+
+    # LLM 호출
     response = llm.invoke(messages)
-    return response.content
+
+    # 출력 토큰 계산
+    output_messages = [{"role": "assistant", "content": response.content}]
+    output_tokens = count_input_tokens(output_messages)
+
+    # 비용 계산 (HyDE는 config.LLM_MODEL 사용)
+    usage = calculate_cost(input_tokens, output_tokens, model=config.LLM_MODEL)
+
+    return response.content, usage
 
 
 if __name__ == "__main__":
@@ -49,9 +70,13 @@ if __name__ == "__main__":
     # 2. HyDE 쿼리 생성
     print("\n2. HyDE 쿼리 생성 중...")
     try:
-        hyde_query = generate_hyde_query(category)
+        hyde_query, usage = generate_hyde_query(category)
         print(f"\n   생성된 쿼리:")
         print(f"   {hyde_query}")
+        print("\n   [토큰 사용량]")
+        print(f"   Input:  {usage.input_tokens} 토큰 → {usage.input_cost:.2f}원")
+        print(f"   Output: {usage.output_tokens} 토큰 → {usage.output_cost:.2f}원")
+        print(f"   총 비용: {usage.total_cost:.2f}원")
         print("\n   [성공] API 호출 및 쿼리 생성 완료")
     except Exception as e:
         print(f"\n   [실패] 오류 발생: {e}")

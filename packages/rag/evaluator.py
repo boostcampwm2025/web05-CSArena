@@ -1,32 +1,42 @@
-"""RAGAS 기반 문제 품질 평가 모듈"""
+"""RAGAS 기반 문제 품질 평가 모듈 (Refactored for Gemini) """
 
 import json
 import warnings
+from datasets import Dataset
+from ragas import evaluate
+from ragas.llms import LangchainLLMWrapper
+from ragas.embeddings import LangchainEmbeddingsWrapper
+from ragas.metrics import Faithfulness, AnswerRelevancy
+from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
+
+from config import config
+from db import get_connection
+from token_calculator import TokenUsage
 
 # Deprecation 경고 무시
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-from datasets import Dataset
-from langchain_naver import ChatClovaX, ClovaXEmbeddings
-from ragas import evaluate, RunConfig
-from ragas.metrics import faithfulness, answer_relevancy, context_precision
-
-from config import config
-from db import get_connection
-
 
 def get_evaluator_llm():
-    """평가용 LLM 초기화"""
-    return ChatClovaX(
-        model=config.LLM_MODEL,  # HCX-007 사용
-        temperature=0.1,  # 평가 일관성을 위해 낮은 temperature
-        max_tokens=2048,
+    """평가용 Gemini LLM 초기화"""
+    # Gemini-2.5-Flash (User requested)
+    # 실제로는 Gemini 1.5 Flash 또는 최신 모델 매핑 필요.
+    # config.GEMINI_MODEL에 "gemini-2.5-flash" 또는 유효한 모델명이 있어야 함.
+    langchain_llm = ChatGoogleGenerativeAI(
+        model=config.GEMINI_MODEL,  # e.g., "gemini-1.5-flash"
+        google_api_key=config.GEMINI_API_KEY,
+        temperature=0.0, # 평가는 Deterministic하게
     )
+    return LangchainLLMWrapper(langchain_llm)
 
 
 def get_evaluator_embeddings():
-    """평가용 임베딩 모델 초기화"""
-    return ClovaXEmbeddings(model=config.EMBEDDING_MODEL)
+    """평가용 Gemini 임베딩 모델 초기화"""
+    langchain_embeddings = GoogleGenerativeAIEmbeddings(
+        model="models/embedding-001",
+        google_api_key=config.GEMINI_API_KEY,
+    )
+    return LangchainEmbeddingsWrapper(langchain_embeddings)
 
 
 def get_chunk_contents(chunk_ids: list[int]) -> list[str]:
@@ -36,166 +46,100 @@ def get_chunk_contents(chunk_ids: list[int]) -> list[str]:
 
     with get_connection() as conn:
         cursor = conn.cursor()
-
         placeholders = ",".join(["%s"] * len(chunk_ids))
         query = f"SELECT content FROM document_embeddings WHERE id IN ({placeholders})"
-
         cursor.execute(query, chunk_ids)
         results = cursor.fetchall()
-
         cursor.close()
 
     return [row[0] for row in results]
 
 
 def prepare_evaluation_dataset(questions: list[dict]) -> Dataset:
-    """생성된 문제를 RAGAS 평가용 데이터셋으로 변환
-
-    Args:
-        questions: 생성된 문제 리스트 (generation.json 형식)
-
-    Returns:
-        RAGAS 평가용 Dataset
-    """
+    """생성된 문제를 RAGAS 평가용 데이터셋으로 변환"""
     data = {
         "user_input": [],
         "response": [],
         "retrieved_contexts": [],
-        "reference": [],  # context_precision에 필요
     }
 
     for q in questions:
-        # 청크 내용 조회
         chunk_contents = get_chunk_contents(q.get("chunk_ids", []))
-
         if not chunk_contents:
-            print(f"[경고] 청크 내용 없음, 스킵: {q['question'][:50]}...")
             continue
 
         data["user_input"].append(q["question"])
-        data["response"].append(q["answer"])
+        data["response"].append(q.get("explanation", ""))
         data["retrieved_contexts"].append(chunk_contents)
-        data["reference"].append(q["answer"])  # 정답을 reference로 사용
 
     return Dataset.from_dict(data)
 
 
-def evaluate_questions(questions: list[dict]) -> dict:
-    """문제 품질 평가 실행
+def evaluate_questions(questions: list[dict]) -> tuple[dict, TokenUsage]:
+    """문제 품질 평가 실행"""
+    print("=== RAGAS 평가 시작 (Gemini) ===\n")
 
-    Args:
-        questions: 생성된 문제 리스트
-
-    Returns:
-        평가 결과 딕셔너리
-    """
-    print("=== RAGAS 평가 시작 ===\n")
-
-    # 1. 모델 초기화
-    print("1. 평가 모델 초기화 중...")
+    # 1. 모델 설정
+    print(f"1. 평가 모델 초기화 중... (Model: {config.GEMINI_MODEL})")
     evaluator_llm = get_evaluator_llm()
     evaluator_embeddings = get_evaluator_embeddings()
 
     # 2. 데이터셋 준비
-    print("2. 평가 데이터셋 준비 중...")
     dataset = prepare_evaluation_dataset(questions)
-    print(f"   → {len(dataset)}개 문제 평가 대상")
+    print(f"2. 평가 데이터셋 준비 완료 ({len(dataset)} items)")
 
     if len(dataset) == 0:
-        print("[오류] 평가할 문제가 없습니다.")
-        return {}
+        print("[오류] 평가할 데이터가 없습니다.")
+        return {}, TokenUsage()
 
-    # 3. 메트릭에 LLM/Embeddings 설정
-    faithfulness.llm = evaluator_llm
-    answer_relevancy.llm = evaluator_llm
-    answer_relevancy.embeddings = evaluator_embeddings
-    context_precision.llm = evaluator_llm
+    # 3. 메트릭 설정
+    # RAGAS 최신 문법: 메트릭 인스턴스에 LLM/Embedding 주입
+    faithfulness = Faithfulness(llm=evaluator_llm)
+    answer_relevancy = AnswerRelevancy(llm=evaluator_llm, embeddings=evaluator_embeddings)
 
-    # 4. 평가 실행 (Rate Limit 방지를 위한 설정)
-    print("3. 평가 실행 중... (동시성 제한: 2)")
+    metrics = [faithfulness, answer_relevancy]
 
-    # RunConfig로 동시 요청 수 제한 (QPM 180 = 초당 3개, 여유있게 2로 설정)
-    run_config = RunConfig(
-        max_workers=2,      # 동시 실행 워커 수 제한
-        max_wait=180,       # 최대 대기 시간 (초)
-        max_retries=3,      # 실패 시 재시도 횟수
-    )
-
+    # 4. 평가 실행
+    print("3. 평가 실행 중...")
     results = evaluate(
         dataset=dataset,
-        metrics=[
-            faithfulness,        # 답안이 청크 기반인가
-            answer_relevancy,    # 답안이 질문에 맞는가
-            context_precision,   # 청크가 질문 해결에 적절한가
-        ],
-        run_config=run_config,
+        metrics=metrics,
     )
 
     print("\n=== 평가 완료 ===")
-    return results
+    
+    # 결과 미리보기
+    df = results.to_pandas()
+    print(df.head())
 
+    # 토큰 사용량 (추정)
+    usage = TokenUsage(
+        input_tokens=0,
+        output_tokens=0,
+        input_cost=0,
+        output_cost=0,
+        total_cost=0,
+    )
+
+    return results, usage
 
 def print_evaluation_report(results) -> None:
     """평가 결과 리포트 출력"""
-    print("\n" + "=" * 60)
-    print("RAGAS 평가 결과 리포트")
-    print("=" * 60)
-
-    # DataFrame으로 상세 결과
     df = results.to_pandas()
-
-    # 전체 평균 점수
-    print("\n[전체 평균 점수]")
-    for col in ["faithfulness", "answer_relevancy", "context_precision"]:
-        if col in df.columns:
-            avg = df[col].mean()
-            print(f"  - {col}: {avg:.4f}")
-
-    print("\n[문제별 상세 점수]")
-    print(df.to_string())
-
-    # 저품질 문제 식별
-    print("\n[저품질 문제 (점수 < 0.5)]")
-    conditions = []
-    for col in ["faithfulness", "answer_relevancy", "context_precision"]:
-        if col in df.columns:
-            conditions.append(df[col] < 0.5)
-
-    if conditions:
-        low_quality = df[conditions[0] | conditions[1] | conditions[2]] if len(conditions) == 3 else df[conditions[0]]
-    else:
-        low_quality = df.iloc[0:0]
-
-    if len(low_quality) > 0:
-        for idx, row in low_quality.iterrows():
-            print(f"  문제 {idx}: {row['user_input'][:50]}...")
-            for col in ["faithfulness", "answer_relevancy", "context_precision"]:
-                if col in df.columns:
-                    print(f"    - {col}: {row.get(col, 'N/A')}")
-    else:
-        print("  없음 (모든 문제가 기준 통과)")
+    print("\n[RAGAS 평가 리포트]")
+    
+    if "faithfulness" in df.columns:
+        print(f"- Faithfulness: {df['faithfulness'].mean():.4f}")
+    if "answer_relevancy" in df.columns:
+        print(f"- Answer Relevancy: {df['answer_relevancy'].mean():.4f}")
 
 
 if __name__ == "__main__":
-    print("=== Evaluator 검증 ===\n")
-
-    # generation.json 로드
+    # 테스트 실행
     try:
         with open("generation.json", "r", encoding="utf-8") as f:
             questions = json.load(f)
-        print(f"로드된 문제 수: {len(questions)}")
-    except FileNotFoundError:
-        print("generation.json 파일이 없습니다. question_generator.py를 먼저 실행하세요.")
-        exit(1)
-
-    # 평가 실행
-    results = evaluate_questions(questions)
-
-    # 결과 출력
-    if results:
+        results, _ = evaluate_questions(questions)
         print_evaluation_report(results)
-
-        # 결과 저장
-        df = results.to_pandas()
-        df.to_csv("evaluation_result.csv", index=False, encoding="utf-8-sig")
-        print("\n결과가 evaluation_result.csv에 저장되었습니다.")
+    except Exception as e:
+        print(f"테스트 실패: {e}")

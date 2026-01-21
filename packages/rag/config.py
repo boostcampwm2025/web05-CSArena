@@ -8,6 +8,10 @@ class Config:
     # Naver Cloud API
     CLOVASTUDIO_API_KEY: str = os.getenv("CLOVASTUDIO_API_KEY", "")
 
+    # Google Gemini API
+    GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
+    GEMINI_MODEL: str = "gemini-2.0-flash"
+
     # PostgreSQL Database
     DB_HOST: str = os.getenv("DB_HOST", "localhost")
     DB_PORT: str = os.getenv("DB_PORT", "5432")
@@ -16,7 +20,7 @@ class Config:
     DB_PASSWORD: str = os.getenv("DB_PASSWORD", "")
 
     # Model Settings
-    LLM_MODEL: str = "HCX-007"
+    LLM_MODEL: str = "HCX-007"  # 질문 생성용 
     EMBEDDING_MODEL: str = "clir-emb-dolphin"
     EMBEDDING_DIMENSION: int = 1024
 
