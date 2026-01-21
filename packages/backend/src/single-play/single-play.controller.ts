@@ -11,7 +11,7 @@ import {
 import { SinglePlayService } from './single-play.service';
 import { GetQuestionsDto, SubmitAnswerDto } from './dto';
 
-@Controller('api/singleplay')
+@Controller('singleplay')
 export class SinglePlayController {
   constructor(private readonly singlePlayService: SinglePlayService) {}
 
