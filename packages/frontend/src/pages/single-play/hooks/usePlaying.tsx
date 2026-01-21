@@ -32,7 +32,7 @@ export function usePlaying() {
 
     try {
       const data = await submitAnswer(
-        { questionId: questions[curRound].id, answer: trimmed },
+        { questionId: Number(questions[curRound].id), answer: trimmed },
         controller.signal,
       );
 
