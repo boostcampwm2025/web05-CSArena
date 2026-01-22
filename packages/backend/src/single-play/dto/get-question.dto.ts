@@ -1,7 +1,7 @@
 import { Transform } from 'class-transformer';
 import { IsArray, IsNotEmpty, IsNumber } from 'class-validator';
 
-export class GetQuestionsDto {
+export class GetQuestionDto {
   @IsNotEmpty({ message: 'categoryId는 필수입니다.' })
   @Transform(({ value }: { value: unknown }) => {
     if (typeof value === 'string') {
