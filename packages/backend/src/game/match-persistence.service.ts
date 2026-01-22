@@ -288,7 +288,7 @@ export class MatchPersistenceService {
     const parsed = parseInt(userId, 10);
 
     if (isNaN(parsed)) {
-      throw new Error(`Invalid userId: ${userId}`);
+      throw new NonRetryableError(`Invalid userId: ${userId}`);
     }
 
     return parsed;
