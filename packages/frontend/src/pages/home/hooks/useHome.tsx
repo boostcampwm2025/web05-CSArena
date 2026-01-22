@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { handleOAuthCallback, logout } from '@/feature/auth/auth.api';
+import { logout } from '@/feature/auth/auth.api';
 
 import { useUser } from '@/feature/auth/useUser';
 import { useScene } from '@/feature/useScene';
@@ -13,24 +13,10 @@ export function useHome() {
 
   const controllerRef = useRef<AbortController | null>(null);
 
+  // OAuth 콜백 처리는 이제 App.tsx에서 전담합니다.
   useEffect(() => {
-    const res = handleOAuthCallback();
-
-    if (!res.ok) {
-      return;
-    }
-
-    setUserData({
-      userId: res.userData.id,
-      nickname: res.userData.nickname,
-      tier: res.userData.tier,
-      expPoint: res.userData.expPoint,
-      isSentFeedback: false,
-    });
-    setAccessToken(res.accessToken ?? null);
-
-    setIsOpenLoginModal(false);
-  }, [setUserData, setAccessToken]);
+    // 필요한 경우 초기화 로직 작성
+  }, []);
 
   const onClickLoginBtn = useCallback(() => {
     setIsOpenLoginModal(true);

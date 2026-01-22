@@ -17,9 +17,11 @@ class ApiError extends Error {
   }
 }
 
-async function fetchWithAuth<T>(url: string, options: RequestInit = {}): Promise<T> {
-  const accessToken = localStorage.getItem('accessToken');
-
+async function fetchWithAuth<T>(
+  url: string,
+  accessToken: string | null,
+  options: RequestInit = {},
+): Promise<T> {
   const response = await fetch(url, {
     ...options,
     headers: {
@@ -32,7 +34,6 @@ async function fetchWithAuth<T>(url: string, options: RequestInit = {}): Promise
 
   if (!response.ok) {
     if (response.status === 401) {
-      window.location.href = '/login';
       throw new ApiError(401, 'Unauthorized');
     }
 
@@ -53,7 +54,8 @@ async function fetchWithAuth<T>(url: string, options: RequestInit = {}): Promise
   return {} as T;
 }
 
-export async function fetchProblemBank(
+async function fetchProblemBank(
+  accessToken: string | null,
   filters: Partial<ProblemBankFilters>,
 ): Promise<ProblemBankResponse> {
   const params = new URLSearchParams();
@@ -89,21 +91,25 @@ export async function fetchProblemBank(
   const queryString = params.toString();
   const url = queryString ? `${API_BASE}?${queryString}` : API_BASE;
 
-  return fetchWithAuth<ProblemBankResponse>(url);
+  return fetchWithAuth<ProblemBankResponse>(url, accessToken);
 }
 
-export async function fetchStatistics(): Promise<ProblemBankStatistics> {
-  return fetchWithAuth<ProblemBankStatistics>(`${API_BASE}/statistics`);
+async function fetchStatistics(accessToken: string | null): Promise<ProblemBankStatistics> {
+  return fetchWithAuth<ProblemBankStatistics>(`${API_BASE}/statistics`, accessToken);
 }
 
-export async function updateBookmark(id: number, isBookmarked: boolean): Promise<void> {
-  await fetchWithAuth<void>(`${API_BASE}/${id}/bookmark`, {
+async function updateBookmark(
+  accessToken: string | null,
+  id: number,
+  isBookmarked: boolean,
+): Promise<void> {
+  await fetchWithAuth<void>(`${API_BASE}/${id}/bookmark`, accessToken, {
     method: 'PATCH',
     body: JSON.stringify({ isBookmarked }),
   });
 }
 
-export async function fetchCategories(): Promise<Category[]> {
+async function fetchCategories(): Promise<Category[]> {
   const response = await fetch('/api/quiz/categories');
 
   if (!response.ok) {
@@ -112,3 +118,5 @@ export async function fetchCategories(): Promise<Category[]> {
 
   return response.json() as Promise<Category[]>;
 }
+
+export { ApiError, fetchProblemBank, fetchStatistics, updateBookmark, fetchCategories };

@@ -59,7 +59,7 @@ export async function refreshAccessToken(signal: AbortSignal) {
     );
   }
 
-  const data = await res.json();
+  const data = (await res.json()) as { accessToken: string };
 
   return data.accessToken;
 }

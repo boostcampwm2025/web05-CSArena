@@ -5,7 +5,10 @@ import {
   ProblemBankItem,
   ProblemBankStatistics,
 } from '@/shared/type';
+import { useUser } from '@/feature/auth/useUser';
+import { useScene } from '@/feature/useScene';
 import {
+  ApiError,
   fetchCategories,
   fetchProblemBank,
   fetchStatistics,
@@ -13,6 +16,8 @@ import {
 } from '@/lib/api/problem-bank';
 
 export function useProblemBank() {
+  const { accessToken } = useUser();
+  const { setScene } = useScene();
   const [items, setItems] = useState<ProblemBankItem[]>([]);
   const [statistics, setStatistics] = useState<ProblemBankStatistics | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -34,62 +39,104 @@ export function useProblemBank() {
   const [searchInput, setSearchInput] = useState('');
 
   const loadData = useCallback(async () => {
+    if (!accessToken) {
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
 
     try {
-      const response = await fetchProblemBank(filters);
+      const response = await fetchProblemBank(accessToken, filters);
       setItems(response.items);
       setTotalPages(response.totalPages);
       setCurrentPage(response.currentPage);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load problem bank';
-      setError(errorMessage);
+      if (err instanceof ApiError) {
+        if (err.status === 401) {
+          setScene('home');
+
+          return;
+        }
+
+        setError(err.message);
+      } else {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to load problem bank';
+        setError(errorMessage);
+      }
+
+      // eslint-disable-next-line no-console
       console.error('Failed to load problem bank:', err);
     } finally {
       setIsLoading(false);
     }
-  }, [filters]);
+  }, [filters, accessToken, setScene]);
 
   const loadStatistics = useCallback(async () => {
+    if (!accessToken) {
+      return;
+    }
+
     try {
-      const stats = await fetchStatistics();
+      const stats = await fetchStatistics(accessToken);
       setStatistics(stats);
     } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        setScene('home');
+
+        return;
+      }
+
+      // eslint-disable-next-line no-console
       console.error('Failed to load statistics:', err);
     }
-  }, []);
+  }, [accessToken, setScene]);
 
   const loadCategories = useCallback(async () => {
     try {
       const cats = await fetchCategories();
       setCategories(cats);
     } catch (err) {
+      // eslint-disable-next-line no-console
       console.error('Failed to load categories:', err);
     }
   }, []);
 
-  const toggleBookmark = useCallback(async (problemId: number, currentBookmarkState: boolean) => {
-    const newBookmarkState = !currentBookmarkState;
+  const toggleBookmark = useCallback(
+    async (problemId: number, currentBookmarkState: boolean) => {
+      if (!accessToken) {
+        return;
+      }
 
-    setItems((prevItems) =>
-      prevItems.map((item) =>
-        item.id === problemId ? { ...item, isBookmarked: newBookmarkState } : item,
-      ),
-    );
+      const newBookmarkState = !currentBookmarkState;
 
-    try {
-      await updateBookmark(problemId, newBookmarkState);
-    } catch (err) {
       setItems((prevItems) =>
         prevItems.map((item) =>
-          item.id === problemId ? { ...item, isBookmarked: currentBookmarkState } : item,
+          item.id === problemId ? { ...item, isBookmarked: newBookmarkState } : item,
         ),
       );
-      console.error('Failed to update bookmark:', err);
-      setError('Failed to update bookmark');
-    }
-  }, []);
+
+      try {
+        await updateBookmark(accessToken, problemId, newBookmarkState);
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 401) {
+          setScene('home');
+
+          return;
+        }
+
+        setItems((prevItems) =>
+          prevItems.map((item) =>
+            item.id === problemId ? { ...item, isBookmarked: currentBookmarkState } : item,
+          ),
+        );
+        // eslint-disable-next-line no-console
+        console.error('Failed to update bookmark:', err);
+        setError('Failed to update bookmark');
+      }
+    },
+    [accessToken, setScene],
+  );
 
   const updateFilters = useCallback((newFilters: Partial<ProblemBankFilters>) => {
     setFilters((prev) => ({
