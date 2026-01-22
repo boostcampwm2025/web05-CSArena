@@ -12,6 +12,7 @@ import { QuizService } from '../quiz/quiz.service';
 import { Question } from '../quiz/quiz.types';
 import { mapDifficulty, SCORE_MAP } from '../quiz/quiz.constants';
 import { SinglePlaySessionManager } from './single-play-session-manager';
+import { GameEndResult } from './interfaces/single-play-session.interface';
 import { SinglePlayGame } from './domain/single-play-game';
 import { Match } from '../match/entity';
 import { UserProblemBank } from '../problem-bank/entity';
@@ -166,6 +167,28 @@ export class SinglePlayService {
       this.logger.error(`Failed to submit answer: ${(error as Error).message}`);
       throw new InternalServerErrorException('채점 중 오류가 발생했습니다.');
     }
+  }
+
+  /**
+   * 게임 종료 (명시적 종료)
+   */
+  endGame(userId: string): GameEndResult {
+    const game = this.sessionManager.findGameOrThrow(userId);
+
+    if (!game.isCompleted()) {
+      game.complete();
+    }
+
+    const finalStats = game.getStats();
+
+    this.sessionManager.deleteGame(userId);
+
+    this.logger.log(`Game ended by user ${userId}. Stats: ${JSON.stringify(finalStats)}`);
+
+    return {
+      message: '게임이 종료되었습니다.',
+      finalStats,
+    };
   }
 
   // ============================================

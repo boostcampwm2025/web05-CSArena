@@ -10,6 +10,7 @@ describe('SinglePlayController', () => {
         getCategories: jest.fn(),
         getQuestions: jest.fn(),
         submitAnswer: jest.fn(),
+        endGame: jest.fn(),
     };
 
     beforeEach(async () => {
@@ -247,6 +248,56 @@ describe('SinglePlayController', () => {
 
       expect(result).toEqual(mockResult);
       expect(mockSinglePlayService.submitAnswer).toHaveBeenCalledWith('user-123', 5, longAnswer);
+    });
+  });
+
+  describe('endGame', () => {
+    const mockUser = { id: 'user-123', visibleId: '123', nickname: 'test', oauthProvider: 'github' as const };
+
+    it('게임을 정상적으로 종료하고 통계를 반환해야 함', () => {
+      const mockResult = {
+        message: '게임이 종료되었습니다.',
+        finalStats: {
+          totalQuestions: 10,
+          answeredQuestions: 7,
+          correctAnswers: 5,
+          totalScore: 85,
+        },
+      };
+
+      mockSinglePlayService.endGame.mockReturnValue(mockResult);
+
+      const result = controller.endGame(mockUser);
+
+      expect(result).toEqual(mockResult);
+      expect(mockSinglePlayService.endGame).toHaveBeenCalledWith('user-123');
+    });
+
+    it('답안을 하나도 제출하지 않고 종료해도 정상 처리해야 함', () => {
+      const mockResult = {
+        message: '게임이 종료되었습니다.',
+        finalStats: {
+          totalQuestions: 10,
+          answeredQuestions: 0,
+          correctAnswers: 0,
+          totalScore: 0,
+        },
+      };
+
+      mockSinglePlayService.endGame.mockReturnValue(mockResult);
+
+      const result = controller.endGame(mockUser);
+
+      expect(result).toEqual(mockResult);
+    });
+
+    it('Service 계층의 에러를 그대로 전파해야 함', () => {
+      const error = new Error('Game session not found');
+      mockSinglePlayService.endGame.mockImplementation(() => {
+        throw error;
+      });
+
+      expect(() => controller.endGame(mockUser)).toThrow(error);
     });
   });
 });

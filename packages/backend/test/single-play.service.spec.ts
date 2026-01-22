@@ -574,6 +574,86 @@ describe('SinglePlayService', () => {
     });
   });
 
+  describe('endGame', () => {
+    const userId = 'user-123';
+
+    beforeEach(() => {
+      // 게임 세션 생성
+      sessionManager.createGame(userId, [1], [1, 2, 3]);
+    });
+
+    it('진행 중인 게임을 정상적으로 종료해야 함', () => {
+      const result = service.endGame(userId);
+
+      expect(result).toEqual({
+        message: '게임이 종료되었습니다.',
+        finalStats: {
+          totalQuestions: 3,
+          answeredQuestions: 0,
+          correctAnswers: 0,
+          totalScore: 0,
+        },
+      });
+
+      // 세션이 삭제되었는지 확인
+      expect(sessionManager.findGame(userId)).toBeNull();
+    });
+
+    it('일부 답안 제출 후 게임 종료 시 통계를 반환해야 함', async () => {
+      const mockQuestion = {
+        id: 1,
+        questionType: 'short',
+        content: 'Question',
+        difficulty: 2,
+        correctAnswer: 'Correct',
+      } as QuestionEntity;
+
+      const mockGradeResult = [
+        {
+          playerId: 'single-player',
+          answer: 'Answer',
+          isCorrect: true,
+          score: 10,
+          feedback: 'Good',
+        },
+      ];
+
+      mockQuestionRepository.findOne.mockResolvedValue(mockQuestion);
+      mockQuizService.gradeQuestion.mockResolvedValue(mockGradeResult);
+
+      // 1개 답안 제출
+      await service.submitAnswer(userId, 1, 'Answer');
+
+      const result = service.endGame(userId);
+
+      expect(result.finalStats).toEqual({
+        totalQuestions: 3,
+        answeredQuestions: 1,
+        correctAnswers: 1,
+        totalScore: 10,
+      });
+    });
+
+    it('이미 완료된 게임도 종료할 수 있어야 함', () => {
+      const game = sessionManager.findGameOrThrow(userId);
+      game.complete();
+
+      const result = service.endGame(userId);
+
+      expect(result.message).toBe('게임이 종료되었습니다.');
+      expect(sessionManager.findGame(userId)).toBeNull();
+    });
+
+    it('존재하지 않는 게임 세션이면 NotFoundException을 던져야 함', () => {
+      const invalidUserId = 'user-999';
+
+      expect(() => service.endGame(invalidUserId)).toThrow(NotFoundException);
+      expect(() => service.endGame(invalidUserId)).toThrow(
+        '게임 세션을 찾을 수 없습니다',
+      );
+    });
+  });
+
   describe('Score Constants Verification', () => {
     it('SCORE_MAP 상수가 올바른 값을 가져야 함', () => {
       expect(SCORE_MAP.easy).toBe(10);
