@@ -6,12 +6,16 @@ import {
   HttpStatus,
   Post,
   Query,
+  UseGuards,
   ValidationPipe,
 } from '@nestjs/common';
 import { SinglePlayService } from './single-play.service';
 import { GetQuestionsDto, SubmitAnswerDto } from './dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { AuthenticatedUser } from '../auth/strategies/jwt.strategy';
 
-@Controller('api/singleplay')
+@Controller('singleplay')
 export class SinglePlayController {
   constructor(private readonly singlePlayService: SinglePlayService) {}
 
@@ -20,6 +24,7 @@ export class SinglePlayController {
    * GET /api/singleplay/categories
    */
   @Get('categories')
+  @UseGuards(JwtAuthGuard)
   async getCategories(): Promise<{ categories: Array<{ id: number; name: string | null }> }> {
     const categories = await this.singlePlayService.getCategories();
 
@@ -31,8 +36,12 @@ export class SinglePlayController {
    * GET /api/singleplay/questions?categoryId=1,2,3
    */
   @Get('questions')
-  async getQuestions(@Query(ValidationPipe) query: GetQuestionsDto) {
-    const questions = await this.singlePlayService.getQuestions(query.categoryId);
+  @UseGuards(JwtAuthGuard)
+  async getQuestions(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query(ValidationPipe) query: GetQuestionsDto,
+  ) {
+    const questions = await this.singlePlayService.getQuestions(user.id, query.categoryId);
 
     return { questions };
   }
@@ -43,7 +52,26 @@ export class SinglePlayController {
    */
   @Post('submit')
   @HttpCode(HttpStatus.OK)
-  async submitAnswer(@Body(ValidationPipe) submitDto: SubmitAnswerDto) {
-    return await this.singlePlayService.submitAnswer(submitDto.questionId, submitDto.answer);
+  @UseGuards(JwtAuthGuard)
+  async submitAnswer(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body(ValidationPipe) submitDto: SubmitAnswerDto,
+  ) {
+    return await this.singlePlayService.submitAnswer(
+      user.id,
+      submitDto.questionId,
+      submitDto.answer,
+    );
+  }
+
+  /**
+   * 게임 종료 API
+   * POST /api/singleplay/end
+   */
+  @Post('end')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  endGame(@CurrentUser() user: AuthenticatedUser) {
+    return this.singlePlayService.endGame(user.id);
   }
 }

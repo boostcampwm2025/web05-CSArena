@@ -9,6 +9,7 @@ import { HealthController } from './health/health.controller';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { FeedbackModule } from './feedback/feedback.module';
+import { ProblemBankModule } from './problem-bank/problem-bank.module';
 import { feedbackLoggerConfig } from './common/winston.config';
 import { WinstonModule } from 'nest-winston';
 import { AuthModule } from './auth/auth.module';
@@ -48,6 +49,7 @@ const metadata: ModuleMetadata = {
     GameModule,
     FeedbackModule,
     SinglePlayModule,
+    ProblemBankModule,
   ],
   controllers: [AppController, HealthController],
   providers: [AppService],

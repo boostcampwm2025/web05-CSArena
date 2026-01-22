@@ -31,7 +31,6 @@ export type ProblemBankStatistics = {
 
 export type ProblemBankResponse = {
   items: ProblemBankItem[];
-  statistics: ProblemBankStatistics;
   totalPages: number;
   currentPage: number;
 };
