@@ -189,6 +189,8 @@ export class SinglePlayService {
       message: '게임이 종료되었습니다.',
       finalStats,
     };
+  }
+
   // ============================================
   // Database Persistence
   // ============================================
