@@ -2,10 +2,12 @@ import { useCallback, useRef, useState } from 'react';
 
 import { submitAnswer } from '@/lib/api/single-play';
 
+import { useUser } from '@/feature/auth/useUser';
 import { usePhase, useQuestion, useResult, useRound } from '@/feature/single-play/useRound';
-import {} from '@/feature/matching/useRound';
 
 export function usePlaying() {
+  const { accessToken } = useUser();
+
   const { setPhase } = usePhase();
   const { curRound } = useRound();
   const { questions } = useQuestion();
@@ -32,6 +34,7 @@ export function usePlaying() {
 
     try {
       const data = await submitAnswer(
+        accessToken,
         { questionId: Number(questions[curRound].id), answer: trimmed },
         controller.signal,
       );

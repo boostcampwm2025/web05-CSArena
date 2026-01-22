@@ -29,6 +29,7 @@ export type ApiRequestOptions = {
 
 export async function request<TResponse>(
   endPoint: string,
+  accessToken: string | null,
   options: ApiRequestOptions = {},
 ): Promise<TResponse> {
   const { method = 'GET', query, body, headers, credentials = 'include', signal } = options;
@@ -39,7 +40,11 @@ export async function request<TResponse>(
     method,
     credentials,
     signal,
-    headers: { ...(body ? { 'Content-Type': 'application/json' } : {}), ...headers },
+    headers: {
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      ...(body ? { 'Content-Type': 'application/json' } : {}),
+      ...headers,
+    },
     body: body ? JSON.stringify(body) : undefined,
   });
 

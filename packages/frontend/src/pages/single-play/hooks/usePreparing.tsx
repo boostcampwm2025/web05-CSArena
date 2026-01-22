@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { useUser } from '@/feature/auth/useUser';
 import {
   useCategory,
   usePhase,
@@ -12,6 +13,7 @@ import { CategoryItem } from '@/pages/single-play/types/types';
 import { fetchCategories, fetchQuestions } from '@/lib/api/single-play';
 
 export function usePreparing() {
+  const { accessToken } = useUser();
   const { selectedCategoryIds, setSelectedCategoryIds } = useCategory();
   const { setPhase } = usePhase();
   const { setCurRound, setTotalRounds } = useRound();
@@ -31,7 +33,7 @@ export function usePreparing() {
       setIsLoadingCategories(true);
 
       try {
-        const data = await fetchCategories(controller.signal);
+        const data = await fetchCategories(accessToken, controller.signal);
         const entries: Array<[number, CategoryItem]> = data.categories.map((category) => [
           category.id,
           { ...category, isSelected: false },
@@ -91,7 +93,7 @@ export function usePreparing() {
     setIsLoadingQuestions(true);
 
     try {
-      const data = await fetchQuestions(selectedCategoryIds, controller.signal);
+      const data = await fetchQuestions(accessToken, selectedCategoryIds, controller.signal);
 
       setCurRound(0);
       setTotalRounds(data.questions.length);

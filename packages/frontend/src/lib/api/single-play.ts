@@ -7,19 +7,27 @@ import {
 
 import { request } from './request';
 
-export function fetchCategories(signal?: AbortSignal) {
-  return request<GetCategoriesRes>('/api/singleplay/categories', { signal });
+export function fetchCategories(accessToken: string | null, signal?: AbortSignal) {
+  return request<GetCategoriesRes>('/api/singleplay/categories', accessToken, { signal });
 }
 
-export function fetchQuestions(categoryIds: number[], signal?: AbortSignal) {
-  return request<GetQuestionsRes>('/api/singleplay/questions', {
+export function fetchQuestions(
+  accessToken: string | null,
+  categoryIds: number[],
+  signal?: AbortSignal,
+) {
+  return request<GetQuestionsRes>('/api/singleplay/questions', accessToken, {
     query: { categoryId: categoryIds },
     signal,
   });
 }
 
-export function submitAnswer(payload: SubmitAnswerReq, signal?: AbortSignal) {
-  return request<SubmitAnswerRes>('/api/singleplay/submit', {
+export function submitAnswer(
+  accessToken: string | null,
+  payload: SubmitAnswerReq,
+  signal?: AbortSignal,
+) {
+  return request<SubmitAnswerRes>('/api/singleplay/submit', accessToken, {
     method: 'POST',
     body: payload,
     signal,

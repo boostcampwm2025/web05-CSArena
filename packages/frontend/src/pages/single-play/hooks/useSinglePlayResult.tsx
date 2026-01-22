@@ -12,7 +12,7 @@ import { fetchQuestions } from '@/lib/api/single-play';
 
 export function useSinglePlayResult() {
   const { selectedCategoryIds } = useCategory();
-  const { userData } = useUser();
+  const { userData, accessToken } = useUser();
   const { setCurRound, setTotalRounds } = useRound();
   const { setPhase } = usePhase();
   const { questions, setQuestions } = useQuestion();
@@ -58,7 +58,7 @@ export function useSinglePlayResult() {
     clearCtx();
 
     try {
-      const data = await fetchQuestions(selectedCategoryIds, controller.signal);
+      const data = await fetchQuestions(accessToken, selectedCategoryIds, controller.signal);
 
       setCurRound(0);
       setTotalRounds(data.questions.length);
