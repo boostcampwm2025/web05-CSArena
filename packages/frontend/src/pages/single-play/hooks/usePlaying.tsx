@@ -53,7 +53,16 @@ export function usePlaying() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [answer, questions, curRound, setSubmitAnswers, setCorrectCnt, setTotalPoints, setPhase]);
+  }, [
+    accessToken,
+    answer,
+    questions,
+    curRound,
+    setSubmitAnswers,
+    setCorrectCnt,
+    setTotalPoints,
+    setPhase,
+  ]);
 
   return {
     curRound,

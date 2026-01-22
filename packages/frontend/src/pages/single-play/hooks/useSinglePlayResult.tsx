@@ -72,7 +72,15 @@ export function useSinglePlayResult() {
 
       // TODO: 에러 발생 시 띄울 공통 모달 구현 및 에러 출력
     }
-  }, [clearCtx, selectedCategoryIds, setCurRound, setTotalRounds, setQuestions, setPhase]);
+  }, [
+    accessToken,
+    clearCtx,
+    selectedCategoryIds,
+    setCurRound,
+    setTotalRounds,
+    setQuestions,
+    setPhase,
+  ]);
 
   const onClickSelectOtherCategoryBtn = useCallback(() => {
     controllerRef.current?.abort();

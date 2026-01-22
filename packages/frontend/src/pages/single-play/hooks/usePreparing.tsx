@@ -58,7 +58,7 @@ export function usePreparing() {
       controller.abort();
       questionControllerRef.current?.abort();
     };
-  }, [setSelectedCategoryIds]);
+  }, [accessToken, setSelectedCategoryIds]);
 
   const onClickCategoryBtn = useCallback((categoryId: number) => {
     setCategories((prev) => {
@@ -113,6 +113,7 @@ export function usePreparing() {
       setIsLoadingQuestions(false);
     }
   }, [
+    accessToken,
     selectedCategoryIds,
     setPhase,
     setCurRound,
