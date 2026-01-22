@@ -3,17 +3,19 @@ import { useRef, useState } from 'react';
 import { MatchEnqueueRes } from '@/lib/socket/event';
 import { getSocket } from '@/lib/socket/index';
 
+import { useUser } from '@/feature/auth/useUser';
 import { useScene } from '@/feature/useScene';
 import { useMatch } from '@/feature/matching/useMatch';
 
 export function useMatchResult() {
+  const { accessToken } = useUser();
   const { setScene } = useScene();
   const { setMatchState } = useMatch();
 
   const [isClickedRematchBtn, setIsClickedRematchBtn] = useState<boolean>(false);
   const [isClickedExitBtn, setIsClickedExitBtn] = useState<boolean>(false);
 
-  const socketRef = useRef(getSocket());
+  const socketRef = useRef(getSocket(accessToken));
 
   const onClickRematchBtn = () => {
     setIsClickedRematchBtn(true);

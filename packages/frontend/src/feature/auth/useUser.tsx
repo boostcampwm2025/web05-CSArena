@@ -8,17 +8,28 @@ type UserData = {
   expPoint: number;
   isSentFeedback: boolean;
 } | null;
+
 type UserAPI = {
+  // 사용자 데이터
   userData: UserData;
   setUserData: React.Dispatch<React.SetStateAction<UserData>>;
+
+  // Access Token
+  accessToken: string | null;
+  setAccessToken: React.Dispatch<React.SetStateAction<string | null>>;
 };
 
 const UserCtx = createContext<UserAPI | null>(null);
 
 export function UserProvider({ children }: { children: React.ReactNode }) {
   const [userData, setUserData] = useState<UserData | null>(null);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
 
-  return <UserCtx.Provider value={{ userData, setUserData }}>{children}</UserCtx.Provider>;
+  return (
+    <UserCtx.Provider value={{ userData, setUserData, accessToken, setAccessToken }}>
+      {children}
+    </UserCtx.Provider>
+  );
 }
 
 export function useUser() {

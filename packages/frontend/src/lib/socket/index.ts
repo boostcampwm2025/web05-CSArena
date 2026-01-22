@@ -1,31 +1,18 @@
 import { io, Socket } from 'socket.io-client';
-import { UserData } from '@/shared/type';
 
 let socket: Socket | null = null;
+let currentToken: string | null = null;
 
-function createUserData(): UserData {
-  const userId = `guest-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  const nickname = `Player${Math.floor(Math.random() * 10000)}`;
-  const tier = 'bronze';
-  const expPoint = 0;
-  const isSentFeedback = false;
+export function getSocket(token: string | null): Socket {
+  if (!socket || currentToken !== token) {
+    socket?.disconnect();
 
-  return { userId, nickname, tier, expPoint, isSentFeedback };
-}
-
-// TODO: 추후 OAuth2 로그인 기능이 추가되면 userData 제거
-const userData = createUserData();
-
-export function getUserData() {
-  return userData;
-}
-
-export function getSocket(): Socket {
-  if (!socket) {
+    currentToken = token;
     socket = io(`${import.meta.env.VITE_BACKEND_ORIGIN}/ws`, {
       transports: ['websocket'],
+      auth: { token },
       autoConnect: false,
-      query: userData,
+      reconnection: false,
     });
   }
 

@@ -1,4 +1,12 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 import { User } from '../../user/entity';
 import { Question } from '../../quiz/entity';
 import { Match } from '../../match/entity';
@@ -45,4 +53,10 @@ export class UserProblemBank {
   @ManyToOne(() => Match, (match) => match.problemBanks)
   @JoinColumn({ name: 'match_id' })
   match: Match;
+
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt: Date;
+
+  @UpdateDateColumn({ name: 'updated_at' })
+  updatedAt: Date;
 }

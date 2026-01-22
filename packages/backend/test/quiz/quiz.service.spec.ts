@@ -3,6 +3,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { QuizService } from '../../src/quiz/quiz.service';
 import { Question as QuestionEntity, Category } from '../../src/quiz/entity';
 import { ClovaClientService } from '../../src/quiz/clova/clova-client.service';
+import { Logger } from '@nestjs/common';
 
 describe('QuizService', () => {
   let service: QuizService;
@@ -17,6 +18,12 @@ describe('QuizService', () => {
 
   const mockClovaClient = {
     callClova: jest.fn(),
+  };
+
+  const mockLogger = {
+    error: jest.fn(),
+    warn: jest.fn(),
+    log: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -39,6 +46,7 @@ describe('QuizService', () => {
     }).compile();
 
     service = module.get<QuizService>(QuizService);
+    (service as any).logger = mockLogger;
   });
 
   describe('generateQuestion', () => {
@@ -930,6 +938,63 @@ describe('QuizService', () => {
       expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith('q.usageCount', 'ASC');
       expect(mockQueryBuilder.addOrderBy).toHaveBeenCalledWith('q.qualityScore', 'DESC');
       expect(mockQueryBuilder.addOrderBy).toHaveBeenCalledWith('RANDOM()');
+    });
+  });
+
+  describe('calculateGameScore', () => {
+    it('Easy 난이도에서 AI 점수(10점)를 게임 점수(10점)로 변환해야 함', () => {
+      // Easy = 10점 만점
+      const score = service.calculateGameScore(10, 1, true);
+      expect(score).toBe(10);
+    });
+
+    it('Medium 난이도에서 AI 점수(10점)를 게임 점수(20점)로 변환해야 함', () => {
+      // Medium = 20점 만점
+      const score = service.calculateGameScore(10, 3, true);
+      expect(score).toBe(20);
+    });
+
+    it('Hard 난이도에서 AI 점수(10점)를 게임 점수(30점)로 변환해야 함', () => {
+      // Hard = 30점 만점
+      const score = service.calculateGameScore(10, 5, true);
+      expect(score).toBe(30);
+    });
+
+    it('오답인 경우 0점을 반환해야 함', () => {
+      const score = service.calculateGameScore(8, 3, false);
+      expect(score).toBe(0);
+    });
+
+    it('난이도가 null인 경우 Medium으로 간주하여 계산해야 함', () => {
+      // Medium = 20점 만점
+      const score = service.calculateGameScore(10, null, true);
+      expect(score).toBe(20);
+    });
+
+    it('부분 점수 비율대로 계산되어야 함 (Medium 난이도)', () => {
+      // AI 점수 5점 -> 5/10 = 0.5
+      // Medium 만점 20점 -> 20 * 0.5 = 10점
+      const score = service.calculateGameScore(5, 3, true);
+      expect(score).toBe(10);
+    });
+
+    it('부분 점수 비율대로 계산되어야 함 (Hard 난이도)', () => {
+      // AI 점수 8점 -> 8/10 = 0.8
+      // Hard 만점 30점 -> 30 * 0.8 = 24점
+      const score = service.calculateGameScore(8, 5, true);
+      expect(score).toBe(24);
+    });
+
+    it('점수는 반올림되어야 함', () => {
+      // AI 점수 3점 -> 3/10 = 0.3
+      // Medium 만점 20점 -> 20 * 0.3 = 6점
+      const score = service.calculateGameScore(3, 3, true);
+      expect(score).toBe(6);
+
+      // AI 점수 7점 -> 7/10 = 0.7
+      // Hard 만점 30점 -> 30 * 0.7 = 21점
+      const score2 = service.calculateGameScore(7, 5, true);
+      expect(score2).toBe(21);
     });
   });
 });

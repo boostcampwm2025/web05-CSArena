@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { MatchEnd, MatchEnqueueRes, MatchFound } from '@/lib/socket/event';
 import { getSocket } from '@/lib/socket';
 
+import { useUser } from '@/feature/auth/useUser';
+
 type MatchState = 'matching' | 'inGame' | 'match-end';
 type OpponentInfo = { nickname: string; tier: string; expPoint: number } | null;
 
@@ -45,6 +47,7 @@ type MatchAPI = {
 const MatchCtx = createContext<MatchAPI | null>(null);
 
 export function MatchProvider({ children }: { children: React.ReactNode }) {
+  const { accessToken, setUserData } = useUser();
   const [matchState, setMatchState] = useState<MatchState>('matching');
   const [opponentInfo, setOpponentInfo] = useState<OpponentInfo>(null);
   const [matchResult, setMatchResult] = useState<MatchResult>({
@@ -55,18 +58,30 @@ export function MatchProvider({ children }: { children: React.ReactNode }) {
     roundResults: [],
   });
 
-  const socketRef = useRef(getSocket());
+  const socketRef = useRef(getSocket(accessToken));
 
-  const handleConnect = useCallback(() => {
-    const socket = socketRef.current;
+  const handleUserInfo = useCallback(
+    (payload: { nickname: string | undefined; tier: string; exp_point: number }) => {
+      setUserData((prev) => {
+        if (!prev) {
+          return prev;
+        }
 
-    socket.emit('match:enqueue', undefined, (ack: MatchEnqueueRes) => {
-      if (!ack.ok) {
-        // TODO: 소켓 연결 실패 시 메인 화면으로 돌아가거나 자동 재연결 등 에러 헨들링 로직 추가
-        return;
-      }
-    });
-  }, []);
+        return { ...prev, tier: payload.tier, expPoint: payload.exp_point };
+      });
+
+      const socket = socketRef.current;
+
+      socket.emit('match:enqueue', undefined, (ack: MatchEnqueueRes) => {
+        if (!ack.ok) {
+          // TODO: 소켓 연결 실패 시 메인 화면으로 돌아가거나 자동 재연결 등 에러 헨들링 로직 추가
+
+          return;
+        }
+      });
+    },
+    [setUserData],
+  );
 
   const handleMatchFound = useCallback((payload: MatchFound) => {
     setOpponentInfo(payload.opponent);
@@ -93,24 +108,22 @@ export function MatchProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const socket = socketRef.current;
 
-    socket.on('connect', handleConnect);
+    socket.on('user:info', handleUserInfo);
     socket.on('match:found', handleMatchFound);
     socket.on('match:end', handleMatchEnd);
 
     if (!socket.connected) {
       socket.connect();
-    } else {
-      handleConnect();
     }
 
     return () => {
-      socket.off('connect', handleConnect);
+      socket.off('user:info', handleUserInfo);
       socket.off('match:found', handleMatchFound);
       socket.off('match:end', handleMatchEnd);
 
       socket.disconnect();
     };
-  }, [handleConnect, handleMatchFound, handleMatchEnd]);
+  }, [handleUserInfo, handleMatchFound, handleMatchEnd]);
 
   return (
     <MatchCtx.Provider
