@@ -63,8 +63,8 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ${{ secrets.NCP_REGISTRY }}
-          username: ${{ secrets.NCP_ACCESS_KEY }}
-          password: ${{ secrets.NCP_SECRET_KEY }}
+          username: ${{ secrets.NCP_REGISTRY_ACCESS_KEY }}
+          password: ${{ secrets.NCP_REGISTRY_SECRET_KEY }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
@@ -90,10 +90,10 @@ jobs:
       - name: Copy docker-compose.yml to NCP Server
         uses: appleboy/scp-action@v0.1.7
         with:
-          host: ${{ secrets.NCP_HOST }}
-          username: ${{ secrets.NCP_USERNAME }}
-          key: ${{ secrets.NCP_SSH_KEY }}
-          port: ${{ secrets.NCP_SSH_PORT }}
+          host: ${{ secrets.NCP_SERVER_HOST }}
+          username: ${{ secrets.NCP_SERVER_USERNAME }}
+          key: ${{ secrets.NCP_SERVER_SSH_KEY }}
+          port: ${{ secrets.NCP_SERVER_SSH_PORT }}
           source: "docker-compose.yml"
           target: "/home/web05-boostcamp/"
 
@@ -101,19 +101,19 @@ jobs:
         uses: appleboy/ssh-action@v1.0.3
         env:
           NCP_REGISTRY: ${{ secrets.NCP_REGISTRY }}
-          NCP_ACCESS_KEY: ${{ secrets.NCP_ACCESS_KEY }}
-          NCP_SECRET_KEY: ${{ secrets.NCP_SECRET_KEY }}
+          NCP_REGISTRY_ACCESS_KEY: ${{ secrets.NCP_REGISTRY_ACCESS_KEY }}
+          NCP_REGISTRY_SECRET_KEY: ${{ secrets.NCP_REGISTRY_SECRET_KEY }}
         with:
-          host: ${{ secrets.NCP_HOST }}
-          username: ${{ secrets.NCP_USERNAME }}
-          key: ${{ secrets.NCP_SSH_KEY }}
-          port: ${{ secrets.NCP_SSH_PORT }}
-          envs: NCP_REGISTRY,NCP_ACCESS_KEY,NCP_SECRET_KEY
+          host: ${{ secrets.NCP_SERVER_HOST }}
+          username: ${{ secrets.NCP_SERVER_USERNAME }}
+          key: ${{ secrets.NCP_SERVER_SSH_KEY }}
+          port: ${{ secrets.NCP_SERVER_SSH_PORT }}
+          envs: NCP_REGISTRY,NCP_REGISTRY_ACCESS_KEY,NCP_REGISTRY_SECRET_KEY
           script: |
             cd /home/web05-boostcamp
 
             # Login to NCP Container Registry
-            echo "$NCP_SECRET_KEY" | docker login "$NCP_REGISTRY" -u "$NCP_ACCESS_KEY" --password-stdin
+            echo "$NCP_REGISTRY_SECRET_KEY" | docker login "$NCP_REGISTRY" -u "$NCP_REGISTRY_ACCESS_KEY" --password-stdin
 
             # Pull latest images
             docker compose pull
