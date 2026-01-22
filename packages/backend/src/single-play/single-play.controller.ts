@@ -10,7 +10,7 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { SinglePlayService } from './single-play.service';
-import { GetQuestionsDto, SubmitAnswerDto } from './dto';
+import { GetQuestionDto, SubmitAnswerDto } from './dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../auth/strategies/jwt.strategy';
@@ -32,22 +32,19 @@ export class SinglePlayController {
   }
 
   /**
-   * 문제 요청 API
-   * GET /api/singleplay/questions?categoryId=1,2,3
+   * 문제 1개 요청 API
+   * GET /api/singleplay/question?categoryId=1,2,3
    */
-  @Get('questions')
+  @Get('question')
   @UseGuards(JwtAuthGuard)
-  async getQuestions(
-    @CurrentUser() user: AuthenticatedUser,
-    @Query(ValidationPipe) query: GetQuestionsDto,
-  ) {
-    const questions = await this.singlePlayService.getQuestions(user.id, query.categoryId);
+  async getQuestion(@Query(ValidationPipe) query: GetQuestionDto) {
+    const question = await this.singlePlayService.getQuestion(query.categoryId);
 
-    return { questions };
+    return { question };
   }
 
   /**
-   * 정답 제출 요청 API
+   * 정답 제출 요청 API (채점 + DB 저장)
    * POST /api/singleplay/submit
    */
   @Post('submit')
@@ -62,16 +59,5 @@ export class SinglePlayController {
       submitDto.questionId,
       submitDto.answer,
     );
-  }
-
-  /**
-   * 게임 종료 API
-   * POST /api/singleplay/end
-   */
-  @Post('end')
-  @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard)
-  endGame(@CurrentUser() user: AuthenticatedUser) {
-    return this.singlePlayService.endGame(user.id);
   }
 }
