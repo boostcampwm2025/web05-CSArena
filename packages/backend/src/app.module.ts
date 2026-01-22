@@ -13,6 +13,7 @@ import { ProblemBankModule } from './problem-bank/problem-bank.module';
 import { feedbackLoggerConfig } from './common/winston.config';
 import { WinstonModule } from 'nest-winston';
 import { AuthModule } from './auth/auth.module';
+import { UserModule } from './user/user.module';
 
 const configModule = ConfigModule.forRoot({
   isGlobal: true,
@@ -50,6 +51,7 @@ const metadata: ModuleMetadata = {
     FeedbackModule,
     SinglePlayModule,
     ProblemBankModule,
+    UserModule,
   ],
   controllers: [AppController, HealthController],
   providers: [AppService],

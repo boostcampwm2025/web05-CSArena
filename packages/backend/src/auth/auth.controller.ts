@@ -3,9 +3,6 @@ import { AuthGuard } from '@nestjs/passport';
 import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { ConfigService } from '@nestjs/config';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { CurrentUser } from './decorators/current-user.decorator';
-import { AuthenticatedUser } from './strategies/jwt.strategy';
 import { GithubProfile } from './strategies/github.strategy';
 
 interface RequestWithGithubUser extends Request {
@@ -80,17 +77,5 @@ export class AuthController {
     res.clearCookie('refreshToken');
 
     return res.json({ message: 'Logged out successfully' });
-  }
-
-  @Get('me')
-  @UseGuards(JwtAuthGuard)
-  async getProfile(@CurrentUser() user: AuthenticatedUser) {
-    const profile = await this.authService.getUserProfile(user.id);
-
-    if (!profile) {
-      return { error: 'User not found' };
-    }
-
-    return profile;
   }
 }
