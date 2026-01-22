@@ -10,7 +10,7 @@ export class CategoryQuestion {
   @Column({ type: 'bigint', nullable: false, name: 'category_id' })
   categoryId: number;
 
-  @Column({ type: 'bigint', nullable: false, name: 'question_id' })
+  @Column({ type: 'int4', nullable: false, name: 'question_id' })
   questionId: number;
 
   @ManyToOne(() => Category, (category) => category.categoryQuestions)

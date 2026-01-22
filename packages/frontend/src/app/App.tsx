@@ -8,7 +8,9 @@ import { MatchProvider } from '@/feature/matching/useMatch';
 
 import Home from '@/pages/home/Home';
 import Match from '@/pages/match/Match';
+import SinglePlay from '@/pages/single-play/SinglePlay';
 import ProblemBank from '@/pages/problem-bank/ProblemBank';
+import { SinglePlayProvider } from '@/feature/single-play/useRound';
 
 export default function App() {
   const { scene, setScene } = useScene();
@@ -51,6 +53,12 @@ export default function App() {
         <MatchProvider>
           <Match />
         </MatchProvider>
+      );
+    case 'single-play':
+      return (
+        <SinglePlayProvider>
+          <SinglePlay />
+        </SinglePlayProvider>
       );
     case 'problem-bank':
       return <ProblemBank />;

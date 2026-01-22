@@ -5,7 +5,7 @@ import { UserProblemBank } from '../../problem-bank/entity';
 
 @Entity('questions')
 export class Question {
-  @PrimaryGeneratedColumn('increment', { type: 'bigint' })
+  @PrimaryGeneratedColumn('increment', { type: 'int4' })
   id: number;
 
   @Column({
