@@ -1,7 +1,13 @@
+import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsArray, IsNotEmpty, IsNumber } from 'class-validator';
 
 export class GetQuestionsDto {
+  @ApiProperty({
+    description: '선택한 카테고리 ID 목록',
+    example: [1, 2, 3],
+    type: [Number],
+  })
   @IsNotEmpty({ message: 'categoryId는 필수입니다.' })
   @Transform(({ value }: { value: unknown }) => {
     if (typeof value === 'string') {
