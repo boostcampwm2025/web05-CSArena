@@ -52,77 +52,93 @@ export class QuizService {
       throw new InternalServerErrorException('카테고리를 선택해주세요.');
     }
 
-    // 1. 각 대분류 카테고리의 하위 카테고리 ID 조회
-    const allChildCategoryIds: number[] = [];
-
-    for (const parentId of parentCategoryIds) {
-      const childCategories = await this.categoryRepository.find({
-        where: { parentId },
-        select: ['id'],
-      });
-      allChildCategoryIds.push(...childCategories.map((c) => c.id));
-    }
-
-    if (allChildCategoryIds.length === 0) {
-      throw new InternalServerErrorException('선택한 카테고리에 하위 카테고리가 없습니다.');
-    }
-
-    this.logger.log(
-      `하위 카테고리 ID: ${allChildCategoryIds.join(', ')} (총 ${allChildCategoryIds.length}개)`,
+    const allQuestions = await this.fetchQuestionsForParentCategories(
+      parentCategoryIds,
+      totalCount,
     );
 
-    // 2. 대분류별 균등 분배
+    return this.validateAndConvertQuestions(allQuestions, totalCount);
+  }
+
+  /**
+   * 대분류 카테고리별로 문제 조회
+   */
+  private async fetchQuestionsForParentCategories(
+    parentCategoryIds: number[],
+    totalCount: number,
+  ): Promise<QuestionEntity[]> {
+    const allQuestions: QuestionEntity[] = [];
     const questionsPerParent = Math.floor(totalCount / parentCategoryIds.length);
     const remainder = totalCount % parentCategoryIds.length;
 
-    const allQuestions: QuestionEntity[] = [];
-
-    // 3. 각 대분류별로 문제 조회
     for (let i = 0; i < parentCategoryIds.length; i++) {
       const questionCount = questionsPerParent + (i < remainder ? 1 : 0);
-
-      // 해당 대분류의 하위 카테고리 ID만 추출
-      const childCategories = await this.categoryRepository.find({
-        where: { parentId: parentCategoryIds[i] },
-        select: ['id'],
-      });
-      const childIds = childCategories.map((c) => c.id);
+      const childIds = await this.getChildCategoryIds(parentCategoryIds[i]);
 
       if (childIds.length === 0) {
         this.logger.warn(`카테고리 ID ${parentCategoryIds[i]}에 하위 카테고리가 없습니다.`);
         continue;
       }
 
-      // 하위 카테고리들에서 문제 조회
-      const questions = await this.questionRepository
-        .createQueryBuilder('q')
-        .innerJoin('q.categoryQuestions', 'cq')
-        .where('q.isActive = :isActive', { isActive: true })
-        .andWhere('cq.categoryId IN (:...childIds)', { childIds })
-        .orderBy('q.usageCount', 'ASC')
-        .addOrderBy('q.qualityScore', 'DESC')
-        .addOrderBy('RANDOM()')
-        .limit(questionCount)
-        .getMany();
-
+      const questions = await this.fetchQuestionsByChildCategories(childIds, questionCount);
       allQuestions.push(...questions);
     }
 
-    // 4. 문제 개수 검증
-    if (allQuestions.length < totalCount) {
+    return allQuestions;
+  }
+
+  /**
+   * 하위 카테고리 ID 조회
+   */
+  private async getChildCategoryIds(parentId: number): Promise<number[]> {
+    const childCategories = await this.categoryRepository.find({
+      where: { parentId },
+      select: ['id'],
+    });
+
+    return childCategories.map((c) => c.id);
+  }
+
+  /**
+   * 하위 카테고리들에서 문제 조회
+   */
+  private async fetchQuestionsByChildCategories(
+    childIds: number[],
+    limit: number,
+  ): Promise<QuestionEntity[]> {
+    return await this.questionRepository
+      .createQueryBuilder('q')
+      .leftJoinAndSelect('q.categoryQuestions', 'cq')
+      .leftJoinAndSelect('cq.category', 'c')
+      .leftJoinAndSelect('c.parent', 'parent')
+      .where('q.isActive = :isActive', { isActive: true })
+      .andWhere('cq.categoryId IN (:...childIds)', { childIds })
+      .orderBy('q.usageCount', 'ASC')
+      .addOrderBy('q.qualityScore', 'DESC')
+      .addOrderBy('RANDOM()')
+      .limit(limit)
+      .getMany();
+  }
+
+  /**
+   * 문제 검증 및 타입 변환
+   */
+  private validateAndConvertQuestions(
+    questions: QuestionEntity[],
+    expectedCount: number,
+  ): Question[] {
+    if (questions.length < expectedCount) {
       this.logger.warn(
-        `선택한 카테고리에 충분한 문제가 없습니다. (${allQuestions.length}/${totalCount})`,
+        `선택한 카테고리에 충분한 문제가 없습니다. (${questions.length}/${expectedCount})`,
       );
     }
 
-    if (allQuestions.length === 0) {
+    if (questions.length === 0) {
       throw new InternalServerErrorException('선택한 카테고리에 문제가 없습니다.');
     }
 
-    // 5. 문제 섞기 (카테고리 순서대로 나오지 않도록)
-    const shuffledQuestions = allQuestions.sort(() => Math.random() - 0.5);
+    const shuffledQuestions = questions.sort(() => Math.random() - 0.5);
 
-    // 6. Entity -> quiz.types.ts 타입으로 변환
     try {
       return shuffledQuestions.map((q) => this.convertToQuizType(q));
     } catch (error) {

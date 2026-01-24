@@ -3,7 +3,6 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { QuizService } from '../../src/quiz/quiz.service';
 import { Question as QuestionEntity, Category } from '../../src/quiz/entity';
 import { ClovaClientService } from '../../src/quiz/clova/clova-client.service';
-import { Logger } from '@nestjs/common';
 
 describe('QuizService', () => {
   let service: QuizService;
@@ -695,14 +694,12 @@ describe('QuizService', () => {
 
       // Mock categoryRepository.find - 3번 호출됨 (첫 번째 루프 2회, 두 번째 루프 2회, 총 4회이지만 각 대분류당 1회씩 실제로는 총 4회)
       mockCategoryRepository.find
-        .mockResolvedValueOnce(dbChildren) // 첫 번째 for문에서 parent 1 조회
-        .mockResolvedValueOnce(networkChildren) // 첫 번째 for문에서 parent 2 조회
-        .mockResolvedValueOnce(dbChildren) // 두 번째 for문에서 parent 1 조회
-        .mockResolvedValueOnce(networkChildren); // 두 번째 for문에서 parent 2 조회
+        .mockResolvedValueOnce(dbChildren) // parent 1의 하위 카테고리 조회
+        .mockResolvedValueOnce(networkChildren); // parent 2의 하위 카테고리 조회
 
       // Mock queryBuilder for questions
       const mockQueryBuilder = {
-        innerJoin: jest.fn().mockReturnThis(),
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
         andWhere: jest.fn().mockReturnThis(),
         orderBy: jest.fn().mockReturnThis(),
@@ -718,8 +715,8 @@ describe('QuizService', () => {
       const result = await service.generateSinglePlayQuestions([1, 2], 10);
 
       expect(result).toHaveLength(10);
-      expect(mockCategoryRepository.find).toHaveBeenCalledTimes(4); // 첫 번째 루프 2회 + 두 번째 루프 2회
-      expect(mockQueryBuilder.innerJoin).toHaveBeenCalledTimes(2);
+      expect(mockCategoryRepository.find).toHaveBeenCalledTimes(2); // 각 대분류당 1회씩
+      expect(mockQueryBuilder.leftJoinAndSelect).toHaveBeenCalledTimes(6); // 2개 카테고리 * 3개 join
       expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
         'cq.categoryId IN (:...childIds)',
         expect.objectContaining({ childIds: expect.any(Array) })
@@ -824,13 +821,10 @@ describe('QuizService', () => {
       mockCategoryRepository.find
         .mockResolvedValueOnce(category1Children)
         .mockResolvedValueOnce(category2Children)
-        .mockResolvedValueOnce(category3Children)
-        .mockResolvedValueOnce(category1Children)
-        .mockResolvedValueOnce(category2Children)
         .mockResolvedValueOnce(category3Children);
 
       const mockQueryBuilder = {
-        innerJoin: jest.fn().mockReturnThis(),
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
         andWhere: jest.fn().mockReturnThis(),
         orderBy: jest.fn().mockReturnThis(),
@@ -861,20 +855,30 @@ describe('QuizService', () => {
     it('should throw error when no child categories found', async () => {
       mockCategoryRepository.find.mockResolvedValue([]); // 하위 카테고리 없음
 
+      const mockQueryBuilder = {
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        addOrderBy: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        getMany: jest.fn().mockResolvedValue([]),
+      };
+
+      mockQuestionRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
+
       await expect(service.generateSinglePlayQuestions([1], 10)).rejects.toThrow(
-        '선택한 카테고리에 하위 카테고리가 없습니다.'
+        '선택한 카테고리에 문제가 없습니다.'
       );
     });
 
     it('should throw error when no questions found', async () => {
       const childCategories = [{ id: 11 }, { id: 12 }];
 
-      mockCategoryRepository.find
-        .mockResolvedValueOnce(childCategories)
-        .mockResolvedValueOnce(childCategories);
+      mockCategoryRepository.find.mockResolvedValueOnce(childCategories);
 
       const mockQueryBuilder = {
-        innerJoin: jest.fn().mockReturnThis(),
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
         andWhere: jest.fn().mockReturnThis(),
         orderBy: jest.fn().mockReturnThis(),
@@ -904,12 +908,10 @@ describe('QuizService', () => {
         },
       ];
 
-      mockCategoryRepository.find
-        .mockResolvedValueOnce(childCategories)
-        .mockResolvedValueOnce(childCategories);
+      mockCategoryRepository.find.mockResolvedValueOnce(childCategories);
 
       const mockQueryBuilder = {
-        innerJoin: jest.fn().mockReturnThis(),
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
         andWhere: jest.fn().mockReturnThis(),
         orderBy: jest.fn().mockReturnThis(),
@@ -923,7 +925,9 @@ describe('QuizService', () => {
       await service.generateSinglePlayQuestions([1], 10);
 
       // 올바른 조인 확인
-      expect(mockQueryBuilder.innerJoin).toHaveBeenCalledWith('q.categoryQuestions', 'cq');
+      expect(mockQueryBuilder.leftJoinAndSelect).toHaveBeenCalledWith('q.categoryQuestions', 'cq');
+      expect(mockQueryBuilder.leftJoinAndSelect).toHaveBeenCalledWith('cq.category', 'c');
+      expect(mockQueryBuilder.leftJoinAndSelect).toHaveBeenCalledWith('c.parent', 'parent');
 
       // 활성화된 문제만 조회
       expect(mockQueryBuilder.where).toHaveBeenCalledWith('q.isActive = :isActive', { isActive: true });

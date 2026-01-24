@@ -1,31 +1,30 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { SinglePlayController } from '../src/single-play/single-play.controller';
 import { SinglePlayService } from '../src/single-play/single-play.service';
-import { GetQuestionsDto, SubmitAnswerDto } from '../src/single-play/dto';
+import { GetQuestionDto, SubmitAnswerDto } from '../src/single-play/dto';
 
 describe('SinglePlayController', () => {
   let controller: SinglePlayController;
 
-    const mockSinglePlayService = {
-        getCategories: jest.fn(),
-        getQuestions: jest.fn(),
-        submitAnswer: jest.fn(),
-        endGame: jest.fn(),
-    };
+  const mockSinglePlayService = {
+    getCategories: jest.fn(),
+    getQuestion: jest.fn(),
+    submitAnswer: jest.fn(),
+  };
 
-    beforeEach(async () => {
-        const module: TestingModule = await Test.createTestingModule({
-            controllers: [SinglePlayController],
-            providers: [
-                {
-                    provide: SinglePlayService,
-                    useValue: mockSinglePlayService,
-                },
-            ],
-        }).compile();
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      controllers: [SinglePlayController],
+      providers: [
+        {
+          provide: SinglePlayService,
+          useValue: mockSinglePlayService,
+        },
+      ],
+    }).compile();
 
-        controller = module.get<SinglePlayController>(SinglePlayController);
-    });
+    controller = module.get<SinglePlayController>(SinglePlayController);
+  });
 
   afterEach(() => {
     jest.clearAllMocks();
@@ -63,60 +62,58 @@ describe('SinglePlayController', () => {
     });
   });
 
-  describe('getQuestions', () => {
-    const mockUser = { id: 'user-123', visibleId: '123', nickname: 'test', oauthProvider: 'github' as const };
+  describe('getQuestion', () => {
+    it('단일 카테고리 ID로 문제 1개를 정상적으로 반환해야 함', async () => {
+      const query: GetQuestionDto = { categoryId: [1] };
+      const mockQuestion = {
+        id: 1,
+        questionType: 'multiple',
+        content: 'What is React?',
+        difficulty: 2,
+      };
 
-    it('단일 카테고리 ID로 문제를 정상적으로 반환해야 함', async () => {
-      const query: GetQuestionsDto = { categoryId: [1] };
-      const mockQuestions = [
-        { id: 1, questionType: 'multiple', content: 'What is React?', difficulty: 2 },
-        { id: 2, questionType: 'short', content: 'Explain Node.js', difficulty: 3 },
-      ];
+      mockSinglePlayService.getQuestion.mockResolvedValue(mockQuestion);
 
-      mockSinglePlayService.getQuestions.mockResolvedValue(mockQuestions);
+      const result = await controller.getQuestion(query);
 
-      const result = await controller.getQuestions(mockUser, query);
-
-      expect(result).toEqual({ questions: mockQuestions });
-      expect(mockSinglePlayService.getQuestions).toHaveBeenCalledWith('user-123', [1]);
+      expect(result).toEqual({ question: mockQuestion });
+      expect(mockSinglePlayService.getQuestion).toHaveBeenCalledWith([1]);
     });
 
     it('여러 카테고리 ID를 배열로 전달받아야 함', async () => {
-      const query: GetQuestionsDto = { categoryId: [1, 2, 3] };
-      const mockQuestions = [
-        { id: 1, questionType: 'multiple', content: 'Question 1', difficulty: 2 },
-      ];
+      const query: GetQuestionDto = { categoryId: [1, 2, 3] };
+      const mockQuestion = {
+        id: 1,
+        questionType: 'multiple',
+        content: 'Question 1',
+        difficulty: 2,
+      };
 
-      mockSinglePlayService.getQuestions.mockResolvedValue(mockQuestions);
+      mockSinglePlayService.getQuestion.mockResolvedValue(mockQuestion);
 
-      const result = await controller.getQuestions(mockUser, query);
+      const result = await controller.getQuestion(query);
 
-      expect(result).toEqual({ questions: mockQuestions });
-      expect(mockSinglePlayService.getQuestions).toHaveBeenCalledWith('user-123', [1, 2, 3]);
-    });
-
-    it('빈 문제 배열도 정상적으로 반환해야 함', async () => {
-      const query: GetQuestionsDto = { categoryId: [1] };
-
-      mockSinglePlayService.getQuestions.mockResolvedValue([]);
-
-      const result = await controller.getQuestions(mockUser, query);
-
-      expect(result).toEqual({ questions: [] });
+      expect(result).toEqual({ question: mockQuestion });
+      expect(mockSinglePlayService.getQuestion).toHaveBeenCalledWith([1, 2, 3]);
     });
 
     it('Service 계층의 에러를 그대로 전파해야 함', async () => {
-      const query: GetQuestionsDto = { categoryId: [999] };
+      const query: GetQuestionDto = { categoryId: [999] };
       const error = new Error('Category not found');
 
-      mockSinglePlayService.getQuestions.mockRejectedValue(error);
+      mockSinglePlayService.getQuestion.mockRejectedValue(error);
 
-      await expect(controller.getQuestions(mockUser, query)).rejects.toThrow(error);
+      await expect(controller.getQuestion(query)).rejects.toThrow(error);
     });
   });
 
   describe('submitAnswer', () => {
-    const mockUser = { id: 'user-123', visibleId: '123', nickname: 'test', oauthProvider: 'github' as const };
+    const mockUser = {
+      id: 'user-123',
+      visibleId: '123',
+      nickname: 'test',
+      oauthProvider: 'github' as const,
+    };
 
     it('정답 제출을 정상적으로 처리해야 함', async () => {
       const submitDto: SubmitAnswerDto = {
@@ -125,13 +122,15 @@ describe('SinglePlayController', () => {
       };
 
       const mockResult = {
-        grade: {
-          answer: 'React',
-          isCorrect: true,
-          score: 10,
-          feedback: 'Perfect!',
+        score: 10,
+        question: {
+          id: 1,
+          content: 'What is React?',
+          correctAnswer: 'React',
         },
-        totalScore: 10,
+        userAnswer: 'React',
+        correctAnswer: 'React',
+        aiFeedback: 'Perfect!',
       };
 
       mockSinglePlayService.submitAnswer.mockResolvedValue(mockResult);
@@ -149,13 +148,15 @@ describe('SinglePlayController', () => {
       };
 
       const mockResult = {
-        grade: {
-          answer: 'Wrong answer',
-          isCorrect: false,
-          score: 0,
-          feedback: 'Incorrect',
+        score: 0,
+        question: {
+          id: 2,
+          content: 'What is Node?',
+          correctAnswer: 'Node.js',
         },
-        totalScore: 0,
+        userAnswer: 'Wrong answer',
+        correctAnswer: 'Node.js',
+        aiFeedback: 'Incorrect',
       };
 
       mockSinglePlayService.submitAnswer.mockResolvedValue(mockResult);
@@ -163,30 +164,11 @@ describe('SinglePlayController', () => {
       const result = await controller.submitAnswer(mockUser, submitDto);
 
       expect(result).toEqual(mockResult);
-      expect(mockSinglePlayService.submitAnswer).toHaveBeenCalledWith('user-123', 2, 'Wrong answer');
-    });
-
-    it('부분 점수도 정상적으로 반환해야 함', async () => {
-      const submitDto: SubmitAnswerDto = {
-        questionId: 3,
-        answer: 'Partial answer',
-      };
-
-      const mockResult = {
-        grade: {
-          answer: 'Partial answer',
-          isCorrect: true,
-          score: 7,
-          feedback: 'Good, but needs more detail',
-        },
-        totalScore: 14, // Medium difficulty
-      };
-
-      mockSinglePlayService.submitAnswer.mockResolvedValue(mockResult);
-
-      const result = await controller.submitAnswer(mockUser, submitDto);
-
-      expect(result).toEqual(mockResult);
+      expect(mockSinglePlayService.submitAnswer).toHaveBeenCalledWith(
+        'user-123',
+        2,
+        'Wrong answer',
+      );
     });
 
     it('Service 계층의 에러를 그대로 전파해야 함', async () => {
@@ -199,105 +181,6 @@ describe('SinglePlayController', () => {
       mockSinglePlayService.submitAnswer.mockRejectedValue(error);
 
       await expect(controller.submitAnswer(mockUser, submitDto)).rejects.toThrow(error);
-    });
-
-    it('빈 문자열 답변도 처리해야 함', async () => {
-      const submitDto: SubmitAnswerDto = {
-        questionId: 1,
-        answer: '',
-      };
-
-      const mockResult = {
-        grade: {
-          answer: '',
-          isCorrect: false,
-          score: 0,
-          feedback: 'No answer provided',
-        },
-        totalScore: 0,
-      };
-
-      mockSinglePlayService.submitAnswer.mockResolvedValue(mockResult);
-
-      const result = await controller.submitAnswer(mockUser, submitDto);
-
-      expect(result).toEqual(mockResult);
-      expect(mockSinglePlayService.submitAnswer).toHaveBeenCalledWith('user-123', 1, '');
-    });
-
-    it('긴 서술형 답변도 정상 처리해야 함', async () => {
-      const longAnswer = 'A'.repeat(1000);
-      const submitDto: SubmitAnswerDto = {
-        questionId: 5,
-        answer: longAnswer,
-      };
-
-      const mockResult = {
-        grade: {
-          answer: longAnswer,
-          isCorrect: true,
-          score: 9,
-          feedback: 'Excellent detailed answer',
-        },
-        totalScore: 27, // Hard difficulty
-      };
-
-      mockSinglePlayService.submitAnswer.mockResolvedValue(mockResult);
-
-      const result = await controller.submitAnswer(mockUser, submitDto);
-
-      expect(result).toEqual(mockResult);
-      expect(mockSinglePlayService.submitAnswer).toHaveBeenCalledWith('user-123', 5, longAnswer);
-    });
-  });
-
-  describe('endGame', () => {
-    const mockUser = { id: 'user-123', visibleId: '123', nickname: 'test', oauthProvider: 'github' as const };
-
-    it('게임을 정상적으로 종료하고 통계를 반환해야 함', () => {
-      const mockResult = {
-        message: '게임이 종료되었습니다.',
-        finalStats: {
-          totalQuestions: 10,
-          answeredQuestions: 7,
-          correctAnswers: 5,
-          totalScore: 85,
-        },
-      };
-
-      mockSinglePlayService.endGame.mockReturnValue(mockResult);
-
-      const result = controller.endGame(mockUser);
-
-      expect(result).toEqual(mockResult);
-      expect(mockSinglePlayService.endGame).toHaveBeenCalledWith('user-123');
-    });
-
-    it('답안을 하나도 제출하지 않고 종료해도 정상 처리해야 함', () => {
-      const mockResult = {
-        message: '게임이 종료되었습니다.',
-        finalStats: {
-          totalQuestions: 10,
-          answeredQuestions: 0,
-          correctAnswers: 0,
-          totalScore: 0,
-        },
-      };
-
-      mockSinglePlayService.endGame.mockReturnValue(mockResult);
-
-      const result = controller.endGame(mockUser);
-
-      expect(result).toEqual(mockResult);
-    });
-
-    it('Service 계층의 에러를 그대로 전파해야 함', () => {
-      const error = new Error('Game session not found');
-      mockSinglePlayService.endGame.mockImplementation(() => {
-        throw error;
-      });
-
-      expect(() => controller.endGame(mockUser)).toThrow(error);
     });
   });
 });

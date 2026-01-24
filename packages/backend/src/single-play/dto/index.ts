@@ -1,2 +1,2 @@
-export * from './get-questions.dto';
+export * from './get-question.dto';
 export * from './submit-answer.dto';
