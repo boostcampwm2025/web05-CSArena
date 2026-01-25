@@ -43,7 +43,7 @@ QUESTION_SCHEMA = {
                     },
                     "explanation": {
                         "type": "string",
-                        "description": "해설 (1-2문장으로 문제에 대한 답변을 설명)",
+                        "description": "해설 (2-4문장으로 답변의 이유와 개념을 설명. 절대로 '청크', '문서', '출처' 등의 단어 사용 금지)",
                     },
                     "options": {
                         "type": "array",
@@ -297,7 +297,7 @@ if __name__ == "__main__":
 
     # 2. 청크 검색
     print("\n2. 청크 검색 중...")
-    chunks = retrieve_chunks(category, top_k=config.TOP_K_CHUNKS)
+    chunks, hyde_usage = retrieve_chunks(category, top_k=config.TOP_K_CHUNKS)
     print(f"   {len(chunks)}개 청크 검색 완료")
 
     if not chunks:
