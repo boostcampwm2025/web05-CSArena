@@ -11,7 +11,7 @@ from schemas import (
     QuestionGenerationContext,
 )
 from prompts import SYSTEM_PROMPT, build_generation_prompt
-from token_calculator import count_input_tokens, calculate_cost, TokenUsage
+from token_calculator import calculate_cost, TokenUsage
 
 
 # Structured Output을 위한 JSON 스키마
@@ -135,9 +135,6 @@ Do not include any other text, explanations, or thinking process in the final ou
         # responseFormat 제거됨 (Reasoning 모델 사용 시 프롬프트 지시로 대체)
     }
 
-    # 입력 토큰 계산
-    input_tokens = count_input_tokens(messages)
-
     # API 호출
     response = requests.post(url, headers=headers, json=data)
     response.raise_for_status()
@@ -163,14 +160,9 @@ Do not include any other text, explanations, or thinking process in the final ou
         print(f"[오류] JSON 파싱 실패. 원본 응답:\n{content}")
         raise e
 
-    # 토큰 사용량 정보 업데이트 (API 응답값 우선 사용)
-    if usage_info:
-        input_tokens = usage_info.get("promptTokens", input_tokens)
-        output_tokens = usage_info.get("completionTokens", 0)
-    else:
-        # 응답에 usage가 없는 경우 수동 계산
-        output_messages = [{"role": "assistant", "content": content}]
-        output_tokens = count_input_tokens(output_messages)
+    # 토큰 사용량 정보 (response usage 활용)
+    input_tokens = usage_info.get("promptTokens", 0)
+    output_tokens = usage_info.get("completionTokens", 0)
 
     # 비용 계산 (질문 생성은 config.LLM_MODEL 사용)
     usage = calculate_cost(input_tokens, output_tokens, model=config.LLM_MODEL)

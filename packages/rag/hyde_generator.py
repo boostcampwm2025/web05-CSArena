@@ -2,7 +2,7 @@ from langchain_naver import ChatClovaX
 from langchain_core.messages import SystemMessage, HumanMessage
 from config import config
 from category_loader import CategoryInfo, get_leaf_category_with_least_questions
-from token_calculator import count_input_tokens, calculate_cost, TokenUsage
+from token_calculator import calculate_cost, TokenUsage
 
 SYSTEM_PROMPT = """당신은 IT 기술 문서 검색 전문가입니다.
 주어진 주제에 대해 의미론적 검색(semantic search)에 최적화된 쿼리를 생성합니다.
@@ -34,19 +34,13 @@ Category Path: {category.path}"""
         HumanMessage(content=user_input),
     ]
 
-    # 입력 토큰 계산
-    messages_for_tokenize = [
-        {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "user", "content": user_input},
-    ]
-    input_tokens = count_input_tokens(messages_for_tokenize)
-
     # LLM 호출
     response = llm.invoke(messages)
 
-    # 출력 토큰 계산
-    output_messages = [{"role": "assistant", "content": response.content}]
-    output_tokens = count_input_tokens(output_messages)
+    # response_metadata에서 토큰 사용량 추출
+    usage_info = response.response_metadata.get("usage", {})
+    input_tokens = usage_info.get("promptTokens", 0)
+    output_tokens = usage_info.get("completionTokens", 0)
 
     # 비용 계산 (HyDE는 config.LLM_MODEL 사용)
     usage = calculate_cost(input_tokens, output_tokens, model=config.LLM_MODEL)
