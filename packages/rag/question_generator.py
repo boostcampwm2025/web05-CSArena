@@ -144,11 +144,6 @@ Do not include any other text, explanations, or thinking process in the final ou
     content = message["content"]
     usage_info = result["result"].get("usage", {})
 
-    # 추론 토큰(Thinking Tokens) 추출 및 출력
-    thinking_tokens = usage_info.get("completionTokensDetails", {}).get("thinkingTokens", 0)
-    if thinking_tokens > 0:
-        print(f"   [Reasoning] 추론 토큰 사용량: {thinking_tokens} tokens")
-
     # Markdown Code Block 제거 (```json ... ```)
     if "```" in content:
         content = content.replace("```json", "").replace("```", "").strip()
@@ -163,9 +158,10 @@ Do not include any other text, explanations, or thinking process in the final ou
     # 토큰 사용량 정보 (response usage 활용)
     input_tokens = usage_info.get("promptTokens", 0)
     output_tokens = usage_info.get("completionTokens", 0)
+    thinking_tokens = usage_info.get("completionTokensDetails", {}).get("thinkingTokens", 0)
 
-    # 비용 계산 (질문 생성은 config.LLM_MODEL 사용)
-    usage = calculate_cost(input_tokens, output_tokens, model=config.LLM_MODEL)
+    # 비용 계산 (추론 토큰도 output에 포함)
+    usage = calculate_cost(input_tokens, output_tokens + thinking_tokens, model=config.LLM_MODEL)
 
     return parsed_content, usage
 
