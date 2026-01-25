@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.Python
+*.egg-info/
+.eggs/
+
+# 환경
+.env
+.venv/
+venv/
+
+# 출력 및 결과
+output/
+result.json
+generation.json
+*.log
+
+# IDE
+.idea/
+.vscode/
+*.swp
+.DS_Store
