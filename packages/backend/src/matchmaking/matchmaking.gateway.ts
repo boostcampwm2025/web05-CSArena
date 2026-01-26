@@ -59,8 +59,8 @@ export class MatchmakingGateway implements OnGatewayConnection, OnGatewayDisconn
     const fullUser = await this.authService.getUserById(authUser.id);
     const userInfo: UserInfo = {
       nickname: authUser.nickname,
-      tier: fullUser ? calculateTier(fullUser.statistics?.tierPoint || 0) : 'bronze',
-      exp_point: fullUser?.statistics?.expPoint || 0,
+      tier: fullUser ? calculateTier(fullUser.statistics?.tierPoint ?? 1000) : 'bronze',
+      exp_point: fullUser?.statistics?.expPoint ?? 0,
     };
 
     const authSocket = client as AuthenticatedSocket;
@@ -97,7 +97,7 @@ export class MatchmakingGateway implements OnGatewayConnection, OnGatewayDisconn
 
       // ELO 레이팅 조회
       const fullUser = await this.authService.getUserById(user.id);
-      const eloRating = fullUser?.statistics?.tierPoint || 1000; // 기본 ELO: 1000
+      const eloRating = fullUser?.statistics?.tierPoint ?? 1000; // 기본 ELO: 1000
       const match = this.matchmakingService.addToQueue(user.id, eloRating);
 
       if (match) {

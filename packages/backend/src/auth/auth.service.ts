@@ -195,10 +195,10 @@ export class AuthService {
       email: user.email,
       userProfile: user.userProfile,
       oauthProvider: user.oauthProvider,
-      tier: calculateTier(user.statistics?.tierPoint || 0),
-      expPoint: user.statistics?.expPoint || 0,
-      winCount: user.statistics?.winCount || 0,
-      loseCount: user.statistics?.loseCount || 0,
+      tier: calculateTier(user.statistics?.tierPoint ?? 1000),
+      expPoint: user.statistics?.expPoint ?? 0,
+      winCount: user.statistics?.winCount ?? 0,
+      loseCount: user.statistics?.loseCount ?? 0,
     };
   }
 
@@ -209,10 +209,10 @@ export class AuthService {
       nickname: user.nickname,
       email: user.email,
       userProfile: user.userProfile,
-      tier: calculateTier(user.statistics?.tierPoint || 0),
-      expPoint: user.statistics?.expPoint || 0,
-      winCount: user.statistics?.winCount || 0,
-      loseCount: user.statistics?.loseCount || 0,
+      tier: calculateTier(user.statistics?.tierPoint ?? 1000),
+      expPoint: user.statistics?.expPoint ?? 0,
+      winCount: user.statistics?.winCount ?? 0,
+      loseCount: user.statistics?.loseCount ?? 0,
     };
   }
 }
