@@ -29,9 +29,9 @@ export default function SinglePlay() {
       </div>
 
       <div className="relative z-10 min-h-0 flex-1">
-        {phase === 'preparing' && <Preparing />}
-        {phase === 'playing' && <Playing />}
-        {phase === 'round-result' && <RoundResult />}
+        {phase.kind === 'preparing' && <Preparing />}
+        {phase.kind === 'playing' && <Playing />}
+        {phase.kind === 'result' && <RoundResult />}
       </div>
     </div>
   );

@@ -1,17 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useUser } from '@/feature/auth/useUser';
-import { useCategory, usePhase, useQuestion, useResult } from '@/feature/single-play/useRound';
+import { useCategory, usePhase } from '@/feature/single-play/useRound';
 
 import { CategoryItem } from '@/pages/single-play/types/types';
-import { fetchCategories, fetchQuestions } from '@/lib/api/single-play';
+import { fetchCategories, fetchQuestion } from '@/lib/api/single-play';
 
 export function usePreparing() {
   const { accessToken } = useUser();
   const { selectedCategoryIds, setSelectedCategoryIds } = useCategory();
   const { setPhase } = usePhase();
-  const { setQuestion } = useQuestion();
-  const { setSubmitAnswer } = useResult();
 
   const [categories, setCategories] = useState<Record<number, CategoryItem>>({});
   const [isLoadingCategories, setIsLoadingCategories] = useState<boolean>(false);
@@ -86,12 +84,9 @@ export function usePreparing() {
     setIsLoadingQuestions(true);
 
     try {
-      const data = await fetchQuestions(accessToken, selectedCategoryIds, controller.signal);
+      const data = await fetchQuestion(accessToken, selectedCategoryIds, controller.signal);
 
-      setQuestion(data.question);
-      setSubmitAnswer(undefined);
-
-      setPhase('playing');
+      setPhase({ kind: 'playing', question: data.question });
     } catch (e) {
       if (e instanceof DOMException && e.name === 'AbortError') {
         return;
@@ -101,7 +96,7 @@ export function usePreparing() {
     } finally {
       setIsLoadingQuestions(false);
     }
-  }, [accessToken, selectedCategoryIds, setPhase, setQuestion, setSubmitAnswer]);
+  }, [accessToken, selectedCategoryIds, setPhase]);
 
   return {
     categories,

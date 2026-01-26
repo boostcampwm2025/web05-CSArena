@@ -3,14 +3,12 @@ import { useCallback, useRef, useState } from 'react';
 import { submitAnswer } from '@/lib/api/single-play';
 
 import { useUser } from '@/feature/auth/useUser';
-import { usePhase, useQuestion, useResult } from '@/feature/single-play/useRound';
+import { usePhase } from '@/feature/single-play/useRound';
 
 export function usePlaying() {
   const { accessToken } = useUser();
 
-  const { setPhase } = usePhase();
-  const { question } = useQuestion();
-  const { setSubmitAnswer } = useResult();
+  const { phase, setPhase } = usePhase();
 
   const [answer, setAnswer] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -34,13 +32,18 @@ export function usePlaying() {
     try {
       const data = await submitAnswer(
         accessToken,
-        { questionId: Number(question?.id), answer: trimmed },
+        { questionId: Number(phase.question.id), answer: trimmed },
         controller.signal,
       );
 
-      setSubmitAnswer({ answer: trimmed, isCorrect: data.grade.isCorrect });
-
-      setPhase('round-result');
+      setPhase({
+        kind: 'result',
+        result: {
+          answer: data.grade.answer,
+          isCorrect: data.grade.isCorrect,
+          feedback: data.grade.feedback,
+        },
+      });
     } catch (e) {
       if (e instanceof DOMException && e.name === 'AbortError') {
         return;
@@ -50,10 +53,9 @@ export function usePlaying() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [accessToken, answer, question, setSubmitAnswer, setPhase]);
+  }, [accessToken, answer, phase, setPhase]);
 
   return {
-    question,
     answer,
     setAnswer,
     isSubmitting,

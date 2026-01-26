@@ -11,7 +11,7 @@ export function fetchCategories(accessToken: string | null, signal?: AbortSignal
   return request<GetCategoriesRes>('/api/singleplay/categories', accessToken, { signal });
 }
 
-export function fetchQuestions(
+export function fetchQuestion(
   accessToken: string | null,
   categoryIds: number[],
   signal?: AbortSignal,

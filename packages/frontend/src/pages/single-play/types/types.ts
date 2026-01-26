@@ -1,8 +1,6 @@
 type Difficulty = 'easy' | 'medium' | 'hard';
 type MultipleChoiceOptions = { A: string; B: string; C: string; D: string };
 
-export type SinglePlayPhase = 'preparing' | 'playing' | 'round-result';
-
 export type CategoryItem = { id: number; name: string | null; isSelected: boolean };
 
 export type Question =
@@ -30,8 +28,16 @@ export type Question =
       difficulty: Difficulty;
       category: string[];
       sampleAnswer: string;
-    }
-  | undefined;
+    };
+
+export type SinglePlayPhase =
+  | { kind: 'preparing' }
+  | { kind: 'playing'; question: Question }
+  | {
+      kind: 'result';
+      result: { answer: string; isCorrect: boolean; feedback: string };
+      next?: Question;
+    };
 
 export type GetCategoriesRes = { categories: CategoryItem[] };
 
