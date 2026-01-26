@@ -18,11 +18,27 @@ export function useRoundResult() {
       return;
     }
 
-    if (phase.next) {
-      return;
-    }
+    let alreadyFetch = true;
 
-    if (phase.isFetchingQuestion) {
+    setPhase((prev) => {
+      if (prev.kind !== 'result') {
+        return prev;
+      }
+
+      if (prev.next) {
+        return prev;
+      }
+
+      if (prev.isFetchingQuestion) {
+        return prev;
+      }
+
+      alreadyFetch = false;
+
+      return { ...prev, isFetchingQuestion: true };
+    });
+
+    if (alreadyFetch) {
       return;
     }
 
@@ -30,8 +46,6 @@ export function useRoundResult() {
 
     const controller = new AbortController();
     controllerRef.current = controller;
-
-    setPhase((prev) => (prev.kind === 'result' ? { ...prev, isFetchingQuestion: true } : prev));
 
     const prefetchQuestion = async () => {
       try {
@@ -54,9 +68,9 @@ export function useRoundResult() {
     void prefetchQuestion();
 
     return () => {
-      controllerRef.current?.abort();
+      controller.abort();
     };
-  }, [phase, setPhase, accessToken, selectedCategoryIds]);
+  }, [phase.kind, setPhase, accessToken, selectedCategoryIds]);
 
   const onClickNextBtn = useCallback(async () => {
     if (phase.kind !== 'result') {
