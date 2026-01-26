@@ -24,7 +24,7 @@ export default tseslint.config(
                 ...globals.jest,
             },
             parserOptions: {
-                project: './tsconfig.json',
+                projectService: true,
                 tsconfigRootDir: import.meta.dirname,
             },
         },
