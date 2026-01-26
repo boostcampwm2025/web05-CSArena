@@ -18,30 +18,6 @@ export function useRoundResult() {
       return;
     }
 
-    let alreadyFetch = true;
-
-    setPhase((prev) => {
-      if (prev.kind !== 'result') {
-        return prev;
-      }
-
-      if (prev.next) {
-        return prev;
-      }
-
-      if (prev.isFetchingQuestion) {
-        return prev;
-      }
-
-      alreadyFetch = false;
-
-      return { ...prev, isFetchingQuestion: true };
-    });
-
-    if (alreadyFetch) {
-      return;
-    }
-
     controllerRef.current?.abort();
 
     const controller = new AbortController();
