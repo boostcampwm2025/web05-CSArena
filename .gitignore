@@ -13,9 +13,9 @@ build/
 .next/
 out/
 
-# Environment variables
-.env
-.env*.local
+# SOPS / Age keys
+keys.txt
+age.key
 
 # IDE
 .idea/

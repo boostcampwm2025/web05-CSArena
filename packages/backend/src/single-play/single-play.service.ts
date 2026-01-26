@@ -1,19 +1,15 @@
 import {
-  BadRequestException,
   Injectable,
   InternalServerErrorException,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, EntityManager, In, IsNull, Repository } from 'typeorm';
+import { DataSource, IsNull, Repository } from 'typeorm';
 import { Category, Question as QuestionEntity } from '../quiz/entity';
 import { QuizService } from '../quiz/quiz.service';
 import { Question } from '../quiz/quiz.types';
 import { mapDifficulty, SCORE_MAP } from '../quiz/quiz.constants';
-import { SinglePlaySessionManager } from './single-play-session-manager';
-import { GameEndResult } from './interfaces/single-play-session.interface';
-import { SinglePlayGame } from './domain/single-play-game';
 import { Match } from '../match/entity';
 import { UserProblemBank } from '../problem-bank/entity';
 
@@ -28,7 +24,6 @@ export class SinglePlayService {
     private readonly questionRepository: Repository<QuestionEntity>,
     private readonly connection: DataSource,
     private readonly quizService: QuizService,
-    private readonly sessionManager: SinglePlaySessionManager,
   ) {}
 
   /**
@@ -53,114 +48,87 @@ export class SinglePlayService {
   }
 
   /**
-   * 선택한 카테고리의 문제 10개 생성 및 게임 시작
+   * 선택한 카테고리에서 문제 1개 조회
    */
-  async getQuestions(userId: string, categoryIds: number[]): Promise<Question[]> {
+  async getQuestion(categoryIds: number[]): Promise<Question> {
     try {
-      // 카테고리 존재 여부 확인
-      const existingCategories = await this.categoryRepository.find({
-        where: categoryIds.map((id) => ({ id })),
-        select: ['id'],
-      });
+      await this.validateCategories(categoryIds);
 
-      // 요청한 카테고리 개수와 실제 존재하는 개수가 다르면 에러
-      if (existingCategories.length !== categoryIds.length) {
-        const existingIds = existingCategories.map((cat) => cat.id);
-        const missingIds = categoryIds.filter((id) => !existingIds.includes(id));
-        throw new NotFoundException(`존재하지 않는 카테고리가 있습니다: ${missingIds.join(', ')}`);
+      const questions = await this.quizService.generateSinglePlayQuestions(categoryIds, 1);
+
+      if (questions.length === 0) {
+        throw new NotFoundException('해당 카테고리에 문제가 없습니다.');
       }
 
-      // QuizService를 통해 문제 생성
-      const questions = await this.quizService.generateSinglePlayQuestions(categoryIds, 10);
-
-      // 새 게임 시작
-      const questionIds = questions.map((q) => q.id);
-      this.sessionManager.createGame(userId, categoryIds, questionIds);
-
-      return questions;
+      return questions[0];
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw error;
       }
 
-      this.logger.error(`Failed to get questions: ${(error as Error).message}`);
+      this.logger.error(`Failed to get question: ${(error as Error).message}`);
       throw new InternalServerErrorException('문제 조회 중 오류가 발생했습니다.');
     }
   }
 
   /**
-   * 답안 제출 및 채점
+   * 카테고리 존재 여부 검증
+   */
+  private async validateCategories(categoryIds: number[]): Promise<void> {
+    const existingCategories = await this.categoryRepository.find({
+      where: categoryIds.map((id) => ({ id })),
+      select: ['id'],
+    });
+
+    if (existingCategories.length !== categoryIds.length) {
+      const existingIds = existingCategories.map((cat) => cat.id);
+      const missingIds = categoryIds.filter((id) => !existingIds.includes(id));
+      throw new NotFoundException(`존재하지 않는 카테고리가 있습니다: ${missingIds.join(', ')}`);
+    }
+  }
+
+  /**
+   * 답안 제출, 채점, DB 저장
    */
   async submitAnswer(
     userId: string,
     questionId: number,
     answer: string,
   ): Promise<{
-    grade: {
-      answer: string;
-      isCorrect: boolean;
-      score: number;
-      feedback: string;
+    score: number;
+    question: {
+      id: number;
+      content: string | object;
+      correctAnswer: string;
     };
-    totalScore: number;
+    userAnswer: string;
+    correctAnswer: string;
+    aiFeedback: string;
   }> {
     try {
-      // 게임 조회 및 문제 검증
-      const game = this.sessionManager.findGameOrThrow(userId);
-      game.validateQuestion(questionId);
+      const question = await this.findQuestionById(questionId);
+      const grade = await this.gradeAnswer(question, answer);
+      const finalScore = this.calculateFinalScore(question, grade);
 
-      // 문제 조회
-      const question = await this.questionRepository.findOne({
-        where: { id: questionId },
-        relations: [
-          'categoryQuestions',
-          'categoryQuestions.category',
-          'categoryQuestions.category.parent',
-        ],
-      });
+      await this.saveAnswerResult(userId, questionId, question, answer, grade);
 
-      if (!question) {
-        throw new NotFoundException('존재하지 않는 문제입니다.');
-      }
-
-      // 채점
-      const submissions = [
-        {
-          playerId: 'single-player',
-          answer,
-          submittedAt: Date.now(),
-        },
-      ];
-
-      const gradeResults = await this.quizService.gradeQuestion(question, submissions);
-      const grade = gradeResults[0];
-
-      // 난이도별 점수 환산
-      const difficulty = mapDifficulty(question.difficulty);
-      const currentScore = grade.isCorrect
-        ? Math.round((grade.score / 10) * SCORE_MAP[difficulty])
-        : 0;
-
-      // 게임에 답안 저장
-      game.submitAnswer(questionId, answer, grade.isCorrect, currentScore, grade.feedback);
-
-      // 모든 문제를 풀었으면 게임 완료 처리
-      if (game.isAllAnswered()) {
-        game.complete();
-        this.logger.log(`Game completed for user ${userId}. Final score: ${game.getTotalScore()}`);
-      }
+      this.logger.log(
+        `Answer submitted for user ${userId}, question ${questionId}, score: ${finalScore}`,
+      );
 
       return {
-        grade: {
-          answer: grade.answer,
-          isCorrect: grade.isCorrect,
-          score: grade.score,
-          feedback: grade.feedback,
+        score: finalScore,
+        question: {
+          id: question.id,
+          content: question.content,
+          correctAnswer: question.correctAnswer,
         },
-        totalScore: game.getTotalScore(),
+        userAnswer: answer,
+        correctAnswer: question.correctAnswer,
+        aiFeedback: grade.feedback,
       };
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+      if (error instanceof NotFoundException) {
         throw error;
       }
 
@@ -170,127 +138,91 @@ export class SinglePlayService {
   }
 
   /**
-   * 게임 종료 (명시적 종료)
+   * 문제 조회
    */
-  endGame(userId: string): GameEndResult {
-    const game = this.sessionManager.findGameOrThrow(userId);
+  private async findQuestionById(questionId: number): Promise<QuestionEntity> {
+    const question = await this.questionRepository.findOne({
+      where: { id: questionId },
+      relations: [
+        'categoryQuestions',
+        'categoryQuestions.category',
+        'categoryQuestions.category.parent',
+      ],
+    });
 
-    if (!game.isCompleted()) {
-      game.complete();
+    if (!question) {
+      throw new NotFoundException('존재하지 않는 문제입니다.');
     }
 
-    const finalStats = game.getStats();
-
-    this.sessionManager.deleteGame(userId);
-
-    this.logger.log(`Game ended by user ${userId}. Stats: ${JSON.stringify(finalStats)}`);
-
-    return {
-      message: '게임이 종료되었습니다.',
-      finalStats,
-    };
+    return question;
   }
 
-  // ============================================
-  // Database Persistence
-  // ============================================
+  /**
+   * 답안 채점
+   */
+  private async gradeAnswer(question: QuestionEntity, answer: string) {
+    const submissions = [
+      {
+        playerId: 'single-player',
+        answer,
+        submittedAt: Date.now(),
+      },
+    ];
+
+    const gradeResults = await this.quizService.gradeQuestion(question, submissions);
+
+    return gradeResults[0];
+  }
 
   /**
-   * 게임 종료 후 DB에 결과 저장 (트랜잭션)
+   * 난이도별 최종 점수 계산
    */
-  async saveGameToDatabase(userId: string): Promise<void> {
-    const game = this.sessionManager.findGameOrThrow(userId);
+  private calculateFinalScore(
+    question: QuestionEntity,
+    grade: { isCorrect: boolean; score: number },
+  ): number {
+    if (!grade.isCorrect) {
+      return 0;
+    }
 
-    // questionIds로 QuestionEntity 조회 (questionType 필요)
-    const questions = await this.questionRepository.find({
-      where: { id: In(game.questionIds) },
-      select: ['id', 'questionType'],
-    });
-    const questionTypeMap = new Map(questions.map((q) => [q.id, q.questionType]));
+    const difficulty = mapDifficulty(question.difficulty);
 
+    return Math.round((grade.score / 10) * SCORE_MAP[difficulty]);
+  }
+
+  /**
+   * 답안 결과 DB 저장 (트랜잭션)
+   */
+  private async saveAnswerResult(
+    userId: string,
+    questionId: number,
+    question: QuestionEntity,
+    answer: string,
+    grade: { isCorrect: boolean; score: number; feedback: string },
+  ): Promise<void> {
     await this.connection.transaction(async (manager) => {
-      const matchId = await this.insertMatch(manager, game);
-      await this.insertUserProblemBanks(manager, matchId, game, questionTypeMap);
-    });
-
-    this.logger.log(`싱글 플레이 게임 결과 저장 완료: userId=${userId}`);
-  }
-
-  /**
-   * Match 테이블에 INSERT
-   */
-  private async insertMatch(manager: EntityManager, game: SinglePlayGame): Promise<number> {
-    const result = await manager
-      .createQueryBuilder()
-      .insert()
-      .into(Match)
-      .values({
-        player1Id: this.parseUserId(game.userId),
+      const match = await manager.save(Match, {
+        player1Id: this.parseUserId(userId),
         player2Id: null,
         winnerId: null,
         matchType: 'single',
-      })
-      .returning('id')
-      .execute();
-
-    return result.generatedMaps[0].id as number;
-  }
-
-  /**
-   * UserProblemBanks 테이블에 Bulk INSERT
-   */
-  private async insertUserProblemBanks(
-    manager: EntityManager,
-    matchId: number,
-    game: SinglePlayGame,
-    questionTypeMap: Map<number, string | null>,
-  ): Promise<void> {
-    const problemBanksData = this.prepareProblemBanksData(matchId, game, questionTypeMap);
-
-    if (problemBanksData.length > 0) {
-      await manager
-        .createQueryBuilder()
-        .insert()
-        .into(UserProblemBank)
-        .values(problemBanksData)
-        .execute();
-    }
-  }
-
-  /**
-   * UserProblemBanks INSERT용 데이터 준비
-   */
-  private prepareProblemBanksData(
-    matchId: number,
-    game: SinglePlayGame,
-    questionTypeMap: Map<number, string | null>,
-  ): Partial<UserProblemBank>[] {
-    const problemBanksData: Partial<UserProblemBank>[] = [];
-    const userId = this.parseUserId(game.userId);
-
-    for (const [questionId, submission] of game.answers) {
-      const questionType = questionTypeMap.get(questionId);
-
-      if (!questionType) {
-        this.logger.warn(`문제 타입을 찾을 수 없어 저장을 건너뜁니다: questionId=${questionId}`);
-        continue;
-      }
-
-      problemBanksData.push({
-        userId,
-        questionId,
-        matchId,
-        userAnswer: submission.answer || '',
-        answerStatus: this.quizService.determineAnswerStatus(
-          questionType,
-          submission.isCorrect,
-          submission.score,
-        ),
-        aiFeedback: submission.feedback,
       });
-    }
 
-    return problemBanksData;
+      const answerStatus = this.quizService.determineAnswerStatus(
+        question.questionType,
+        grade.isCorrect,
+        grade.score,
+      );
+
+      await manager.save(UserProblemBank, {
+        userId: this.parseUserId(userId),
+        questionId,
+        matchId: match.id,
+        userAnswer: answer,
+        answerStatus,
+        aiFeedback: grade.feedback,
+      });
+    });
   }
 
   private parseUserId(userId: string): number {

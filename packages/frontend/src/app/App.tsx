@@ -57,7 +57,7 @@ export default function App() {
 
           // 유저 정보를 가져오는 추가 API 호출이 필요할 수 있음
           // 현재는 /api/auth/me 등을 호출하여 userData 복구
-          const response = await fetch(`${import.meta.env.VITE_BACKEND_ORIGIN}/api/auth/me`, {
+          const response = await fetch(`/api/auth/me`, {
             headers: { Authorization: `Bearer ${token}` },
             credentials: 'include',
           });

@@ -1,4 +1,4 @@
-import { Controller, Get, Req, Res, UseGuards } from '@nestjs/common';
+import { Controller, Get, NotFoundException, Query, Req, Res, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
@@ -18,6 +18,32 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly configService: ConfigService,
   ) {}
+
+  @Get('dev-login')
+  async devLogin(@Query('name') name: string, @Res() res: Response) {
+    const nodeEnv = this.configService.get<string>('NODE_ENV');
+
+    if (nodeEnv !== 'development') {
+      throw new NotFoundException();
+    }
+
+    if (!name) {
+      return res.status(400).json({ message: 'name query parameter is required' });
+    }
+
+    const { accessToken, refreshToken, user } = await this.authService.loginWithDevUser(name);
+
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: false,
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL', 'http://localhost:3000');
+    const userJson = encodeURIComponent(JSON.stringify(user));
+    res.redirect(`${frontendUrl}/auth/callback#access_token=${accessToken}&user=${userJson}`);
+  }
 
   @Get('github')
   @UseGuards(AuthGuard('github'))
