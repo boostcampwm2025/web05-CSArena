@@ -22,7 +22,15 @@ export function useHome() {
     setIsOpenLoginModal(true);
   }, []);
 
-  const onClickMyPageBtn = useCallback(() => {}, []);
+  const onClickMyPageBtn = useCallback(() => {
+    if (!userData) {
+      setIsOpenLoginModal(true);
+
+      return;
+    }
+
+    setScene('my-page');
+  }, [userData, setScene, setIsOpenLoginModal]);
 
   const onClickLogoutBtn = useCallback(async () => {
     controllerRef.current?.abort();
