@@ -52,7 +52,7 @@ export class MatchPersistenceService {
 
           // ELO 업데이트 (무승부가 아닐 때만)
           if (!finalResult.isDraw && finalResult.winnerId) {
-            await this.updateEloRatings(manager, session, finalResult);
+            await this.updateEloRatings(manager, matchId, session, finalResult);
           }
         });
 
@@ -308,11 +308,13 @@ export class MatchPersistenceService {
    * ELO 레이팅 업데이트
    *
    * @param manager - 트랜잭션 매니저
+   * @param matchId - 매치 ID
    * @param session - 게임 세션
    * @param finalResult - 게임 결과
    */
   private async updateEloRatings(
     manager: EntityManager,
+    matchId: number,
     session: GameSession,
     finalResult: FinalResult,
   ): Promise<void> {
@@ -359,9 +361,9 @@ export class MatchPersistenceService {
     await manager.update(UserStatistics, { userId: winnerId }, { tierPoint: winnerNewRating });
     await manager.update(UserStatistics, { userId: loserId }, { tierPoint: loserNewRating });
 
-    // 티어 변동 히스토리 기록 (선택 사항)
-    await this.recordTierHistory(manager, winnerId, winnerNewRating);
-    await this.recordTierHistory(manager, loserId, loserNewRating);
+    // 티어 변동 히스토리 기록
+    await this.recordTierHistory(manager, winnerId, matchId, winnerChange, winnerNewRating);
+    await this.recordTierHistory(manager, loserId, matchId, loserChange, loserNewRating);
   }
 
   /**
@@ -369,11 +371,15 @@ export class MatchPersistenceService {
    *
    * @param manager - 트랜잭션 매니저
    * @param userId - 유저 ID
+   * @param matchId - 매치 ID
+   * @param tierChange - 티어 변화량
    * @param newElo - 새로운 ELO
    */
   private async recordTierHistory(
     manager: EntityManager,
     userId: number,
+    matchId: number,
+    tierChange: number,
     newElo: number,
   ): Promise<void> {
     const tierName = calculateTier(newElo);
@@ -388,6 +394,8 @@ export class MatchPersistenceService {
       userId,
       tierId,
       tierPoint: newElo,
+      matchId,
+      tierChange,
     });
   }
 }
