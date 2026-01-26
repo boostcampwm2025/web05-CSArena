@@ -73,11 +73,11 @@ export class MatchmakingGateway implements OnGatewayConnection, OnGatewayDisconn
   }
 
   @SubscribeMessage('match:enqueue')
-  handleMatchEnqueue(@ConnectedSocket() client: Socket): {
+  async handleMatchEnqueue(@ConnectedSocket() client: Socket): Promise<{
     ok: boolean;
     sessionId?: string;
     error?: string;
-  } {
+  }> {
     try {
       const authSocket = client as AuthenticatedSocket;
       const user = authSocket.data.user;
@@ -95,7 +95,10 @@ export class MatchmakingGateway implements OnGatewayConnection, OnGatewayDisconn
 
       const sessionId = this.sessionManager.createQueueSession(client.id, user.id, userInfo);
 
-      const match = this.matchmakingService.addToQueue(user.id);
+      // ELO 레이팅 조회
+      const fullUser = await this.authService.getUserById(user.id);
+      const eloRating = fullUser?.statistics?.tierPoint || 1000; // 기본 ELO: 1000
+      const match = this.matchmakingService.addToQueue(user.id, eloRating);
 
       if (match) {
         const player1Session = this.sessionManager.getQueueSessionByUserId(match.player1);
