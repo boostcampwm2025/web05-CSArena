@@ -359,9 +359,26 @@ export class MatchPersistenceService {
         `패자: ${loserId} (${loserElo} → ${loserNewRating}, ${loserChange})`,
     );
 
-    // UserStatistics 업데이트
-    await manager.update(UserStatistics, { userId: winnerId }, { tierPoint: winnerNewRating });
-    await manager.update(UserStatistics, { userId: loserId }, { tierPoint: loserNewRating });
+    // UserStatistics 업데이트 (승패 기록 + ELO)
+    await manager.update(
+      UserStatistics,
+      { userId: winnerId },
+      {
+        tierPoint: winnerNewRating,
+        winCount: () => 'win_count + 1',
+        totalMatches: () => 'total_matches + 1',
+      },
+    );
+
+    await manager.update(
+      UserStatistics,
+      { userId: loserId },
+      {
+        tierPoint: loserNewRating,
+        loseCount: () => 'lose_count + 1',
+        totalMatches: () => 'total_matches + 1',
+      },
+    );
 
     // 티어 변동 히스토리 기록
     await this.recordTierHistory(manager, winnerId, winnerNewRating);
