@@ -8,7 +8,7 @@ export function getSocket(token: string | null): Socket {
     socket?.disconnect();
 
     currentToken = token;
-    socket = io(`${import.meta.env.VITE_BACKEND_ORIGIN}/ws`, {
+    socket = io(`/ws`, {
       transports: ['websocket'],
       auth: { token },
       autoConnect: false,

@@ -1,10 +1,10 @@
 export function login() {
-  window.location.replace(`${import.meta.env.VITE_BACKEND_ORIGIN}/api/auth/github`);
+  window.location.replace(`/api/auth/github`);
 }
 
 export async function logout(signal: AbortSignal) {
   try {
-    const res = await fetch(`${import.meta.env.VITE_BACKEND_ORIGIN}/api/auth/logout`, {
+    const res = await fetch(`/api/auth/logout`, {
       credentials: 'include',
       signal,
     });
@@ -48,7 +48,7 @@ export function handleOAuthCallback() {
 }
 
 export async function refreshAccessToken(signal: AbortSignal) {
-  const res = await fetch(`${import.meta.env.VITE_BACKEND_ORIGIN}/api/auth/refresh`, {
+  const res = await fetch(`/api/auth/refresh`, {
     credentials: 'include',
     signal,
   });

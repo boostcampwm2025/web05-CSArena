@@ -28,7 +28,7 @@ export default function LoginModal({ onClose }: Props) {
         </h2>
 
         {/* OAuth Buttons */}
-        <div className="flex flex-1 flex-col justify-between p-4">
+        <div className="flex flex-1 flex-col justify-between gap-3 p-4">
           <button
             className="flex w-full items-center justify-center border-4 border-gray-700 bg-gray-900 px-6 py-4 font-bold text-white transition-all duration-200 hover:scale-105 hover:bg-gray-800"
             style={{ fontFamily: 'Orbitron' }}
@@ -37,6 +37,21 @@ export default function LoginModal({ onClose }: Props) {
             <i className="ri-github-fill mr-3 text-2xl" />
             Continue with Github
           </button>
+
+          {/* Dev Login Button - Only visible in development */}
+          {import.meta.env.DEV && (
+            <button
+              className="flex w-full items-center justify-center border-2 border-yellow-500 bg-yellow-600 px-4 py-2 text-sm font-bold text-white transition-all duration-200 hover:scale-105 hover:bg-yellow-500"
+              style={{ fontFamily: 'Orbitron' }}
+              onClick={() => {
+                const randomId = Math.random().toString(36).substring(2, 8);
+                window.location.href = `/api/auth/dev-login?name=TestUser_${randomId}`;
+              }}
+            >
+              <i className="ri-user-add-line mr-2" />
+              Random Test User Login
+            </button>
+          )}
         </div>
       </div>
     </div>,
