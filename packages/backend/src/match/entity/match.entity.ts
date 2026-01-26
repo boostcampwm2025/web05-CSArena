@@ -1,4 +1,12 @@
-import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import { User } from '../../user/entity';
 import { Round } from './round.entity';
 import { UserProblemBank } from '../../problem-bank/entity';
@@ -42,4 +50,7 @@ export class Match {
 
   @OneToMany(() => UserProblemBank, (bank) => bank.match)
   problemBanks: UserProblemBank[];
+
+  @CreateDateColumn({ type: 'timestamp', name: 'created_at' })
+  createdAt: Date;
 }

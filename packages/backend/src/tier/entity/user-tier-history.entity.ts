@@ -8,6 +8,7 @@ import {
 } from 'typeorm';
 import { User } from '../../user/entity';
 import { Tier } from './tier.entity';
+import { Match } from '../../match/entity/match.entity';
 
 @Entity('user_tier_hisotries')
 export class UserTierHistory {
@@ -33,4 +34,14 @@ export class UserTierHistory {
   @ManyToOne(() => User, (user) => user.tierHistories)
   @JoinColumn({ name: 'user_id' })
   user: User;
+
+  @Column({ type: 'bigint', nullable: true, name: 'match_id' })
+  matchId: number | null;
+
+  @Column({ type: 'int', nullable: true, name: 'tier_change' })
+  tierChange: number | null;
+
+  @ManyToOne(() => Match)
+  @JoinColumn({ name: 'match_id' })
+  match: Match | null;
 }
