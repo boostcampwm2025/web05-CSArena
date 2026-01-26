@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { IMatchQueue, Match } from './interfaces/matchmaking.interface';
-import { InMemoryMatchQueue } from './queue/in-memory-queue';
+import { EloMatchQueue } from './queue/elo-match-queue';
 
 @Injectable()
 export class MatchmakingService {
@@ -8,14 +8,14 @@ export class MatchmakingService {
   private readonly userToSessionId = new Map<string, string>();
 
   constructor() {
-    this.matchQueue = new InMemoryMatchQueue();
+    this.matchQueue = new EloMatchQueue();
   }
 
-  addToQueue(userId: string): Match | null {
+  addToQueue(userId: string, eloRating: number): Match | null {
     const sessionId = `session-${userId}-${Date.now()}`;
     this.userToSessionId.set(userId, sessionId);
 
-    return this.matchQueue.add(userId);
+    return this.matchQueue.add(userId, eloRating);
   }
 
   removeFromQueue(userId: string): void {
