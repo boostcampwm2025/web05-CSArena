@@ -9,9 +9,10 @@ build
 .next
 out
 
-# Environment files
+# Environment variables
 .env
 .env*.local
+*.enc
 
 # Git
 .git

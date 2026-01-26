@@ -87,14 +87,22 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Copy docker-compose.yml to NCP Server
+      - name: Install SOPS
+        uses: mdgreenwald/mozilla-sops-action@v1.6.0
+
+      - name: Decrypt Secrets
+        env:
+          SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
+        run: sops -d prod.env > .env
+
+      - name: Copy docker-compose.yml and .env to NCP Server
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.NCP_SERVER_HOST }}
           username: ${{ secrets.NCP_SERVER_USERNAME }}
           key: ${{ secrets.NCP_SERVER_SSH_KEY }}
           port: ${{ secrets.NCP_SERVER_SSH_PORT }}
-          source: "docker-compose-prod.yml"
+          source: "docker-compose-prod.yml,.env"
           target: "/home/web05-CSBattleArena/"
 
       - name: Deploy to NCP Server
