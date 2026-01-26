@@ -1,29 +1,22 @@
 import { useCallback } from 'react';
 
 import { useUser } from '@/feature/auth/useUser';
-import { usePhase, useQuestion, useResult, useRound } from '@/feature/single-play/useRound';
+import { usePhase, useQuestion, useResult } from '@/feature/single-play/useRound';
 
 export function useRoundResult() {
   const { setPhase } = usePhase();
   const { userData } = useUser();
-  const { curRound, setCurRound, totalRounds } = useRound();
-  const { questions } = useQuestion();
-  const { submitAnswers } = useResult();
+  const { question } = useQuestion();
+  const { submitAnswer } = useResult();
 
   const onClickNextBtn = useCallback(() => {
-    if (curRound + 1 < totalRounds) {
-      setCurRound((prev) => prev + 1);
-      setPhase('playing');
-    } else {
-      setPhase('result');
-    }
-  }, [setPhase, curRound, setCurRound, totalRounds]);
+    setPhase('playing');
+  }, [setPhase]);
 
   return {
     nickname: userData?.nickname,
-    curRound,
-    question: questions[curRound],
-    submitAnswer: submitAnswers[curRound],
+    question,
+    submitAnswer,
     onClickNextBtn,
   };
 }

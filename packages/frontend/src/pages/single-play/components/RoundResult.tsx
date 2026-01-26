@@ -1,7 +1,7 @@
 import { useRoundResult } from '@/pages/single-play/hooks/useRoundResult';
 
 export default function RoundResult() {
-  const { nickname, curRound, question, submitAnswer, onClickNextBtn } = useRoundResult();
+  const { nickname, question, submitAnswer, onClickNextBtn } = useRoundResult();
 
   return (
     <div className="flex h-full items-center justify-center">
@@ -10,7 +10,7 @@ export default function RoundResult() {
           className="bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-center text-4xl font-black text-transparent"
           style={{ fontFamily: '"Press Start 2P"' }}
         >
-          ROUND {curRound + 1} RESULT
+          RESULT
         </div>
 
         {/* Player Answer */}
@@ -28,10 +28,10 @@ export default function RoundResult() {
               YOUR ANSWER
             </div>
             <div className="text-base text-white" style={{ fontFamily: 'Orbitron' }}>
-              {submitAnswer.answer}
+              {submitAnswer?.answer}
             </div>
           </div>
-          {submitAnswer.isCorrect ? (
+          {submitAnswer?.isCorrect ? (
             <div className="border-2 border-emerald-400 bg-emerald-500/20 py-2 text-center">
               <p
                 className="text-base font-bold text-emerald-400"
@@ -56,9 +56,9 @@ export default function RoundResult() {
             CORRECT ANSWER
           </div>
           <div className="text-base text-white" style={{ fontFamily: 'Orbitron' }}>
-            {question.type === 'multiple_choice' && question.answer}
-            {question.type === 'short_answer' && question.answer}
-            {question.type === 'essay' && question.sampleAnswer}
+            {question?.type === 'multiple_choice' && question?.answer}
+            {question?.type === 'short_answer' && question?.answer}
+            {question?.type === 'essay' && question?.sampleAnswer}
           </div>
         </div>
 

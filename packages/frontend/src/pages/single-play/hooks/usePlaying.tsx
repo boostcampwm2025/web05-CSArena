@@ -3,15 +3,14 @@ import { useCallback, useRef, useState } from 'react';
 import { submitAnswer } from '@/lib/api/single-play';
 
 import { useUser } from '@/feature/auth/useUser';
-import { usePhase, useQuestion, useResult, useRound } from '@/feature/single-play/useRound';
+import { usePhase, useQuestion, useResult } from '@/feature/single-play/useRound';
 
 export function usePlaying() {
   const { accessToken } = useUser();
 
   const { setPhase } = usePhase();
-  const { curRound } = useRound();
-  const { questions } = useQuestion();
-  const { setSubmitAnswers, setCorrectCnt, setTotalPoints } = useResult();
+  const { question } = useQuestion();
+  const { setSubmitAnswer } = useResult();
 
   const [answer, setAnswer] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -35,13 +34,11 @@ export function usePlaying() {
     try {
       const data = await submitAnswer(
         accessToken,
-        { questionId: Number(questions[curRound].id), answer: trimmed },
+        { questionId: Number(question?.id), answer: trimmed },
         controller.signal,
       );
 
-      setSubmitAnswers((prev) => [...prev, { answer: trimmed, isCorrect: data.grade.isCorrect }]);
-      setCorrectCnt((prev) => (data.grade.isCorrect ? prev + 1 : prev));
-      setTotalPoints(data.totalScore);
+      setSubmitAnswer({ answer: trimmed, isCorrect: data.grade.isCorrect });
 
       setPhase('round-result');
     } catch (e) {
@@ -53,20 +50,10 @@ export function usePlaying() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [
-    accessToken,
-    answer,
-    questions,
-    curRound,
-    setSubmitAnswers,
-    setCorrectCnt,
-    setTotalPoints,
-    setPhase,
-  ]);
+  }, [accessToken, answer, question, setSubmitAnswer, setPhase]);
 
   return {
-    curRound,
-    question: questions[curRound],
+    question,
     answer,
     setAnswer,
     isSubmitting,

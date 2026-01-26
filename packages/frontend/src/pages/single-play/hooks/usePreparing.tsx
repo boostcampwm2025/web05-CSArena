@@ -1,13 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useUser } from '@/feature/auth/useUser';
-import {
-  useCategory,
-  usePhase,
-  useQuestion,
-  useResult,
-  useRound,
-} from '@/feature/single-play/useRound';
+import { useCategory, usePhase, useQuestion, useResult } from '@/feature/single-play/useRound';
 
 import { CategoryItem } from '@/pages/single-play/types/types';
 import { fetchCategories, fetchQuestions } from '@/lib/api/single-play';
@@ -16,9 +10,8 @@ export function usePreparing() {
   const { accessToken } = useUser();
   const { selectedCategoryIds, setSelectedCategoryIds } = useCategory();
   const { setPhase } = usePhase();
-  const { setCurRound, setTotalRounds } = useRound();
-  const { setQuestions } = useQuestion();
-  const { setSubmitAnswers, setCorrectCnt, setTotalPoints } = useResult();
+  const { setQuestion } = useQuestion();
+  const { setSubmitAnswer } = useResult();
 
   const [categories, setCategories] = useState<Record<number, CategoryItem>>({});
   const [isLoadingCategories, setIsLoadingCategories] = useState<boolean>(false);
@@ -95,12 +88,8 @@ export function usePreparing() {
     try {
       const data = await fetchQuestions(accessToken, selectedCategoryIds, controller.signal);
 
-      setCurRound(0);
-      setTotalRounds(data.questions.length);
-      setQuestions(data.questions);
-      setSubmitAnswers([]);
-      setCorrectCnt(0);
-      setTotalPoints(0);
+      setQuestion(data.question);
+      setSubmitAnswer(undefined);
 
       setPhase('playing');
     } catch (e) {
@@ -112,17 +101,7 @@ export function usePreparing() {
     } finally {
       setIsLoadingQuestions(false);
     }
-  }, [
-    accessToken,
-    selectedCategoryIds,
-    setPhase,
-    setCurRound,
-    setTotalRounds,
-    setQuestions,
-    setSubmitAnswers,
-    setCorrectCnt,
-    setTotalPoints,
-  ]);
+  }, [accessToken, selectedCategoryIds, setPhase, setQuestion, setSubmitAnswer]);
 
   return {
     categories,

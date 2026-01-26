@@ -1,7 +1,7 @@
 type Difficulty = 'easy' | 'medium' | 'hard';
 type MultipleChoiceOptions = { A: string; B: string; C: string; D: string };
 
-export type SinglePlayPhase = 'preparing' | 'playing' | 'round-result' | 'result';
+export type SinglePlayPhase = 'preparing' | 'playing' | 'round-result';
 
 export type CategoryItem = { id: number; name: string | null; isSelected: boolean };
 
@@ -30,11 +30,12 @@ export type Question =
       difficulty: Difficulty;
       category: string[];
       sampleAnswer: string;
-    };
+    }
+  | undefined;
 
 export type GetCategoriesRes = { categories: CategoryItem[] };
 
-export type GetQuestionsRes = { questions: Question[] };
+export type GetQuestionsRes = { question: Question };
 
 export type SubmitAnswerReq = { questionId: number; answer: string };
 
