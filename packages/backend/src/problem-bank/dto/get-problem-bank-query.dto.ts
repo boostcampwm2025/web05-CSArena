@@ -22,7 +22,10 @@ export class GetProblemBankQueryDto {
   })
   @IsOptional()
   @Transform(({ value }) => {
-    if (value === undefined || value === null || value === '') return undefined;
+    if (value === undefined || value === null || value === '') {
+      return undefined;
+    }
+
     return (Array.isArray(value) ? value : [value]).map(Number);
   })
   @IsArray()
@@ -55,7 +58,7 @@ export class GetProblemBankQueryDto {
   @IsOptional()
   @IsBoolean()
   @Transform(({ value }) =>
-    value === undefined || value === null ? undefined : value === 'true' || value === true
+    value === undefined || value === null ? undefined : value === 'true' || value === true,
   )
   isBookmarked?: boolean;
 
