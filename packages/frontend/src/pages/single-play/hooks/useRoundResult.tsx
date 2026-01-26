@@ -107,7 +107,7 @@ export function useRoundResult() {
       curQuestion,
       submittedAnswer: '',
       isCorrect: false,
-      feedback: '',
+      aiFeedback: '',
       isFetchingQuestion: false,
       onClickNextBtn,
     };
