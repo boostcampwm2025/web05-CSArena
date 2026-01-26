@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { SinglePlayService } from './single-play.service';
-import { GetQuestionsDto, SubmitAnswerDto } from './dto';
+import { GetQuestionDto, SubmitAnswerDto } from './dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../auth/strategies/jwt.strategy';
@@ -58,15 +58,15 @@ export class SinglePlayController {
   }
 
   /**
-   * 문제 요청 API
-   * GET /api/singleplay/questions?categoryId=1,2,3
+   * 문제 1개 요청 API
+   * GET /api/singleplay/question?categoryId=1,2,3
    */
-  @Get('questions')
+  @Get('question')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
   @ApiOperation({
-    summary: '문제 목록 조회',
-    description: '선택한 카테고리에서 문제 목록을 조회합니다.',
+    summary: '문제 조회',
+    description: '선택한 카테고리에서 문제를 조회합니다.',
   })
   @ApiQuery({
     name: 'categoryId',
@@ -76,23 +76,20 @@ export class SinglePlayController {
   })
   @ApiResponse({
     status: 200,
-    description: '문제 목록 조회 성공',
+    description: '문제 조회 성공',
     schema: {
       properties: {
-        questions: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              id: { type: 'number', example: 1 },
-              type: { type: 'string', example: 'multiple_choice' },
-              question: { type: 'string', example: 'HTTP와 HTTPS의 차이점은?' },
-              difficulty: { type: 'string', example: 'easy' },
-              category: {
-                type: 'array',
-                items: { type: 'string' },
-                example: ['네트워크', 'HTTP'],
-              },
+        question: {
+          type: 'object',
+          properties: {
+            id: { type: 'number', example: 1 },
+            type: { type: 'string', example: 'multiple_choice' },
+            question: { type: 'string', example: 'HTTP와 HTTPS의 차이점은?' },
+            difficulty: { type: 'string', example: 'easy' },
+            category: {
+              type: 'array',
+              items: { type: 'string' },
+              example: ['네트워크', 'HTTP'],
             },
           },
         },
@@ -101,17 +98,14 @@ export class SinglePlayController {
   })
   @ApiResponse({ status: 401, description: '인증 실패' })
   @ApiResponse({ status: 404, description: '해당 카테고리에 문제가 없음' })
-  async getQuestions(
-    @CurrentUser() user: AuthenticatedUser,
-    @Query(ValidationPipe) query: GetQuestionsDto,
-  ) {
-    const questions = await this.singlePlayService.getQuestions(user.id, query.categoryId);
+  async getQuestion(@Query(ValidationPipe) query: GetQuestionDto) {
+    const question = await this.singlePlayService.getQuestion(query.categoryId);
 
-    return { questions };
+    return { question };
   }
 
   /**
-   * 정답 제출 요청 API
+   * 정답 제출 요청 API (채점 + DB 저장)
    * POST /api/singleplay/submit
    */
   @Post('submit')
@@ -173,58 +167,5 @@ export class SinglePlayController {
       submitDto.questionId,
       submitDto.answer,
     );
-  }
-
-  /**
-   * 게임 종료 API
-   * POST /api/singleplay/end
-   */
-  @Post('end')
-  @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth('access-token')
-  @ApiOperation({
-    summary: '게임 종료',
-    description: '싱글플레이 게임을 종료합니다.',
-  })
-  @ApiResponse({
-    status: 200,
-    description: '게임 종료 성공',
-    schema: {
-      type: 'object',
-      properties: {
-        message: { type: 'string', example: '게임이 종료되었습니다.' },
-        finalStats: {
-          type: 'object',
-          description: '게임 종료 시 최종 통계 정보',
-          properties: {
-            totalQuestions: {
-              type: 'number',
-              example: 10,
-              description: '전체 문제 수',
-            },
-            answeredQuestions: {
-              type: 'number',
-              example: 10,
-              description: '답변한 문제 수',
-            },
-            correctAnswers: {
-              type: 'number',
-              example: 7,
-              description: '정답 수',
-            },
-            totalScore: {
-              type: 'number',
-              example: 70,
-              description: '총 점수',
-            },
-          },
-        },
-      },
-    },
-  })
-  @ApiResponse({ status: 401, description: '인증 실패' })
-  endGame(@CurrentUser() user: AuthenticatedUser) {
-    return this.singlePlayService.endGame(user.id);
   }
 }

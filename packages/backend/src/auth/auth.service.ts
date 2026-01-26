@@ -60,6 +60,35 @@ export class AuthService {
     };
   }
 
+  async loginWithDevUser(name: string): Promise<LoginResult> {
+    const oauthId = `dev-${name}`;
+
+    let user = await this.userRepo.findOne({
+      where: {
+        oauthProvider: 'github',
+        oauthId,
+      },
+      relations: ['statistics'],
+    });
+
+    if (!user) {
+      user = await this.createUserWithStats({
+        oauthId,
+        oauthProvider: 'github',
+        nickname: name,
+        email: `${name}@dev.local`,
+        userProfile: null,
+      });
+    }
+
+    const tokens = this.generateTokens(user);
+
+    return {
+      ...tokens,
+      user: this.sanitizeUser(user),
+    };
+  }
+
   private async createUserWithStats(profile: GithubProfile): Promise<User> {
     return this.dataSource.transaction(async (manager) => {
       const user = manager.create(User, {

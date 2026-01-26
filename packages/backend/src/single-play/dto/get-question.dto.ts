@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsArray, IsNotEmpty, IsNumber } from 'class-validator';
 
-export class GetQuestionsDto {
+export class GetQuestionDto {
   @ApiProperty({
     description: '선택한 카테고리 ID 목록',
     example: [1, 2, 3],

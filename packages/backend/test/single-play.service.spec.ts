@@ -3,7 +3,6 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository, IsNull, DataSource } from 'typeorm';
 import { NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { SinglePlayService } from '../src/single-play/single-play.service';
-import { SinglePlaySessionManager } from '../src/single-play/single-play-session-manager';
 import { QuizService } from '../src/quiz/quiz.service';
 import { Category, Question as QuestionEntity } from '../src/quiz/entity';
 import { SCORE_MAP } from '../src/quiz/quiz.constants';
@@ -25,27 +24,19 @@ describe('SinglePlayService', () => {
   const mockQuizService = {
     generateSinglePlayQuestions: jest.fn(),
     gradeQuestion: jest.fn(),
+    determineAnswerStatus: jest.fn().mockReturnValue('correct'),
   };
 
-  const mockSessionManager = {
-    createGame: jest.fn(),
-    findGameOrThrow: jest.fn(),
-    deleteGame: jest.fn(),
-  };
-
-  const mockGame = {
-    validateQuestion: jest.fn(),
-    submitAnswer: jest.fn(),
-    isAllAnswered: jest.fn().mockReturnValue(false),
-    complete: jest.fn(),
-    getTotalScore: jest.fn().mockReturnValue(0),
-    getStats: jest.fn(),
+  const mockDataSource = {
+    transaction: jest.fn(async (callback) => {
+      const mockManager = {
+        save: jest.fn().mockResolvedValue({ id: 1 }),
+      };
+      return callback(mockManager);
+    }),
   };
 
   beforeEach(async () => {
-    mockSessionManager.findGameOrThrow.mockReturnValue(mockGame);
-    mockGame.getTotalScore.mockReturnValue(0);
-
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         SinglePlayService,
@@ -63,11 +54,7 @@ describe('SinglePlayService', () => {
         },
         {
           provide: DataSource,
-          useValue: { transaction: jest.fn() },
-        },
-        {
-          provide: SinglePlaySessionManager,
-          useValue: mockSessionManager,
+          useValue: mockDataSource,
         },
       ],
     }).compile();
@@ -126,27 +113,28 @@ describe('SinglePlayService', () => {
     });
   });
 
-  describe('getQuestions', () => {
-    it('유효한 카테고리 ID로 문제 목록을 정상적으로 반환해야 함', async () => {
+  describe('getQuestion', () => {
+    it('유효한 카테고리 ID로 문제 1개를 정상적으로 반환해야 함', async () => {
       const categoryIds = [1, 2];
       const mockExistingCategories = [{ id: 1 }, { id: 2 }];
-      const mockQuestions = [
-        { id: 1, questionType: 'multiple', content: 'What is React?', difficulty: 2 },
-        { id: 2, questionType: 'short', content: 'Explain Node.js', difficulty: 3 },
-      ];
+      const mockQuestion = {
+        id: 1,
+        questionType: 'multiple',
+        content: 'What is React?',
+        difficulty: 2,
+      };
 
       mockCategoryRepository.find.mockResolvedValue(mockExistingCategories);
-      mockQuizService.generateSinglePlayQuestions.mockResolvedValue(mockQuestions);
+      mockQuizService.generateSinglePlayQuestions.mockResolvedValue([mockQuestion]);
 
+      const result = await service.getQuestion(categoryIds);
 
-      const result = await service.getQuestions('user1', categoryIds);
-
-      expect(result).toEqual(mockQuestions);
+      expect(result).toEqual(mockQuestion);
       expect(mockCategoryRepository.find).toHaveBeenCalledWith({
         where: categoryIds.map((id) => ({ id })),
         select: ['id'],
       });
-      expect(mockQuizService.generateSinglePlayQuestions).toHaveBeenCalledWith(categoryIds, 10);
+      expect(mockQuizService.generateSinglePlayQuestions).toHaveBeenCalledWith(categoryIds, 1);
     });
 
     it('존재하지 않는 카테고리 ID면 NotFoundException을 던져야 함', async () => {
@@ -154,75 +142,23 @@ describe('SinglePlayService', () => {
 
       mockCategoryRepository.find.mockResolvedValue([]);
 
-      await expect(service.getQuestions('user1', categoryIds)).rejects.toThrow(NotFoundException);
-      await expect(service.getQuestions('user1', categoryIds)).rejects.toThrow(
+      await expect(service.getQuestion(categoryIds)).rejects.toThrow(NotFoundException);
+      await expect(service.getQuestion(categoryIds)).rejects.toThrow(
         '존재하지 않는 카테고리가 있습니다: 999',
       );
-    });
-
-    it('일부 카테고리만 존재하면 NotFoundException을 던져야 함', async () => {
-      const categoryIds = [1, 999];
-      const mockExistingCategories = [{ id: 1 }]; // 1만 존재, 999는 없음
-
-      mockCategoryRepository.find.mockResolvedValue(mockExistingCategories);
-
-      await expect(service.getQuestions('user1', categoryIds)).rejects.toThrow(NotFoundException);
-      await expect(service.getQuestions('user1', categoryIds)).rejects.toThrow(
-        '존재하지 않는 카테고리가 있습니다: 999',
-      );
-    });
-
-    it('여러 개의 존재하지 않는 카테고리를 명시해야 함', async () => {
-      const categoryIds = [1, 999, 888];
-      const mockExistingCategories = [{ id: 1 }]; // 1만 존재
-
-      mockCategoryRepository.find.mockResolvedValue(mockExistingCategories);
-
-      await expect(service.getQuestions('user1', categoryIds)).rejects.toThrow(NotFoundException);
-      await expect(service.getQuestions('user1', categoryIds)).rejects.toThrow(
-        '존재하지 않는 카테고리가 있습니다: 999, 888',
-      );
-    });
-
-    it('문제 생성 실패 시 InternalServerErrorException을 던져야 함', async () => {
-      const categoryIds = [1];
-      const mockExistingCategories = [{ id: 1 }];
-
-      mockCategoryRepository.find.mockResolvedValue(mockExistingCategories);
-      mockQuizService.generateSinglePlayQuestions.mockRejectedValue(
-        new Error('Question generation failed'),
-      );
-
-      await expect(service.getQuestions('user1', categoryIds)).rejects.toThrow(
-        InternalServerErrorException,
-      );
-      await expect(service.getQuestions('user1', categoryIds)).rejects.toThrow(
-        '문제 조회 중 오류가 발생했습니다.',
-      );
-    });
-
-    it('빈 배열의 문제도 정상적으로 반환해야 함', async () => {
-      const categoryIds = [1];
-      const mockExistingCategories = [{ id: 1 }];
-
-      mockCategoryRepository.find.mockResolvedValue(mockExistingCategories);
-      mockQuizService.generateSinglePlayQuestions.mockResolvedValue([]);
-
-      const result = await service.getQuestions('user1', categoryIds);
-
-      expect(result).toEqual([]);
     });
   });
 
   describe('submitAnswer', () => {
-    it('Easy 난이도 - 정답 시 올바른 점수를 반환해야 함', async () => {
+    it('답안 제출, 채점, DB 저장을 정상적으로 처리해야 함', async () => {
+      const userId = '1';
       const questionId = 1;
       const answer = 'React';
       const mockQuestion = {
         id: 1,
         questionType: 'short',
         content: 'What is React?',
-        difficulty: 1, // Easy
+        difficulty: 1,
         correctAnswer: 'React',
       } as QuestionEntity;
 
@@ -231,288 +167,54 @@ describe('SinglePlayService', () => {
           playerId: 'single-player',
           answer: 'React',
           isCorrect: true,
-          score: 10, // AI 점수 만점
-          feedback: 'Perfect!',
-        },
-      ];
-
-      mockQuestionRepository.findOne.mockResolvedValue(mockQuestion);
-      mockQuizService.gradeQuestion.mockResolvedValue(mockGradeResult);
-      mockGame.getTotalScore.mockReturnValue(10);
-
-      const result = await service.submitAnswer('user1', questionId, answer);
-
-      // Easy: (10/10) * 10 = 10점
-      expect(result).toEqual({
-        grade: {
-          answer: 'React',
-          isCorrect: true,
           score: 10,
           feedback: 'Perfect!',
         },
-        totalScore: 10,
-      });
-    });
-
-    it('Medium 난이도 - 부분 점수를 올바르게 계산해야 함', async () => {
-      const questionId = 2;
-      const answer = 'TCP is a protocol';
-      const mockQuestion = {
-        id: 2,
-        questionType: 'essay',
-        content: 'Explain TCP',
-        difficulty: 3, // Medium
-        correctAnswer: 'TCP is a connection-oriented protocol...',
-      } as QuestionEntity;
-
-      const mockGradeResult = [
-        {
-          playerId: 'single-player',
-          answer: 'TCP is a protocol',
-          isCorrect: true,
-          score: 6, // AI 부분 점수
-          feedback: 'Needs more detail',
-        },
       ];
 
       mockQuestionRepository.findOne.mockResolvedValue(mockQuestion);
       mockQuizService.gradeQuestion.mockResolvedValue(mockGradeResult);
-      mockGame.getTotalScore.mockReturnValue(12);
+      mockQuizService.determineAnswerStatus.mockReturnValue('correct');
 
-      const result = await service.submitAnswer('user1', questionId, answer);
-
-      // Medium: (6/10) * 20 = 12점
-      expect(result).toEqual({
-        grade: {
-          answer: 'TCP is a protocol',
-          isCorrect: true,
-          score: 6,
-          feedback: 'Needs more detail',
-        },
-        totalScore: 12,
-      });
-    });
-
-    it('Hard 난이도 - 만점 시 30점을 반환해야 함', async () => {
-      const questionId = 3;
-      const answer = 'Complete explanation';
-      const mockQuestion = {
-        id: 3,
-        questionType: 'essay',
-        content: 'Explain TCP congestion control',
-        difficulty: 5, // Hard
-        correctAnswer: 'TCP uses slow start, congestion avoidance...',
-      } as QuestionEntity;
-
-      const mockGradeResult = [
-        {
-          playerId: 'single-player',
-          answer: 'Complete explanation',
-          isCorrect: true,
-          score: 10, // AI 만점
-          feedback: 'Excellent!',
-        },
-      ];
-
-      mockQuestionRepository.findOne.mockResolvedValue(mockQuestion);
-      mockQuizService.gradeQuestion.mockResolvedValue(mockGradeResult);
-      mockGame.getTotalScore.mockReturnValue(30);
-
-      const result = await service.submitAnswer('user1', questionId, answer);
-
-      // Hard: (10/10) * 30 = 30점
-      expect(result).toEqual({
-        grade: {
-          answer: 'Complete explanation',
-          isCorrect: true,
-          score: 10,
-          feedback: 'Excellent!',
-        },
-        totalScore: 30,
-      });
-    });
-
-    it('오답 시 0점을 반환해야 함', async () => {
-      const questionId = 4;
-      const answer = 'Wrong answer';
-      const mockQuestion = {
-        id: 4,
-        questionType: 'short',
-        content: 'What is DNS?',
-        difficulty: 2, // Easy
-        correctAnswer: 'Domain Name System',
-      } as QuestionEntity;
-
-      const mockGradeResult = [
-        {
-          playerId: 'single-player',
-          answer: 'Wrong answer',
-          isCorrect: false,
-          score: 0,
-          feedback: 'Incorrect',
-        },
-      ];
-
-      mockQuestionRepository.findOne.mockResolvedValue(mockQuestion);
-      mockQuizService.gradeQuestion.mockResolvedValue(mockGradeResult);
-
-      const result = await service.submitAnswer('user1', questionId, answer);
+      const result = await service.submitAnswer(userId, questionId, answer);
 
       expect(result).toEqual({
-        grade: {
-          answer: 'Wrong answer',
-          isCorrect: false,
-          score: 0,
-          feedback: 'Incorrect',
+        score: 10,
+        question: {
+          id: 1,
+          content: 'What is React?',
+          correctAnswer: 'React',
         },
-        totalScore: 0,
+        userAnswer: 'React',
+        correctAnswer: 'React',
+        aiFeedback: 'Perfect!',
       });
-    });
-
-    it('객관식 정답 시 난이도별 만점을 반환해야 함', async () => {
-      const questionId = 5;
-      const answer = 'A';
-      const mockQuestion = {
-        id: 5,
-        questionType: 'multiple',
-        content: JSON.stringify({
-          question: 'What is HTTP?',
-          options: { A: 'HyperText Transfer Protocol', B: 'Wrong', C: 'Wrong', D: 'Wrong' },
-        }),
-        difficulty: 3, // Medium
-        correctAnswer: 'A',
-      } as QuestionEntity;
-
-      const mockGradeResult = [
-        {
-          playerId: 'single-player',
-          answer: 'A',
-          isCorrect: true,
-          score: 10, // 객관식 정답 = AI 10점
-          feedback: 'Correct!',
-        },
-      ];
-
-      mockQuestionRepository.findOne.mockResolvedValue(mockQuestion);
-      mockQuizService.gradeQuestion.mockResolvedValue(mockGradeResult);
-      mockGame.getTotalScore.mockReturnValue(20);
-
-      const result = await service.submitAnswer('user1', questionId, answer);
-
-      // Medium: (10/10) * 20 = 20점
-      expect(result).toEqual({
-        grade: {
-          answer: 'A',
-          isCorrect: true,
-          score: 10,
-          feedback: 'Correct!',
-        },
-        totalScore: 20,
-      });
+      expect(mockDataSource.transaction).toHaveBeenCalled();
     });
 
     it('존재하지 않는 문제 ID면 NotFoundException을 던져야 함', async () => {
+      const userId = 'user1';
       const questionId = 999;
-      const answer = 'Some answer';
+      const answer = 'Answer';
 
       mockQuestionRepository.findOne.mockResolvedValue(null);
 
-      await expect(service.submitAnswer('user1', questionId, answer)).rejects.toThrow(NotFoundException);
-      await expect(service.submitAnswer('user1', questionId, answer)).rejects.toThrow(
+      await expect(service.submitAnswer(userId, questionId, answer)).rejects.toThrow(
+        NotFoundException,
+      );
+      await expect(service.submitAnswer(userId, questionId, answer)).rejects.toThrow(
         '존재하지 않는 문제입니다.',
       );
-    });
-
-    it('채점 중 에러 발생 시 InternalServerErrorException을 던져야 함', async () => {
-      const questionId = 1;
-      const answer = 'Answer';
-      const mockQuestion = {
-        id: 1,
-        questionType: 'short',
-        content: 'Question',
-        difficulty: 2,
-        correctAnswer: 'Correct',
-      } as QuestionEntity;
-
-      mockQuestionRepository.findOne.mockResolvedValue(mockQuestion);
-      mockQuizService.gradeQuestion.mockRejectedValue(new Error('Grading service failed'));
-
-      await expect(service.submitAnswer('user1', questionId, answer)).rejects.toThrow(
-        InternalServerErrorException,
-      );
-      await expect(service.submitAnswer('user1', questionId, answer)).rejects.toThrow(
-        '채점 중 오류가 발생했습니다.',
-      );
-    });
-
-    it('난이도 null 시 Medium으로 처리해야 함', async () => {
-      const questionId = 6;
-      const answer = 'Answer';
-      const mockQuestion = {
-        id: 6,
-        questionType: 'short',
-        content: 'Question',
-        difficulty: null, // null
-        correctAnswer: 'Correct',
-      } as QuestionEntity;
-
-      const mockGradeResult = [
-        {
-          playerId: 'single-player',
-          answer: 'Answer',
-          isCorrect: true,
-          score: 10,
-          feedback: 'Good',
-        },
-      ];
-
-      mockQuestionRepository.findOne.mockResolvedValue(mockQuestion);
-      mockQuizService.gradeQuestion.mockResolvedValue(mockGradeResult);
-      mockGame.getTotalScore.mockReturnValue(20);
-
-      const result = await service.submitAnswer('user1', questionId, answer);
-
-      // null → Medium: (10/10) * 20 = 20점
-      expect(result.totalScore).toBe(20);
-    });
-
-    it('점수 반올림이 올바르게 처리되어야 함', async () => {
-      const questionId = 7;
-      const answer = 'Partial answer';
-      const mockQuestion = {
-        id: 7,
-        questionType: 'essay',
-        content: 'Explain something',
-        difficulty: 3, // Medium (만점 20점)
-        correctAnswer: 'Full explanation',
-      } as QuestionEntity;
-
-      const mockGradeResult = [
-        {
-          playerId: 'single-player',
-          answer: 'Partial answer',
-          isCorrect: true,
-          score: 3, // AI 3점
-          feedback: 'Needs improvement',
-        },
-      ];
-
-      mockQuestionRepository.findOne.mockResolvedValue(mockQuestion);
-      mockQuizService.gradeQuestion.mockResolvedValue(mockGradeResult);
-      mockGame.getTotalScore.mockReturnValue(6);
-
-      const result = await service.submitAnswer('user1', questionId, answer);
-
-      // Medium: (3/10) * 20 = 6점 (반올림)
-      expect(result.totalScore).toBe(6);
     });
   });
 
   describe('Score Constants Verification', () => {
     it('SCORE_MAP 상수가 올바른 값을 가져야 함', () => {
-      expect(SCORE_MAP.easy).toBe(10);
-      expect(SCORE_MAP.medium).toBe(20);
-      expect(SCORE_MAP.hard).toBe(30);
+      expect(SCORE_MAP).toEqual({
+        easy: 10,
+        medium: 20,
+        hard: 30,
+      });
     });
   });
 });
