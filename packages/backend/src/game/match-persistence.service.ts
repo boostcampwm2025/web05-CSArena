@@ -331,10 +331,14 @@ export class MatchPersistenceService {
       where: { userId: loserId },
     });
 
-    if (!winnerStats || !loserStats) {
-      this.logger.error(`UserStatistics 없음 - winner: ${winnerId}, loser: ${loserId}`);
+    if (!winnerStats) {
+      throw new Error(
+        `UserStatistics not found for winner userId: ${winnerId}. Cannot update ELO.`,
+      );
+    }
 
-      return;
+    if (!loserStats) {
+      throw new Error(`UserStatistics not found for loser userId: ${loserId}. Cannot update ELO.`);
     }
 
     const winnerElo = winnerStats.tierPoint || 1000;
@@ -359,7 +363,7 @@ export class MatchPersistenceService {
     await manager.update(UserStatistics, { userId: winnerId }, { tierPoint: winnerNewRating });
     await manager.update(UserStatistics, { userId: loserId }, { tierPoint: loserNewRating });
 
-    // 티어 변동 히스토리 기록 (선택 사항)
+    // 티어 변동 히스토리 기록
     await this.recordTierHistory(manager, winnerId, winnerNewRating);
     await this.recordTierHistory(manager, loserId, loserNewRating);
   }
