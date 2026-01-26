@@ -4,13 +4,16 @@ import { UserController } from '../../src/user/user.controller';
 import { UserService } from '../../src/user/user.service';
 import { AuthenticatedUser } from '../../src/auth/strategies/jwt.strategy';
 import { MyPageResponseDto } from '../../src/user/dto/mypage-response.dto';
+import { TierHistoryResponseDto } from '../../src/user/dto/tier-history-response.dto';
+import { MatchHistoryResponseDto } from '../../src/user/dto/match-history-response.dto';
 
 describe('UserController', () => {
   let controller: UserController;
-  let userService: UserService;
 
   const mockUserService = {
     getMyPageData: jest.fn(),
+    getTierHistory: jest.fn(),
+    getMatchHistory: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -25,7 +28,6 @@ describe('UserController', () => {
     }).compile();
 
     controller = module.get<UserController>(UserController);
-    userService = module.get<UserService>(UserService);
   });
 
   afterEach(() => {
@@ -42,21 +44,17 @@ describe('UserController', () => {
 
     const mockMyPageResponse: MyPageResponseDto = {
       profile: {
-        id: 1,
         nickname: 'testuser',
         profileImage: 'https://avatars.githubusercontent.com/u/123',
         email: 'test@example.com',
-        oauthProvider: 'github',
         createdAt: new Date('2025-01-15T10:30:00Z'),
       },
       rank: {
         tier: 'gold',
         tierPoint: 1250,
-        ranking: 42,
       },
       level: {
         level: 42,
-        expPoint: 4200,
         expForCurrentLevel: 0,
         expForNextLevel: 100,
       },
@@ -64,6 +62,7 @@ describe('UserController', () => {
         totalMatches: 100,
         winCount: 60,
         loseCount: 40,
+        drawCount: 0,
         winRate: 60.0,
       },
       problemStats: {
@@ -72,42 +71,6 @@ describe('UserController', () => {
         incorrectCount: 50,
         partialCount: 20,
         correctRate: 72.0,
-      },
-      categoryAnalysis: {
-        strong: [
-          {
-            categoryId: 1,
-            categoryName: '네트워크',
-            correctRate: 85.5,
-            totalCount: 50,
-            correctCount: 43,
-          },
-        ],
-        weak: [
-          {
-            categoryId: 2,
-            categoryName: '운영체제',
-            correctRate: 55.0,
-            totalCount: 30,
-            correctCount: 17,
-          },
-        ],
-        all: [
-          {
-            categoryId: 1,
-            categoryName: '네트워크',
-            correctRate: 85.5,
-            totalCount: 50,
-            correctCount: 43,
-          },
-          {
-            categoryId: 2,
-            categoryName: '운영체제',
-            correctRate: 55.0,
-            totalCount: 30,
-            correctCount: 17,
-          },
-        ],
       },
     };
 
@@ -142,6 +105,84 @@ describe('UserController', () => {
       await controller.getMyPage(userWithStringId);
 
       expect(mockUserService.getMyPageData).toHaveBeenCalledWith(999);
+    });
+  });
+
+  describe('GET /users/me/tier-history', () => {
+    const mockUser: AuthenticatedUser = {
+      id: '1',
+      visibleId: 'user-123',
+      nickname: 'testuser',
+      oauthProvider: 'github',
+    };
+
+    const mockTierHistoryResponse: TierHistoryResponseDto = {
+      tierHistory: [
+        {
+          tier: 'gold',
+          tierPoint: 1250,
+          changedAt: new Date('2025-01-15T10:30:00Z'),
+        },
+        {
+          tier: 'gold',
+          tierPoint: 1200,
+          changedAt: new Date('2025-01-14T10:30:00Z'),
+        },
+      ],
+    };
+
+    it('티어 히스토리를 반환해야 함', async () => {
+      mockUserService.getTierHistory.mockResolvedValue(mockTierHistoryResponse);
+
+      const result = await controller.getTierHistory(mockUser);
+
+      expect(result).toEqual(mockTierHistoryResponse);
+      expect(mockUserService.getTierHistory).toHaveBeenCalledWith(1);
+    });
+  });
+
+  describe('GET /users/me/match-history', () => {
+    const mockUser: AuthenticatedUser = {
+      id: '1',
+      visibleId: 'user-123',
+      nickname: 'testuser',
+      oauthProvider: 'github',
+    };
+
+    const mockMatchHistoryResponse: MatchHistoryResponseDto = {
+      matchHistory: [
+        {
+          type: 'multi',
+          match: {
+            opponent: {
+              nickname: 'opponent',
+              profileImage: null,
+            },
+            result: 'win',
+            myScore: 100,
+            opponentScore: 80,
+            tierPointChange: 25,
+            playedAt: new Date('2025-01-15T10:30:00Z'),
+          },
+        },
+        {
+          type: 'single',
+          match: {
+            category: { name: '네트워크' },
+            expGained: 30,
+            playedAt: new Date('2025-01-15T11:00:00Z'),
+          },
+        },
+      ],
+    };
+
+    it('매치 히스토리를 반환해야 함', async () => {
+      mockUserService.getMatchHistory.mockResolvedValue(mockMatchHistoryResponse);
+
+      const result = await controller.getMatchHistory(mockUser);
+
+      expect(result).toEqual(mockMatchHistoryResponse);
+      expect(mockUserService.getMatchHistory).toHaveBeenCalledWith(1);
     });
   });
 });

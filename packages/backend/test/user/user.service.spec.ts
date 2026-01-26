@@ -2,8 +2,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { NotFoundException } from '@nestjs/common';
 import { UserService } from '../../src/user/user.service';
-import { User, UserStatistics } from '../../src/user/entity';
+import { User } from '../../src/user/entity';
 import { UserProblemBank } from '../../src/problem-bank/entity';
+import { UserTierHistory } from '../../src/tier/entity/user-tier-history.entity';
+import { Match } from '../../src/match/entity/match.entity';
 
 describe('UserService', () => {
   let service: UserService;
@@ -12,12 +14,17 @@ describe('UserService', () => {
     findOne: jest.fn(),
   };
 
-  const mockUserStatisticsRepository = {
+  const mockUserProblemBankRepository = {
     createQueryBuilder: jest.fn(),
   };
 
-  const mockUserProblemBankRepository = {
-    createQueryBuilder: jest.fn(),
+  const mockUserTierHistoryRepository = {
+    find: jest.fn(),
+    findOne: jest.fn(),
+  };
+
+  const mockMatchRepository = {
+    find: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -29,12 +36,16 @@ describe('UserService', () => {
           useValue: mockUserRepository,
         },
         {
-          provide: getRepositoryToken(UserStatistics),
-          useValue: mockUserStatisticsRepository,
-        },
-        {
           provide: getRepositoryToken(UserProblemBank),
           useValue: mockUserProblemBankRepository,
+        },
+        {
+          provide: getRepositoryToken(UserTierHistory),
+          useValue: mockUserTierHistoryRepository,
+        },
+        {
+          provide: getRepositoryToken(Match),
+          useValue: mockMatchRepository,
         },
       ],
     }).compile();
@@ -70,70 +81,45 @@ describe('UserService', () => {
     it('사용자 프로필 정보를 정확하게 반환해야 함', async () => {
       mockUserRepository.findOne.mockResolvedValue(mockUser);
 
-      mockUserStatisticsRepository.createQueryBuilder.mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        getRawOne: jest.fn().mockResolvedValue({ ranking: '42' }),
-      });
-
       mockUserProblemBankRepository.createQueryBuilder.mockReturnValue({
         select: jest.fn().mockReturnThis(),
         addSelect: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
-        innerJoin: jest.fn().mockReturnThis(),
-        groupBy: jest.fn().mockReturnThis(),
-        addGroupBy: jest.fn().mockReturnThis(),
-        having: jest.fn().mockReturnThis(),
         getRawOne: jest.fn().mockResolvedValue({
           totalSolved: '250',
           correctCount: '180',
           incorrectCount: '50',
           partialCount: '20',
         }),
-        getRawMany: jest.fn().mockResolvedValue([]),
       });
 
       const result = await service.getMyPageData(userId);
 
       expect(result.profile).toEqual({
-        id: 1,
         nickname: 'testuser',
         profileImage: 'https://avatars.githubusercontent.com/u/123',
         email: 'test@example.com',
-        oauthProvider: 'github',
         createdAt: mockCreatedAt,
       });
     });
 
-    it('랭킹을 정확하게 계산해야 함', async () => {
+    it('티어 정보를 정확하게 반환해야 함', async () => {
       mockUserRepository.findOne.mockResolvedValue(mockUser);
-
-      mockUserStatisticsRepository.createQueryBuilder.mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        getRawOne: jest.fn().mockResolvedValue({ ranking: '42' }),
-      });
 
       mockUserProblemBankRepository.createQueryBuilder.mockReturnValue({
         select: jest.fn().mockReturnThis(),
         addSelect: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
-        innerJoin: jest.fn().mockReturnThis(),
-        groupBy: jest.fn().mockReturnThis(),
-        addGroupBy: jest.fn().mockReturnThis(),
-        having: jest.fn().mockReturnThis(),
         getRawOne: jest.fn().mockResolvedValue({
           totalSolved: '0',
           correctCount: '0',
           incorrectCount: '0',
           partialCount: '0',
         }),
-        getRawMany: jest.fn().mockResolvedValue([]),
       });
 
       const result = await service.getMyPageData(userId);
 
-      expect(result.rank.ranking).toBe(42);
       expect(result.rank.tier).toBe('gold');
       expect(result.rank.tierPoint).toBe(1250);
     });
@@ -141,34 +127,22 @@ describe('UserService', () => {
     it('레벨 정보를 정확하게 계산해야 함', async () => {
       mockUserRepository.findOne.mockResolvedValue(mockUser);
 
-      mockUserStatisticsRepository.createQueryBuilder.mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        getRawOne: jest.fn().mockResolvedValue({ ranking: '1' }),
-      });
-
       mockUserProblemBankRepository.createQueryBuilder.mockReturnValue({
         select: jest.fn().mockReturnThis(),
         addSelect: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
-        innerJoin: jest.fn().mockReturnThis(),
-        groupBy: jest.fn().mockReturnThis(),
-        addGroupBy: jest.fn().mockReturnThis(),
-        having: jest.fn().mockReturnThis(),
         getRawOne: jest.fn().mockResolvedValue({
           totalSolved: '0',
           correctCount: '0',
           incorrectCount: '0',
           partialCount: '0',
         }),
-        getRawMany: jest.fn().mockResolvedValue([]),
       });
 
       const result = await service.getMyPageData(userId);
 
       expect(result.level).toEqual({
         level: 42,
-        expPoint: 4200,
         expForCurrentLevel: 0,
         expForNextLevel: 100,
       });
@@ -177,27 +151,16 @@ describe('UserService', () => {
     it('매치 통계를 정확하게 계산해야 함', async () => {
       mockUserRepository.findOne.mockResolvedValue(mockUser);
 
-      mockUserStatisticsRepository.createQueryBuilder.mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        getRawOne: jest.fn().mockResolvedValue({ ranking: '1' }),
-      });
-
       mockUserProblemBankRepository.createQueryBuilder.mockReturnValue({
         select: jest.fn().mockReturnThis(),
         addSelect: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
-        innerJoin: jest.fn().mockReturnThis(),
-        groupBy: jest.fn().mockReturnThis(),
-        addGroupBy: jest.fn().mockReturnThis(),
-        having: jest.fn().mockReturnThis(),
         getRawOne: jest.fn().mockResolvedValue({
           totalSolved: '0',
           correctCount: '0',
           incorrectCount: '0',
           partialCount: '0',
         }),
-        getRawMany: jest.fn().mockResolvedValue([]),
       });
 
       const result = await service.getMyPageData(userId);
@@ -206,6 +169,7 @@ describe('UserService', () => {
         totalMatches: 100,
         winCount: 60,
         loseCount: 40,
+        drawCount: 0,
         winRate: 60,
       });
     });
@@ -213,27 +177,16 @@ describe('UserService', () => {
     it('문제 풀이 통계를 정확하게 계산해야 함', async () => {
       mockUserRepository.findOne.mockResolvedValue(mockUser);
 
-      mockUserStatisticsRepository.createQueryBuilder.mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        getRawOne: jest.fn().mockResolvedValue({ ranking: '1' }),
-      });
-
       mockUserProblemBankRepository.createQueryBuilder.mockReturnValue({
         select: jest.fn().mockReturnThis(),
         addSelect: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
-        innerJoin: jest.fn().mockReturnThis(),
-        groupBy: jest.fn().mockReturnThis(),
-        addGroupBy: jest.fn().mockReturnThis(),
-        having: jest.fn().mockReturnThis(),
         getRawOne: jest.fn().mockResolvedValue({
           totalSolved: '250',
           correctCount: '180',
           incorrectCount: '50',
           partialCount: '20',
         }),
-        getRawMany: jest.fn().mockResolvedValue([]),
       });
 
       const result = await service.getMyPageData(userId);
@@ -245,84 +198,6 @@ describe('UserService', () => {
         partialCount: 20,
         correctRate: 72,
       });
-    });
-
-    it('카테고리 분석에서 5문제 미만인 카테고리는 제외해야 함', async () => {
-      mockUserRepository.findOne.mockResolvedValue(mockUser);
-
-      mockUserStatisticsRepository.createQueryBuilder.mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        getRawOne: jest.fn().mockResolvedValue({ ranking: '1' }),
-      });
-
-      const mockCategoryResults = [
-        { categoryId: '1', categoryName: '네트워크', totalCount: '50', correctCount: '43' },
-        { categoryId: '2', categoryName: '운영체제', totalCount: '30', correctCount: '17' },
-      ];
-
-      mockUserProblemBankRepository.createQueryBuilder.mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        addSelect: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        innerJoin: jest.fn().mockReturnThis(),
-        groupBy: jest.fn().mockReturnThis(),
-        addGroupBy: jest.fn().mockReturnThis(),
-        having: jest.fn().mockReturnThis(),
-        getRawOne: jest.fn().mockResolvedValue({
-          totalSolved: '0',
-          correctCount: '0',
-          incorrectCount: '0',
-          partialCount: '0',
-        }),
-        getRawMany: jest.fn().mockResolvedValue(mockCategoryResults),
-      });
-
-      const result = await service.getMyPageData(userId);
-
-      expect(result.categoryAnalysis.all).toHaveLength(2);
-    });
-
-    it('강한 카테고리(70% 이상)와 약한 카테고리(70% 미만)를 분류해야 함', async () => {
-      mockUserRepository.findOne.mockResolvedValue(mockUser);
-
-      mockUserStatisticsRepository.createQueryBuilder.mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        getRawOne: jest.fn().mockResolvedValue({ ranking: '1' }),
-      });
-
-      const mockCategoryResults = [
-        { categoryId: '1', categoryName: '네트워크', totalCount: '50', correctCount: '43' },
-        { categoryId: '2', categoryName: '운영체제', totalCount: '30', correctCount: '17' },
-      ];
-
-      mockUserProblemBankRepository.createQueryBuilder.mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        addSelect: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        innerJoin: jest.fn().mockReturnThis(),
-        groupBy: jest.fn().mockReturnThis(),
-        addGroupBy: jest.fn().mockReturnThis(),
-        having: jest.fn().mockReturnThis(),
-        getRawOne: jest.fn().mockResolvedValue({
-          totalSolved: '0',
-          correctCount: '0',
-          incorrectCount: '0',
-          partialCount: '0',
-        }),
-        getRawMany: jest.fn().mockResolvedValue(mockCategoryResults),
-      });
-
-      const result = await service.getMyPageData(userId);
-
-      expect(result.categoryAnalysis.strong).toHaveLength(1);
-      expect(result.categoryAnalysis.strong[0].categoryName).toBe('네트워크');
-      expect(result.categoryAnalysis.strong[0].correctRate).toBe(86);
-
-      expect(result.categoryAnalysis.weak).toHaveLength(1);
-      expect(result.categoryAnalysis.weak[0].categoryName).toBe('운영체제');
-      expect(result.categoryAnalysis.weak[0].correctRate).toBe(56.7);
     });
 
     it('존재하지 않는 사용자에 대해 NotFoundException을 던져야 함', async () => {
@@ -340,27 +215,16 @@ describe('UserService', () => {
 
       mockUserRepository.findOne.mockResolvedValue(userWithoutStats);
 
-      mockUserStatisticsRepository.createQueryBuilder.mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        getRawOne: jest.fn().mockResolvedValue({ ranking: '1' }),
-      });
-
       mockUserProblemBankRepository.createQueryBuilder.mockReturnValue({
         select: jest.fn().mockReturnThis(),
         addSelect: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
-        innerJoin: jest.fn().mockReturnThis(),
-        groupBy: jest.fn().mockReturnThis(),
-        addGroupBy: jest.fn().mockReturnThis(),
-        having: jest.fn().mockReturnThis(),
         getRawOne: jest.fn().mockResolvedValue({
           totalSolved: '0',
           correctCount: '0',
           incorrectCount: '0',
           partialCount: '0',
         }),
-        getRawMany: jest.fn().mockResolvedValue([]),
       });
 
       const result = await service.getMyPageData(userId);
@@ -372,204 +236,159 @@ describe('UserService', () => {
     });
   });
 
-  describe('getUserRanking', () => {
-    it('tierPoint가 높을수록 낮은 순위를 반환해야 함', async () => {
-      const mockUser = {
-        id: 1,
-        nickname: 'testuser',
-        userProfile: null,
-        email: null,
-        oauthProvider: 'github' as const,
-        createdAt: new Date(),
-        statistics: {
-          tierPoint: 2000,
-          expPoint: 0,
-          totalMatches: 0,
-          winCount: 0,
-          loseCount: 0,
+  describe('getTierHistory', () => {
+    it('티어 히스토리를 반환해야 함', async () => {
+      const mockHistories = [
+        {
+          id: 1,
+          userId: 1,
+          tierPoint: 1250,
+          updatedAt: new Date('2025-01-15T10:30:00Z'),
+          tier: { name: 'gold' },
         },
-      };
+        {
+          id: 2,
+          userId: 1,
+          tierPoint: 1200,
+          updatedAt: new Date('2025-01-14T10:30:00Z'),
+          tier: { name: 'gold' },
+        },
+      ];
 
-      mockUserRepository.findOne.mockResolvedValue(mockUser);
+      mockUserTierHistoryRepository.find.mockResolvedValue(mockHistories);
 
-      mockUserStatisticsRepository.createQueryBuilder.mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        getRawOne: jest.fn().mockResolvedValue({ ranking: '1' }),
-      });
+      const result = await service.getTierHistory(1);
 
-      mockUserProblemBankRepository.createQueryBuilder.mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        addSelect: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        innerJoin: jest.fn().mockReturnThis(),
-        groupBy: jest.fn().mockReturnThis(),
-        addGroupBy: jest.fn().mockReturnThis(),
-        having: jest.fn().mockReturnThis(),
-        getRawOne: jest.fn().mockResolvedValue({
-          totalSolved: '0',
-          correctCount: '0',
-          incorrectCount: '0',
-          partialCount: '0',
-        }),
-        getRawMany: jest.fn().mockResolvedValue([]),
-      });
-
-      const result = await service.getMyPageData(1);
-
-      expect(result.rank.ranking).toBe(1);
+      expect(result.tierHistory).toHaveLength(2);
+      expect(result.tierHistory[0].tier).toBe('gold');
+      expect(result.tierHistory[0].tierPoint).toBe(1250);
     });
 
-    it('동일 tierPoint 시 동일 순위를 반환해야 함', async () => {
-      const mockUser = {
-        id: 1,
-        nickname: 'testuser',
-        userProfile: null,
-        email: null,
-        oauthProvider: 'github' as const,
-        createdAt: new Date(),
-        statistics: {
-          tierPoint: 1000,
-          expPoint: 0,
-          totalMatches: 0,
-          winCount: 0,
-          loseCount: 0,
+    it('티어 정보가 없으면 tierPoint로 계산해야 함', async () => {
+      const mockHistories = [
+        {
+          id: 1,
+          userId: 1,
+          tierPoint: 1500,
+          updatedAt: new Date('2025-01-15T10:30:00Z'),
+          tier: null,
         },
-      };
+      ];
 
-      mockUserRepository.findOne.mockResolvedValue(mockUser);
+      mockUserTierHistoryRepository.find.mockResolvedValue(mockHistories);
 
-      mockUserStatisticsRepository.createQueryBuilder.mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        getRawOne: jest.fn().mockResolvedValue({ ranking: '5' }),
-      });
+      const result = await service.getTierHistory(1);
 
-      mockUserProblemBankRepository.createQueryBuilder.mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        addSelect: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        innerJoin: jest.fn().mockReturnThis(),
-        groupBy: jest.fn().mockReturnThis(),
-        addGroupBy: jest.fn().mockReturnThis(),
-        having: jest.fn().mockReturnThis(),
-        getRawOne: jest.fn().mockResolvedValue({
-          totalSolved: '0',
-          correctCount: '0',
-          incorrectCount: '0',
-          partialCount: '0',
-        }),
-        getRawMany: jest.fn().mockResolvedValue([]),
-      });
-
-      const result = await service.getMyPageData(1);
-
-      expect(result.rank.ranking).toBe(5);
+      expect(result.tierHistory[0].tier).toBe('platinum');
     });
   });
 
-  describe('getCategoryAnalysis', () => {
-    it('대분류 기준으로 통계를 집계해야 함', async () => {
-      const mockUser = {
-        id: 1,
-        nickname: 'testuser',
-        userProfile: null,
-        email: null,
-        oauthProvider: 'github' as const,
-        createdAt: new Date(),
-        statistics: {
-          tierPoint: 1000,
-          expPoint: 0,
-          totalMatches: 0,
-          winCount: 0,
-          loseCount: 0,
+  describe('getMatchHistory', () => {
+    it('멀티플레이 매치 히스토리를 반환해야 함', async () => {
+      const mockMatches = [
+        {
+          id: 1,
+          player1Id: 1,
+          player2Id: 2,
+          winnerId: 1,
+          matchType: 'multi',
+          createdAt: new Date('2025-01-15T10:30:00Z'),
+          player1: { nickname: 'player1', userProfile: null },
+          player2: { nickname: 'opponent', userProfile: 'http://example.com/avatar.png' },
+          rounds: [
+            {
+              answers: [
+                { userId: 1, score: 100, answerStatus: 'correct' },
+                { userId: 2, score: 80, answerStatus: 'correct' },
+              ],
+            },
+          ],
         },
-      };
-
-      mockUserRepository.findOne.mockResolvedValue(mockUser);
-
-      mockUserStatisticsRepository.createQueryBuilder.mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        getRawOne: jest.fn().mockResolvedValue({ ranking: '1' }),
-      });
-
-      const mockCategoryResults = [
-        { categoryId: '1', categoryName: '네트워크', totalCount: '10', correctCount: '8' },
       ];
 
-      mockUserProblemBankRepository.createQueryBuilder.mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        addSelect: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        innerJoin: jest.fn().mockReturnThis(),
-        groupBy: jest.fn().mockReturnThis(),
-        addGroupBy: jest.fn().mockReturnThis(),
-        having: jest.fn().mockReturnThis(),
-        getRawOne: jest.fn().mockResolvedValue({
-          totalSolved: '0',
-          correctCount: '0',
-          incorrectCount: '0',
-          partialCount: '0',
-        }),
-        getRawMany: jest.fn().mockResolvedValue(mockCategoryResults),
-      });
-
-      const result = await service.getMyPageData(1);
-
-      expect(result.categoryAnalysis.all[0].categoryId).toBe(1);
-      expect(result.categoryAnalysis.all[0].categoryName).toBe('네트워크');
-      expect(result.categoryAnalysis.all[0].totalCount).toBe(10);
-      expect(result.categoryAnalysis.all[0].correctCount).toBe(8);
-    });
-
-    it('문제를 풀지 않은 카테고리는 포함하지 않아야 함', async () => {
-      const mockUser = {
-        id: 1,
-        nickname: 'testuser',
-        userProfile: null,
-        email: null,
-        oauthProvider: 'github' as const,
-        createdAt: new Date(),
-        statistics: {
-          tierPoint: 1000,
-          expPoint: 0,
-          totalMatches: 0,
-          winCount: 0,
-          loseCount: 0,
-        },
+      const mockTierHistory = {
+        tierChange: 25,
       };
 
-      mockUserRepository.findOne.mockResolvedValue(mockUser);
+      mockMatchRepository.find.mockResolvedValue(mockMatches);
+      mockUserTierHistoryRepository.findOne.mockResolvedValue(mockTierHistory);
 
-      mockUserStatisticsRepository.createQueryBuilder.mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        getRawOne: jest.fn().mockResolvedValue({ ranking: '1' }),
-      });
+      const result = await service.getMatchHistory(1);
 
-      mockUserProblemBankRepository.createQueryBuilder.mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        addSelect: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        innerJoin: jest.fn().mockReturnThis(),
-        groupBy: jest.fn().mockReturnThis(),
-        addGroupBy: jest.fn().mockReturnThis(),
-        having: jest.fn().mockReturnThis(),
-        getRawOne: jest.fn().mockResolvedValue({
-          totalSolved: '0',
-          correctCount: '0',
-          incorrectCount: '0',
-          partialCount: '0',
-        }),
-        getRawMany: jest.fn().mockResolvedValue([]),
-      });
+      expect(result.matchHistory).toHaveLength(1);
+      expect(result.matchHistory[0].type).toBe('multi');
+      expect(result.matchHistory[0].match).toHaveProperty('result', 'win');
+      expect(result.matchHistory[0].match).toHaveProperty('myScore', 100);
+      expect(result.matchHistory[0].match).toHaveProperty('opponentScore', 80);
+      expect(result.matchHistory[0].match).toHaveProperty('tierPointChange', 25);
+    });
 
-      const result = await service.getMyPageData(1);
+    it('싱글플레이 매치 히스토리를 반환해야 함', async () => {
+      const mockMatches = [
+        {
+          id: 2,
+          player1Id: 1,
+          player2Id: null,
+          winnerId: null,
+          matchType: 'single',
+          createdAt: new Date('2025-01-15T11:00:00Z'),
+          player1: { nickname: 'player1', userProfile: null },
+          player2: null,
+          rounds: [
+            {
+              question: {
+                categoryQuestions: [
+                  {
+                    category: {
+                      name: 'HTTP',
+                      parent: { name: '네트워크' },
+                    },
+                  },
+                ],
+              },
+              answers: [
+                { userId: 1, score: 100, answerStatus: 'correct' },
+              ],
+            },
+          ],
+        },
+      ];
 
-      expect(result.categoryAnalysis.all).toHaveLength(0);
-      expect(result.categoryAnalysis.strong).toHaveLength(0);
-      expect(result.categoryAnalysis.weak).toHaveLength(0);
+      mockMatchRepository.find.mockResolvedValue(mockMatches);
+
+      const result = await service.getMatchHistory(1);
+
+      expect(result.matchHistory).toHaveLength(1);
+      expect(result.matchHistory[0].type).toBe('single');
+      expect(result.matchHistory[0].match).toHaveProperty('category');
+      expect((result.matchHistory[0].match as { category: { name: string } }).category.name).toBe(
+        '네트워크',
+      );
+      expect(result.matchHistory[0].match).toHaveProperty('expGained', 10);
+    });
+
+    it('무승부 결과를 정확히 반환해야 함', async () => {
+      const mockMatches = [
+        {
+          id: 3,
+          player1Id: 1,
+          player2Id: 2,
+          winnerId: null,
+          matchType: 'multi',
+          createdAt: new Date('2025-01-15T12:00:00Z'),
+          player1: { nickname: 'player1', userProfile: null },
+          player2: { nickname: 'opponent', userProfile: null },
+          rounds: [],
+        },
+      ];
+
+      mockMatchRepository.find.mockResolvedValue(mockMatches);
+      mockUserTierHistoryRepository.findOne.mockResolvedValue(null);
+
+      const result = await service.getMatchHistory(1);
+
+      expect(result.matchHistory[0].type).toBe('multi');
+      expect(result.matchHistory[0].match).toHaveProperty('result', 'draw');
     });
   });
 });
