@@ -12,6 +12,7 @@ import { Question } from '../quiz/quiz.types';
 import { mapDifficulty, SCORE_MAP } from '../quiz/quiz.constants';
 import { Match } from '../match/entity';
 import { UserProblemBank } from '../problem-bank/entity';
+import { UserStatistics } from '../user/entity/user-statistics.entity';
 
 @Injectable()
 export class SinglePlayService {
@@ -95,27 +96,36 @@ export class SinglePlayService {
     questionId: number,
     answer: string,
   ): Promise<{
-    score: number;
     grade: { submittedAnswer: string; isCorrect: boolean; aiFeedback: string };
+    expGained: number;
+    curExp: number;
   }> {
     try {
       const question = await this.findQuestionById(questionId);
       const grade = await this.gradeAnswer(question, answer);
       const finalScore = this.calculateFinalScore(question, grade);
 
-      await this.saveAnswerResult(userId, questionId, question, answer, grade);
+      const { expGained, curExp } = await this.saveAnswerResult(
+        userId,
+        questionId,
+        question,
+        answer,
+        grade,
+        finalScore,
+      );
 
       this.logger.log(
         `Answer submitted for user ${userId}, question ${questionId}, score: ${finalScore}`,
       );
 
       return {
-        score: finalScore,
         grade: {
           submittedAnswer: answer,
           isCorrect: grade.isCorrect,
           aiFeedback: grade.feedback,
         },
+        expGained,
+        curExp,
       };
     } catch (error) {
       if (error instanceof NotFoundException) {
@@ -189,10 +199,13 @@ export class SinglePlayService {
     question: QuestionEntity,
     answer: string,
     grade: { isCorrect: boolean; score: number; feedback: string },
-  ): Promise<void> {
-    await this.connection.transaction(async (manager) => {
+    finalScore: number,
+  ): Promise<{ expGained: number; curExp: number }> {
+    return await this.connection.transaction(async (manager) => {
+      const uid = this.parseUserId(userId);
+
       const match = await manager.save(Match, {
-        player1Id: this.parseUserId(userId),
+        player1Id: uid,
         player2Id: null,
         winnerId: null,
         matchType: 'single',
@@ -205,13 +218,29 @@ export class SinglePlayService {
       );
 
       await manager.save(UserProblemBank, {
-        userId: this.parseUserId(userId),
+        userId: uid,
         questionId,
         matchId: match.id,
         userAnswer: answer,
         answerStatus,
         aiFeedback: grade.feedback,
       });
+
+      const updated = await manager
+        .createQueryBuilder()
+        .update(UserStatistics)
+        .set({ expPoint: () => `COALESCE("exp_point", 0) + ${finalScore}` })
+        .where(`"user_id" = :userId`, { userId: uid })
+        .returning(['exp_point'])
+        .execute();
+
+      const rows = updated.raw as { exp_point: number }[];
+      const curExp = rows[0]?.exp_point ?? 0;
+
+      return {
+        expGained: finalScore,
+        curExp,
+      };
     });
   }
 
