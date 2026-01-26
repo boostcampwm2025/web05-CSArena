@@ -11,6 +11,7 @@ import Home from '@/pages/home/Home';
 import Match from '@/pages/match/Match';
 import SinglePlay from '@/pages/single-play/SinglePlay';
 import ProblemBank from '@/pages/problem-bank/ProblemBank';
+import MyPage from '@/pages/my-page/MyPage';
 import { SinglePlayProvider } from '@/feature/single-play/useRound';
 
 export default function App() {
@@ -93,5 +94,7 @@ export default function App() {
       );
     case 'problem-bank':
       return <ProblemBank />;
+    case 'my-page':
+      return <MyPage />;
   }
 }
