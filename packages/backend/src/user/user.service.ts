@@ -3,20 +3,19 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User, UserStatistics } from './entity';
 import { UserProblemBank } from '../problem-bank/entity';
+import { UserTierHistory } from '../tier/entity/user-tier-history.entity';
+import { Match } from '../match/entity/match.entity';
 import {
-  CategoryAnalysisDto,
-  CategoryAnalysisItemDto,
   MatchStatsDto,
   MyPageResponseDto,
   ProblemStatsDto,
   ProfileDto,
   RankDto,
 } from './dto/mypage-response.dto';
+import { TierHistoryResponseDto } from './dto/tier-history-response.dto';
+import { MatchHistoryItemDto, MatchHistoryResponseDto } from './dto/match-history-response.dto';
 import { calculateLevel } from '../common/utils/level.util';
 import { calculateTier } from '../common/utils/tier.util';
-
-const STRONG_THRESHOLD = 70;
-const MIN_PROBLEMS_FOR_ANALYSIS = 5;
 
 interface ProblemStatsRaw {
   totalSolved: string;
@@ -25,26 +24,17 @@ interface ProblemStatsRaw {
   partialCount: string;
 }
 
-interface RankingRaw {
-  ranking: string;
-}
-
-interface CategoryAnalysisRaw {
-  categoryId: string;
-  categoryName: string;
-  totalCount: string;
-  correctCount: string;
-}
-
 @Injectable()
 export class UserService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
-    @InjectRepository(UserStatistics)
-    private readonly userStatisticsRepository: Repository<UserStatistics>,
     @InjectRepository(UserProblemBank)
     private readonly userProblemBankRepository: Repository<UserProblemBank>,
+    @InjectRepository(UserTierHistory)
+    private readonly userTierHistoryRepository: Repository<UserTierHistory>,
+    @InjectRepository(Match)
+    private readonly matchRepository: Repository<Match>,
   ) {}
 
   async getMyPageData(userId: number): Promise<MyPageResponseDto> {
@@ -62,13 +52,13 @@ export class UserService {
     const tierPoint = stats?.tierPoint ?? 0;
     const expPoint = stats?.expPoint ?? 0;
 
-    const [ranking, categoryAnalysis] = await Promise.all([
-      this.getUserRanking(tierPoint),
-      this.getCategoryAnalysis(userId),
-    ]);
-
-    const rank = this.buildRank(tierPoint, ranking);
-    const level = calculateLevel(expPoint);
+    const rank = this.buildRank(tierPoint);
+    const levelInfo = calculateLevel(expPoint);
+    const level = {
+      level: levelInfo.level,
+      expForCurrentLevel: levelInfo.expForCurrentLevel,
+      expForNextLevel: levelInfo.expForNextLevel,
+    };
     const matchStats = this.buildMatchStats(stats);
     const problemStats = await this.buildProblemStats(userId);
 
@@ -78,26 +68,148 @@ export class UserService {
       level,
       matchStats,
       problemStats,
-      categoryAnalysis,
     };
+  }
+
+  async getTierHistory(userId: number): Promise<TierHistoryResponseDto> {
+    const histories = await this.userTierHistoryRepository.find({
+      where: { userId },
+      relations: ['tier'],
+      order: { updatedAt: 'DESC' },
+    });
+
+    const tierHistory = histories.map((h) => ({
+      tier: h.tier?.name ?? calculateTier(h.tierPoint ?? 0),
+      tierPoint: h.tierPoint ?? 0,
+      changedAt: h.updatedAt,
+    }));
+
+    return { tierHistory };
+  }
+
+  async getMatchHistory(userId: number): Promise<MatchHistoryResponseDto> {
+    const matches = await this.matchRepository.find({
+      where: [{ player1Id: userId }, { player2Id: userId }],
+      relations: [
+        'player1',
+        'player2',
+        'rounds',
+        'rounds.answers',
+        'rounds.question',
+        'rounds.question.categoryQuestions',
+        'rounds.question.categoryQuestions.category',
+        'rounds.question.categoryQuestions.category.parent',
+      ],
+      order: { createdAt: 'DESC' },
+      take: 10,
+    });
+
+    const matchHistory = await Promise.all(
+      matches.map((match) =>
+        match.matchType === 'multi'
+          ? this.buildMultiMatchHistory(match, userId)
+          : Promise.resolve(this.buildSingleMatchHistory(match, userId)),
+      ),
+    );
+
+    return { matchHistory };
+  }
+
+  private async buildMultiMatchHistory(match: Match, userId: number): Promise<MatchHistoryItemDto> {
+    const isPlayer1 = Number(match.player1Id) === userId;
+    const opponent = isPlayer1 ? match.player2 : match.player1;
+
+    const { myScore, opponentScore } = this.calculateScores(match, userId);
+
+    const result =
+      match.winnerId === null ? 'draw' : Number(match.winnerId) === userId ? 'win' : 'lose';
+
+    const tierHistory = await this.userTierHistoryRepository.findOne({
+      where: { userId, matchId: Number(match.id) },
+    });
+    const tierPointChange = tierHistory?.tierChange ?? 0;
+
+    return {
+      type: 'multi',
+      match: {
+        opponent: {
+          nickname: opponent?.nickname ?? 'Unknown',
+          profileImage: opponent?.userProfile ?? null,
+        },
+        result,
+        myScore,
+        opponentScore,
+        tierPointChange,
+        playedAt: match.createdAt,
+      },
+    };
+  }
+
+  private buildSingleMatchHistory(match: Match, userId: number): MatchHistoryItemDto {
+    const firstQuestion = match.rounds?.[0]?.question;
+    const category = firstQuestion?.categoryQuestions?.[0]?.category;
+    const categoryName = category?.parent?.name ?? category?.name ?? 'Unknown';
+
+    const correctCount = this.countCorrectAnswers(match, userId);
+    const expGained = correctCount * 10;
+
+    return {
+      type: 'single',
+      match: {
+        category: { name: categoryName },
+        expGained,
+        playedAt: match.createdAt,
+      },
+    };
+  }
+
+  private calculateScores(
+    match: Match,
+    userId: number,
+  ): { myScore: number; opponentScore: number } {
+    let myScore = 0;
+    let opponentScore = 0;
+
+    for (const round of match.rounds ?? []) {
+      for (const answer of round.answers ?? []) {
+        if (Number(answer.userId) === userId) {
+          myScore += answer.score ?? 0;
+        } else {
+          opponentScore += answer.score ?? 0;
+        }
+      }
+    }
+
+    return { myScore, opponentScore };
+  }
+
+  private countCorrectAnswers(match: Match, userId: number): number {
+    let count = 0;
+
+    for (const round of match.rounds ?? []) {
+      for (const answer of round.answers ?? []) {
+        if (Number(answer.userId) === userId && answer.answerStatus === 'correct') {
+          count++;
+        }
+      }
+    }
+
+    return count;
   }
 
   private buildProfile(user: User): ProfileDto {
     return {
-      id: Number(user.id),
       nickname: user.nickname,
       profileImage: user.userProfile,
       email: user.email,
-      oauthProvider: user.oauthProvider,
       createdAt: user.createdAt,
     };
   }
 
-  private buildRank(tierPoint: number, ranking: number): RankDto {
+  private buildRank(tierPoint: number): RankDto {
     return {
       tier: calculateTier(tierPoint),
       tierPoint,
-      ranking,
     };
   }
 
@@ -105,12 +217,14 @@ export class UserService {
     const totalMatches = stats?.totalMatches ?? 0;
     const winCount = stats?.winCount ?? 0;
     const loseCount = stats?.loseCount ?? 0;
+    const drawCount = Math.max(0, totalMatches - winCount - loseCount);
     const winRate = totalMatches > 0 ? Math.round((winCount / totalMatches) * 1000) / 10 : 0;
 
     return {
       totalMatches,
       winCount,
       loseCount,
+      drawCount,
       winRate,
     };
   }
@@ -141,52 +255,5 @@ export class UserService {
       partialCount,
       correctRate,
     };
-  }
-
-  private async getUserRanking(tierPoint: number): Promise<number> {
-    const result = await this.userStatisticsRepository
-      .createQueryBuilder('us')
-      .select('COUNT(*) + 1', 'ranking')
-      .where('us.tier_point > :tierPoint', { tierPoint })
-      .getRawOne<RankingRaw>();
-
-    return Number(result?.ranking ?? 1);
-  }
-
-  private async getCategoryAnalysis(userId: number): Promise<CategoryAnalysisDto> {
-    const rawResults = await this.userProblemBankRepository
-      .createQueryBuilder('upb')
-      .select('parent.id', 'categoryId')
-      .addSelect('parent.name', 'categoryName')
-      .addSelect('COUNT(upb.id)', 'totalCount')
-      .addSelect("SUM(CASE WHEN upb.answer_status = 'correct' THEN 1 ELSE 0 END)", 'correctCount')
-      .innerJoin('questions', 'q', 'upb.question_id = q.id')
-      .innerJoin('category_questions', 'cq', 'q.id = cq.question_id')
-      .innerJoin('categories', 'child', 'cq.category_id = child.id')
-      .innerJoin('categories', 'parent', 'child.parent_id = parent.id')
-      .where('upb.user_id = :userId', { userId })
-      .groupBy('parent.id')
-      .addGroupBy('parent.name')
-      .having('COUNT(upb.id) >= :minCount', { minCount: MIN_PROBLEMS_FOR_ANALYSIS })
-      .getRawMany<CategoryAnalysisRaw>();
-
-    const all: CategoryAnalysisItemDto[] = rawResults.map((row) => {
-      const totalCount = Number(row.totalCount);
-      const correctCount = Number(row.correctCount);
-      const correctRate = totalCount > 0 ? Math.round((correctCount / totalCount) * 1000) / 10 : 0;
-
-      return {
-        categoryId: Number(row.categoryId),
-        categoryName: row.categoryName,
-        correctRate,
-        totalCount,
-        correctCount,
-      };
-    });
-
-    const strong = all.filter((item) => item.correctRate >= STRONG_THRESHOLD);
-    const weak = all.filter((item) => item.correctRate < STRONG_THRESHOLD);
-
-    return { strong, weak, all };
   }
 }
