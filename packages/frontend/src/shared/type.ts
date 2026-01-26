@@ -51,3 +51,86 @@ export type Category = {
   parentId: number | null;
   parent?: Category;
 };
+
+// MyPage Types - Based on API Specification
+export type UserProfile = {
+  nickname: string;
+  profileImage: string;
+  email: string;
+  createdAt: string;
+};
+
+export type UserRank = {
+  tier: string;
+  tierPoint: number;
+};
+
+export type UserLevel = {
+  level: number;
+  expForCurrentLevel: number;
+  expForNextLevel: number;
+};
+
+export type MatchStats = {
+  totalMatches: number;
+  winCount: number;
+  loseCount: number;
+  winRate: number;
+};
+
+export type ProblemStats = {
+  totalSolved: number;
+  correctCount: number;
+  incorrectCount: number;
+  partialCount: number;
+  correctRate: number;
+};
+
+export type MyPageResponse = {
+  profile: UserProfile;
+  rank: UserRank;
+  level: UserLevel;
+  matchStats: MatchStats;
+  problemStats: ProblemStats;
+};
+
+export type TierHistoryItem = {
+  tier: string;
+  tierPoint: number;
+  changedAt: string;
+};
+
+export type TierHistoryResponse = {
+  tierHistory: TierHistoryItem[];
+};
+
+export type Opponent = {
+  nickname: string;
+  profileImage: string;
+};
+
+export type MultiMatch = {
+  opponent: Opponent;
+  result: 'win' | 'lose';
+  myScore: number;
+  opponentScore: number;
+  tierPointChange: number;
+  playedAt: string;
+};
+
+export type SingleMatch = {
+  category: {
+    name: string;
+  };
+  expGained: number;
+  playedAt: string;
+};
+
+export type MatchHistoryItem = {
+  type: 'multi' | 'single';
+  match: MultiMatch | SingleMatch;
+};
+
+export type MatchHistoryResponse = {
+  matchHistory: MatchHistoryItem[];
+};
