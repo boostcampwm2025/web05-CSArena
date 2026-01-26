@@ -40,6 +40,8 @@ RUN apk add --no-cache wget
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nestjs
 
+RUN mkdir -p logs && chown -R nestjs:nodejs logs
+
 # Copy node_modules and built files from builder
 COPY --from=builder --chown=nestjs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nestjs:nodejs /app/packages/backend/dist ./dist
