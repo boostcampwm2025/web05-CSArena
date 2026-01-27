@@ -53,57 +53,68 @@ export function RecentActivityList({ matchHistory }: RecentActivityListProps) {
 
       {/* Activity List */}
       <div className="flex-1 overflow-hidden p-3">
-        <div className="flex flex-col gap-2">
-          {matchHistory.map((item, index) => {
-            const config = getMatchConfig(item);
+        {matchHistory.length === 0 ? (
+          <div className="flex h-full items-center justify-center">
+            <p className="text-sm text-gray-400" style={{ fontFamily: 'Orbitron' }}>
+              No recent activity
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {matchHistory.map((item, index) => {
+              const config = getMatchConfig(item);
 
-            return (
-              <div
-                key={index}
-                className="flex gap-3 border p-2 transition-all duration-200 hover:scale-[1.01]"
-                style={{
-                  borderColor: config.color,
-                  backgroundColor: config.bgColor,
-                }}
-              >
-                {/* Icon */}
+              return (
                 <div
-                  className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded border"
+                  key={index}
+                  className="flex gap-3 border p-2 transition-all duration-200 hover:scale-[1.01]"
                   style={{
                     borderColor: config.color,
-                    backgroundColor: `${config.bgColor}cc`,
+                    backgroundColor: config.bgColor,
                   }}
                 >
-                  <i className={`${config.icon} text-lg`} style={{ color: config.color }} />
-                </div>
+                  {/* Icon */}
+                  <div
+                    className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded border"
+                    style={{
+                      borderColor: config.color,
+                      backgroundColor: `${config.bgColor}cc`,
+                    }}
+                  >
+                    <i className={`${config.icon} text-lg`} style={{ color: config.color }} />
+                  </div>
 
-                {/* Content */}
-                <div className="flex min-w-0 flex-1 flex-col">
-                  <h4
-                    className="truncate text-sm font-bold text-white"
+                  {/* Content */}
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    <h4
+                      className="truncate text-sm font-bold text-white"
+                      style={{ fontFamily: 'Orbitron' }}
+                    >
+                      {config.title}
+                    </h4>
+                    <p
+                      className="truncate text-xs text-cyan-300"
+                      style={{ fontFamily: 'Orbitron' }}
+                    >
+                      {config.description}
+                    </p>
+                  </div>
+
+                  {/* Date */}
+                  <div
+                    className="flex-shrink-0 text-[10px] text-cyan-400"
                     style={{ fontFamily: 'Orbitron' }}
                   >
-                    {config.title}
-                  </h4>
-                  <p className="truncate text-xs text-cyan-300" style={{ fontFamily: 'Orbitron' }}>
-                    {config.description}
-                  </p>
+                    {new Date(config.date).toLocaleDateString('en-US', {
+                      month: '2-digit',
+                      day: '2-digit',
+                    })}
+                  </div>
                 </div>
-
-                {/* Date */}
-                <div
-                  className="flex-shrink-0 text-[10px] text-cyan-400"
-                  style={{ fontFamily: 'Orbitron' }}
-                >
-                  {new Date(config.date).toLocaleDateString('en-US', {
-                    month: '2-digit',
-                    day: '2-digit',
-                  })}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

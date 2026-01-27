@@ -13,28 +13,24 @@ type TierHistoryChartProps = {
   data: TierHistoryItem[];
 };
 
-// TierPoint to Tier mapping
-const getTierFromPoint = (tierPoint: number): string => {
-  if (tierPoint <= 1000) {
-    return 'Bronze';
-  }
-
-  if (tierPoint <= 1500) {
-    return 'Silver';
-  }
-
-  if (tierPoint <= 2000) {
-    return 'Gold';
-  }
-
-  if (tierPoint <= 2500) {
-    return 'Platinum';
-  }
-
-  return 'Diamond';
-};
-
 export function TierHistoryChart({ data }: TierHistoryChartProps) {
+  // 빈 데이터 체크
+  if (!data || data.length === 0) {
+    return (
+      <div className="flex h-full flex-col border-2 border-purple-400 bg-gradient-to-br from-slate-800/90 to-slate-900/90 p-3">
+        <h3 className="mb-2 text-sm font-bold text-white" style={{ fontFamily: 'Orbitron' }}>
+          <i className="ri-line-chart-line mr-2 text-purple-400" />
+          Tier History
+        </h3>
+        <div className="flex flex-1 items-center justify-center">
+          <p className="text-sm text-gray-400" style={{ fontFamily: 'Orbitron' }}>
+            No tier history data
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   // 날짜순으로 정렬 (오래된 것부터 = 왼쪽부터 우상향)
   const sortedData = [...data].sort(
     (a, b) => new Date(a.changedAt).getTime() - new Date(b.changedAt).getTime(),
@@ -103,11 +99,11 @@ export function TierHistoryChart({ data }: TierHistoryChartProps) {
               }}
               labelStyle={{ color: '#67e8f9' }}
               itemStyle={{ color: '#a855f7' }}
-              formatter={(value: number | undefined) =>
-                value !== undefined
-                  ? [`${value} (${getTierFromPoint(value)})`, 'Tier Point']
-                  : ['', '']
-              }
+              formatter={(value, _name, props) => {
+                const tier = props.payload?.tier || '';
+
+                return [`${value} (${tier})`, 'Tier Point'];
+              }}
             />
 
             <Line
