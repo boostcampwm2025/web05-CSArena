@@ -13,6 +13,10 @@ build/
 .next/
 out/
 
+# Environment files (unencrypted - NEVER commit)
+.env
+.env.*
+
 # SOPS / Age keys
 keys.txt
 age.key
