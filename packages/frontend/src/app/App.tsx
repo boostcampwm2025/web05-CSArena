@@ -12,6 +12,7 @@ import Match from '@/pages/match/Match';
 import SinglePlay from '@/pages/single-play/SinglePlay';
 import ProblemBank from '@/pages/problem-bank/ProblemBank';
 import MyPage from '@/pages/my-page/MyPage';
+import Leaderboard from '@/pages/leaderboard/Leaderboard';
 import { SinglePlayProvider } from '@/feature/single-play/useRound';
 
 export default function App() {
@@ -97,6 +98,6 @@ export default function App() {
     case 'my-page':
       return <MyPage />;
     case 'leaderboard':
-      return <div>Leaderboard Page</div>;
+      return <Leaderboard />;
   }
 }
