@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { getSocket } from '@/lib/socket';
 import { SubmitAnswerRes } from '@/lib/socket/event';
@@ -10,12 +10,15 @@ export function usePlaying() {
 
   const [answer, setAnswer] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [isSubmit, setIsSubmit] = useState<boolean>(false);
+  const [submitState, setSubmitState] = useState({
+    isSubmit: false,
+    opponentSubmitted: false,
+  });
 
   const socketRef = useRef(getSocket(accessToken));
 
   const onClickSubmitBtn = () => {
-    if (isSubmitting || isSubmit) {
+    if (isSubmitting || submitState.isSubmit) {
       return;
     }
 
@@ -32,13 +35,44 @@ export function usePlaying() {
       setIsSubmitting(false);
 
       if (!ack.ok) {
-        // {'ok': false; 'error': string}
         return;
       }
 
-      setIsSubmit(true);
+      setSubmitState({
+        isSubmit: true,
+        opponentSubmitted: ack.opponentSubmitted ?? false,
+      });
     });
   };
 
-  return { isSubmit, isSubmitting, answer, setAnswer, onClickSubmitBtn };
+  useEffect(() => {
+    const socket = socketRef.current;
+
+    const handleOpponentSubmitted = () => {
+      setSubmitState((prev) => ({ ...prev, opponentSubmitted: true }));
+    };
+
+    const handleRoundReady = () => {
+      // 새 라운드 시작 시 상태 초기화
+      setSubmitState({ isSubmit: false, opponentSubmitted: false });
+      setAnswer('');
+    };
+
+    socket.on('opponent:submitted', handleOpponentSubmitted);
+    socket.on('round:ready', handleRoundReady);
+
+    return () => {
+      socket.off('opponent:submitted', handleOpponentSubmitted);
+      socket.off('round:ready', handleRoundReady);
+    };
+  }, []);
+
+  return {
+    isSubmit: submitState.isSubmit,
+    isSubmitting,
+    opponentSubmitted: submitState.opponentSubmitted,
+    answer,
+    setAnswer,
+    onClickSubmitBtn,
+  };
 }
