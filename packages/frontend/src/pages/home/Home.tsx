@@ -13,6 +13,7 @@ export default function Home() {
     onClickQuickStartBtn,
     onClickSelfStudyBtn,
     onClickProblemBankBtn,
+    onClickLeaderboardBtn,
   } = useHome();
 
   return (
@@ -168,7 +169,7 @@ export default function Home() {
           {/* Bottom Navigation Buttons */}
           <div className="grid grid-cols-2 gap-4">
             <button
-              onClick={() => {}}
+              onClick={onClickLeaderboardBtn}
               className="border-4 border-amber-300 bg-gradient-to-r from-amber-500 to-orange-500 py-4 text-2xl font-bold text-white shadow-lg shadow-amber-500/50 transition-all duration-200 hover:scale-105 hover:from-amber-400 hover:to-orange-400"
               style={{ fontFamily: 'Orbitron' }}
             >

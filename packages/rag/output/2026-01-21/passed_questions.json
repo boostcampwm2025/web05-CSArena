@@ -1,0 +1,213 @@
+[
+  {
+    "question_type": "multiple_choice",
+    "difficulty": 2,
+    "question": "고성능 스위치 구현에 주로 사용되는 방식은?",
+    "answer": "하드웨어 가속화를 포함한 조합",
+    "explanation": "청크 3374에 따르면 높은 성능을 내는 구현은 하드웨어 가속화를 활용하며, 소프트웨어와 하드웨어의 결합 형태로 설계된다.",
+    "options": [
+      "순수 소프트웨어 구현",
+      "하드웨어 전용 구현",
+      "하드웨어 가속화를 포함한 조합",
+      "클라우드 기반 가상화"
+    ],
+    "correct_index": 2,
+    "category_id": 63,
+    "category_name": "switch concept",
+    "chunk_ids": [
+      3374
+    ],
+    "scores": {
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.7306777621928918
+    }
+  },
+  {
+    "question_type": "multiple_choice",
+    "difficulty": 3,
+    "question": "스위치가 브로드캐스트 프레임을 처리하는 방법으로 올바른 것은?",
+    "answer": "수신 포트를 제외한 모든 활성 포트로 복사하여 전송한다.",
+    "explanation": "청크 3278에 따르면 스위치는 브로드캐스트 프레임을 수신한 포트를 제외한 모든 활성 포트로 전달한다.",
+    "options": [
+      "단일 출력 포트로만 전송",
+      "라우팅 테이블에 따라 전송",
+      "수신 포트를 제외한 모든 활성 포트로 복사 전송",
+      "폐기한다"
+    ],
+    "correct_index": 2,
+    "category_id": 63,
+    "category_name": "switch concept",
+    "chunk_ids": [
+      3278
+    ],
+    "scores": {
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.7161026460639887
+    }
+  },
+  {
+    "question_type": "short_answer",
+    "difficulty": 3,
+    "question": "스위치에서 새로운 호스트를 추가해도 네트워크 성능이 저하되지 않는 이유는 무엇인가?",
+    "answer": "포인트 투 포인트 링크 사용으로 충돌 도메인이 분리되기 때문",
+    "explanation": "청크 3236에 따르면 스위치의 별 토폴로지는 각 호스트가 독립적인 링크를 갖도록 하여 충돌 도메인을 최소화하고 성능 저하 없이 확장이 가능하다.",
+    "options": [],
+    "correct_index": 0,
+    "category_id": 63,
+    "category_name": "switch concept",
+    "chunk_ids": [
+      3236
+    ],
+    "scores": {
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.714257464909573
+    }
+  },
+  {
+    "question_type": "multiple_choice",
+    "difficulty": 1,
+    "question": "스위치의 물리적 포트 수가 의미하는 것은?",
+    "answer": "연결 가능한 최대 호스트 수",
+    "explanation": "청크 3271에서 스위치가 일반적으로 16, 24, 48포트를 갖는다고 언급하며, 이는 동시에 연결 가능한 장치의 수를 제한함을 의미한다.",
+    "options": [
+      "처리 속도",
+      "전원 공급 능력",
+      "연결 가능한 최대 호스트 수",
+      "보안 등급"
+    ],
+    "correct_index": 2,
+    "category_id": 63,
+    "category_name": "switch concept",
+    "chunk_ids": [
+      3271
+    ],
+    "scores": {
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.7209353987945678
+    }
+  },
+  {
+    "question_type": "multiple_choice",
+    "difficulty": 1,
+    "question": "HTTP 프로토콜이 속한 계층은?",
+    "answer": "애플리케이션 계층",
+    "explanation": "HTTP는 애플리케이션 계층의 프로토콜로, 웹 브라우저와 서버 간의 통신을 담당한다.",
+    "options": [
+      "세션 계층",
+      "프레젠테이션 계층",
+      "애플리케이션 계층",
+      "트랜스포트 계층"
+    ],
+    "correct_index": 2,
+    "category_id": 39,
+    "category_name": "http protocol overview",
+    "chunk_ids": [
+      3065
+    ],
+    "scores": {
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.771987824781024
+    }
+  },
+  {
+    "question_type": "short_answer",
+    "difficulty": 1,
+    "question": "HTTP의 데이터 형식을 정의하는 동반 규약은 무엇인가?",
+    "answer": "HTML",
+    "explanation": "HTTP는 웹 페이지 형식을 정의하는 HTML과 같은 동반 규약을 통해 복잡한 부분을 분리한다.",
+    "options": [],
+    "correct_index": 0,
+    "category_id": 39,
+    "category_name": "http protocol overview",
+    "chunk_ids": [
+      3923,
+      3924
+    ],
+    "scores": {
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.8010894113694865
+    }
+  },
+  {
+    "question_type": "short_answer",
+    "difficulty": 1,
+    "question": "HTTP는 어떤 전송 계층 프로토콜 위에서 동작하는가?",
+    "answer": "TCP",
+    "explanation": "HTTP는 TCP 위에서의 신뢰적 전송을 활용해 요청/응답 모델을 구현한다.",
+    "options": [],
+    "correct_index": 0,
+    "category_id": 39,
+    "category_name": "http protocol overview",
+    "chunk_ids": [
+      3924
+    ],
+    "scores": {
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.8043413531952693
+    }
+  },
+  {
+    "question_type": "multiple_choice",
+    "difficulty": 2,
+    "question": "HTTP 메시지 구조에서 START_LINE 뒤에 오는 요소 순서로 올바른 것은?",
+    "answer": "헤더, 메시지 바디",
+    "explanation": "HTTP 메시지는 START_LINE→헤더→메시지 바디 순으로 구성된다.",
+    "options": [
+      "헤더, 메시지 바디",
+      "메시지 바디, 헤더",
+      "CRLF, 메시지 바디",
+      "START_LINE, CRLF"
+    ],
+    "correct_index": 0,
+    "category_id": 39,
+    "category_name": "http protocol overview",
+    "chunk_ids": [
+      3941
+    ],
+    "scores": {
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.7638179363466809
+    }
+  },
+  {
+    "question_type": "short_answer",
+    "difficulty": 1,
+    "question": "HTTPS가 기본적으로 사용하는 TCP 포트는?",
+    "answer": "443",
+    "explanation": "HTTPS는 보안을 강화하기 위해 포트 번호 443을 디폴트로 사용한다.",
+    "options": [],
+    "correct_index": 0,
+    "category_id": 39,
+    "category_name": "http protocol overview",
+    "chunk_ids": [
+      3888
+    ],
+    "scores": {
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.7429672372320524
+    }
+  },
+  {
+    "question_type": "multiple_choice",
+    "difficulty": 2,
+    "question": "SMTP와 HTTP의 공통점으로 올바른 것은?",
+    "answer": "둘 다 동반 규약을 가지고 있으며 요청/응답 패턴을 사용한다",
+    "explanation": "SMTP는 이메일 메시지를 위한 규약(MIME)을, HTTP는 웹 페이지를 위한 규약(HTML)을 동반한다.",
+    "options": [
+      "UDP 기반 통신",
+      "포트 80 사용",
+      "동반 규약 보유",
+      "비동기 처리"
+    ],
+    "correct_index": 2,
+    "category_id": 39,
+    "category_name": "http protocol overview",
+    "chunk_ids": [
+      3923
+    ],
+    "scores": {
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.8571973179926285
+    }
+  }
+]

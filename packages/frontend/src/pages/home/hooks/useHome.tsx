@@ -75,6 +75,16 @@ export function useHome() {
     setScene('problem-bank');
   }, [userData, setScene]);
 
+  const onClickLeaderboardBtn = useCallback(() => {
+    if (!userData) {
+      setIsOpenLoginModal(true);
+
+      return;
+    }
+
+    setScene('leaderboard');
+  }, [userData, setScene]);
+
   return {
     userData,
     isOpenLoginModal,
@@ -85,5 +95,6 @@ export function useHome() {
     onClickQuickStartBtn,
     onClickSelfStudyBtn,
     onClickProblemBankBtn,
+    onClickLeaderboardBtn,
   };
 }

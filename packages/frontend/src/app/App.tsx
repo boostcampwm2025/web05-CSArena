@@ -96,5 +96,7 @@ export default function App() {
       return <ProblemBank />;
     case 'my-page':
       return <MyPage />;
+    case 'leaderboard':
+      return <div>Leaderboard Page</div>;
   }
 }

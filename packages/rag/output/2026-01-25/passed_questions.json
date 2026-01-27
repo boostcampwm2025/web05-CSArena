@@ -1,0 +1,203 @@
+[
+  {
+    "question_type": "short_answer",
+    "difficulty": 1,
+    "question": "클라이언트와 서버 간의 기본적인 통신 방식으로, 클라이언트가 서버로부터 응답을 받을 때까지 대기하는 모델을 무엇이라고 하는가?",
+    "answer": "요청/응답 메시지 트랜잭션",
+    "explanation": "이 모델에서는 클라이언트가 요청 메시지를 보내고 서버의 응답을 기다리는 동안 실행이 일시 중지된다.",
+    "options": [],
+    "correct_index": 0,
+    "category_id": 36,
+    "category_name": "client server model",
+    "chunk_ids": [
+      3566
+    ],
+    "scores": {
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.7454822872897134
+    }
+  },
+  {
+    "question_type": "essay",
+    "difficulty": 3,
+    "question": "gRPC가 제공하는 네 가지 요청/응답 패턴을 각각 설명하고, 이러한 유연성이 필요한 상황을 예시로 들어보시오.",
+    "answer": "1. Simple RPC: 단일 요청/응답 교환\n2. Server Streaming: 단일 요청 후 연속적 응답\n3. Client Streaming: 연속적 요청 후 단일 응답\n4. Bidirectional: 양방향 독립적 스트림\n예: 실시간 채팅 애플리케이션에서 양방향 스트림이 필요하다.",
+    "explanation": "gRPC는 상황에 따라 단순한 요청부터 복잡한 양방향 스트림까지 다양한 상호작용 패턴을 지원한다.",
+    "options": [],
+    "correct_index": 0,
+    "category_id": 36,
+    "category_name": "client server model",
+    "chunk_ids": [
+      3596
+    ],
+    "scores": {
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.7953239463421534
+    }
+  },
+  {
+    "question_type": "multiple_choice",
+    "difficulty": 1,
+    "question": "HTTP 프로토콜이 속한 OSI 모델 계층은?",
+    "answer": "응용 계층",
+    "explanation": "HTTP는 웹 브라우저와 서버 간 데이터를 주고받는 응용 계층의 대표적인 프로토콜이다.",
+    "options": [
+      "전송 계층",
+      "표현 계층",
+      "응용 계층",
+      "세션 계층"
+    ],
+    "correct_index": 2,
+    "category_id": 36,
+    "category_name": "client server model",
+    "chunk_ids": [
+      3065
+    ],
+    "scores": {
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.7279004787398766
+    }
+  },
+  {
+    "question_type": "short_answer",
+    "difficulty": 2,
+    "question": "WSDL/SOAP와 비교해 REST가 가진 기술적 안정성의 근거는 무엇인가?",
+    "answer": "웹 인프라의 오랜 운영 경험",
+    "explanation": "REST는 이미 오랜 기간 검증된 웹 기술을 기반으로 하기 때문에 안정적이다.",
+    "options": [],
+    "correct_index": 0,
+    "category_id": 36,
+    "category_name": "client server model",
+    "chunk_ids": [
+      3971
+    ],
+    "scores": {
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.7098016262994582
+    }
+  },
+  {
+    "question_type": "multiple_choice",
+    "difficulty": 3,
+    "question": "다음 중 gRPC의 요청/응답 패턴에 해당하지 않는 것은?",
+    "answer": "Message Stream RPC",
+    "explanation": "gRPC는 Simple, Server Streaming, Client Streaming, Bidirectional 패턴만을 제공한다.",
+    "options": [
+      "Simple RPC",
+      "Server Streaming RPC",
+      "Client Streaming RPC",
+      "Message Stream RPC"
+    ],
+    "correct_index": 3,
+    "category_id": 36,
+    "category_name": "client server model",
+    "chunk_ids": [
+      3596
+    ],
+    "scores": {
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.824044044195119
+    }
+  },
+  {
+    "question_type": "short_answer",
+    "difficulty": 3,
+    "question": "gRPC가 전통적인 RPC와 차별화되는 주요 기능은 무엇인가?",
+    "answer": "_streaming_",
+    "explanation": "전통적인 RPC와는 달리 gRPC는 스트리밍 기능을 통해 서버/클라이언트가 연속적인 데이터 흐름을 교환할 수 있다.",
+    "options": [],
+    "correct_index": 0,
+    "category_id": 36,
+    "category_name": "client server model",
+    "chunk_ids": [
+      3596
+    ],
+    "scores": {
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.8433333658329728
+    }
+  },
+  {
+    "question_type": "essay",
+    "difficulty": 2,
+    "question": "SOAP와 REST의 차이를 프로토콜 관점에서 설명하시오.",
+    "answer": "SOAP는 자체 프로토콜(WSDL)을 사용하지만 REST는 항상 HTTP를 사용해 호환성 문제가 적다.",
+    "explanation": "SOAP는 XML 기반의 별도 프로토콜을 설계해야 하지만, REST는 웹 표준 HTTP를 활용해 구현이 용이하다.",
+    "options": [],
+    "correct_index": 0,
+    "category_id": 36,
+    "category_name": "client server model",
+    "chunk_ids": [
+      3971
+    ],
+    "scores": {
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.7971887124492328
+    }
+  },
+  {
+    "question_type": "short_answer",
+    "difficulty": 2,
+    "question": "라우터가 처리해야 하는 네트워킹의 근본적 문제는 무엇인가?",
+    "answer": "효율적이고 루프 없는 경로 찾기",
+    "explanation": "라우터는 효율적이며 루프가 없고 동적 변화에 대응 가능한 경로를 찾는 것이 주요 과제이다.",
+    "options": [],
+    "correct_index": 0,
+    "category_id": 4,
+    "category_name": "network components",
+    "chunk_ids": [
+      3235
+    ],
+    "scores": {
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.7218399263308628
+    }
+  },
+  {
+    "question_type": "multiple_choice",
+    "difficulty": 2,
+    "question": "물리적 네트워크와 논리적 네트워크의 관계로 올바른 것은?",
+    "answer": "논리적 네트워크는 물리적 네트워크들의 집합이다",
+    "explanation": "인터넷은 물리적 네트워크들(Ethernet, Wi-Fi 등)이 모여 구성된 논리적 네트워크이다.",
+    "options": [
+      "물리적 네트워크가 더 안정적이다",
+      "논리적 네트워크는 단일 기술만을 사용한다",
+      "논리적 네트워크는 물리적 네트워크들의 집합이다",
+      "라우터는 물리 네트워크에만 존재한다"
+    ],
+    "correct_index": 2,
+    "category_id": 4,
+    "category_name": "network components",
+    "chunk_ids": [
+      3286
+    ],
+    "scores": {
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.7218399263308628
+    }
+  },
+  {
+    "question_type": "multiple_choice",
+    "difficulty": 3,
+    "question": "IP 프로토콜의 주요 목적이 아닌 것은?",
+    "answer": "애플리케이션 데이터 전송",
+    "explanation": "IP는 호스트와 라우터 간에 논리적 연결을 제공하고 패킷 전달을 담당하며, 애플리케이션 데이터 전송 자체는 상위 프로토콜(TCP/UDP)이 담당한다.",
+    "options": [
+      "패킷 전달",
+      "논리적 연결 제공",
+      "애플리케이션 데이터 전송",
+      "네트워크 간 상호연동"
+    ],
+    "correct_index": 2,
+    "category_id": 4,
+    "category_name": "network components",
+    "chunk_ids": [
+      3287,
+      3235
+    ],
+    "scores": {
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.8034692299792648
+    }
+  }
+]

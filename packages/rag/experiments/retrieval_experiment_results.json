@@ -1,0 +1,877 @@
+{
+  "experiment_date": "2026-01-18T16:02:46.348114",
+  "test_categories": [
+    {
+      "id": 30,
+      "name": "connection management"
+    },
+    {
+      "id": 17,
+      "name": "error detection"
+    },
+    {
+      "id": 18,
+      "name": "mac address"
+    },
+    {
+      "id": 32,
+      "name": "congestion control"
+    },
+    {
+      "id": 42,
+      "name": "http status code categories"
+    }
+  ],
+  "results": [
+    {
+      "method": "HyDE + Vector",
+      "category_id": 30,
+      "category_name": "connection management",
+      "query_used": "**Optimized Query:**  \nWhat mechanisms govern **TCP connection establishment**, including the **3-way handshake process**, and how does it ensure reliable data transmission in the transport layer of c...",
+      "chunks": [
+        {
+          "id": 3517,
+          "similarity": 0.7535407133085487,
+          "preview": "Figure 5.6.: Timeline for three-way handshake algorithm.  \nThe idea is that two parties want to agre"
+        },
+        {
+          "id": 3519,
+          "similarity": 0.7390286248547748,
+          "preview": "Figure 5.7.: TCP state-transition diagram.  \nif the client’s ACK to the server is lost, correspondin"
+        },
+        {
+          "id": 3516,
+          "similarity": 0.7185304124383094,
+          "preview": "A TCP connection begins with a client (caller) doing an active open to a server (callee). Assuming t"
+        },
+        {
+          "id": 3518,
+          "similarity": 0.6945569960707979,
+          "preview": "Notice that two kinds of events trigger a state transition: (1) a segment arrives from the peer (e.g"
+        },
+        {
+          "id": 3560,
+          "similarity": 0.6809616962749666,
+          "preview": "More recently, the IETF has been standardizing a protocol optimized for Web traffic, known as QUIC. "
+        }
+      ],
+      "avg_similarity": 0.7173236885894795
+    },
+    {
+      "method": "Category Direct + Vector",
+      "category_id": 30,
+      "category_name": "connection management",
+      "query_used": "connection management Computer Networks > Transport Layer > connection management",
+      "chunks": [
+        {
+          "id": 3483,
+          "similarity": 0.6283797929661691,
+          "preview": "Finally, in this chapter we are mostly interested in what we might call _network-layer mobility_ . T"
+        },
+        {
+          "id": 3048,
+          "similarity": 0.6157931474356266,
+          "preview": "A final requirement, which seems to be neglected or left till last all too often (as we do here), is"
+        },
+        {
+          "id": 3067,
+          "similarity": 0.6061297909170978,
+          "preview": "Figure 1.15.: Alternative view of the Internet architecture. The “subnetwork” layer was historically"
+        },
+        {
+          "id": 3388,
+          "similarity": 0.6054386191137244,
+          "preview": "Figure 3.40.: Network Operating System (NOS) hosting a set of control applications and providing a l"
+        },
+        {
+          "id": 3064,
+          "similarity": 0.6041143612952479,
+          "preview": "Starting at the bottom and working up, the _physical_ layer handles the transmission of raw bits ove"
+        }
+      ],
+      "avg_similarity": 0.6119711423455731
+    },
+    {
+      "method": "Hybrid (Vector + Keyword)",
+      "category_id": 30,
+      "category_name": "connection management",
+      "query_used": "Vector: **Query:**  \n\"How does the transport layer handle connection management in computer networks? Key fo... | Keyword: connection management",
+      "chunks": [
+        {
+          "id": 3505,
+          "similarity": 0.7106845962007545,
+          "preview": "In contrast to a simple demultiplexing protocol like UDP, a more sophisticated transport protocol is"
+        },
+        {
+          "id": 3626,
+          "similarity": 0.6987780594699823,
+          "preview": "Congestion control and resource allocation involve both hosts and network elements such as routers. "
+        },
+        {
+          "id": 3747,
+          "similarity": 0.686191646834363,
+          "preview": "TCP flows. This property is often enforced by ensuring that the flow’s behavior adheres to an equati"
+        },
+        {
+          "id": 3682,
+          "similarity": 0.6856685621776598,
+          "preview": "This section explores congestion control more deeply. In doing so, it is important to understand tha"
+        },
+        {
+          "id": 3627,
+          "similarity": 0.6845674731227497,
+          "preview": "Resource allocation and congestion control are complex issues that have been the subject of much stu"
+        }
+      ],
+      "avg_similarity": 0.6931780675611019
+    },
+    {
+      "method": "Hybrid (HyDE Keywords)",
+      "category_id": 30,
+      "category_name": "connection management",
+      "query_used": "Vector: HyDE | Keywords: three-way handshake flow control error control retransmission",
+      "chunks": [
+        {
+          "id": 3497,
+          "similarity": 0.6773730893543555,
+          "preview": "Many technologies can be used to connect together a collection of computers, ranging from simple Eth"
+        },
+        {
+          "id": 3624,
+          "similarity": 0.6603309824775548,
+          "preview": "By now we have seen enough layers of the network protocol hierarchy to understand how data can be\ntr"
+        },
+        {
+          "id": 3722,
+          "similarity": 0.6488052773667506,
+          "preview": "Second, when we ask the network to provide us with a particular service, the network needs to decide"
+        },
+        {
+          "id": 3562,
+          "similarity": 0.6478785759633767,
+          "preview": "It isn’t always necessary to define a new protocol if you find an existing protocol does not adequat"
+        },
+        {
+          "id": 3627,
+          "similarity": 0.647301959117467,
+          "preview": "Resource allocation and congestion control are complex issues that have been the subject of much stu"
+        }
+      ],
+      "avg_similarity": 0.656337976855901
+    },
+    {
+      "method": "Hybrid (HyDE Keywords v2)",
+      "category_id": 30,
+      "category_name": "connection management",
+      "query_used": "Vector: HyDE | Keywords v2: TCP three-way handshake checksum error detection flow control congestion control port-based addressing",
+      "chunks": [
+        {
+          "id": 3516,
+          "similarity": 0.6914227846588706,
+          "preview": "A TCP connection begins with a client (caller) doing an active open to a server (callee). Assuming t"
+        },
+        {
+          "id": 3563,
+          "similarity": 0.6871311775132014,
+          "preview": "Note also how the presence of multiple network interfaces might affect the design. If your mobile ph"
+        },
+        {
+          "id": 3048,
+          "similarity": 0.6831091188485486,
+          "preview": "A final requirement, which seems to be neglected or left till last all too often (as we do here), is"
+        },
+        {
+          "id": 3497,
+          "similarity": 0.6807587452352302,
+          "preview": "Many technologies can be used to connect together a collection of computers, ranging from simple Eth"
+        },
+        {
+          "id": 4016,
+          "similarity": 0.6803275900896552,
+          "preview": "What we have just described is the problem of network management, an issue that pervades the entire\n"
+        }
+      ],
+      "avg_similarity": 0.6845498832691012
+    },
+    {
+      "method": "HyDE + Vector",
+      "category_id": 17,
+      "category_name": "error detection",
+      "query_used": "Error detection in computer networks involves identifying data corruption during transmission at the physical and data link layers. Key mechanisms include **CRC (Cyclic Redundancy Check)** using polyn...",
+      "chunks": [
+        {
+          "id": 3136,
+          "similarity": 0.8363477099086849,
+          "preview": "Detecting errors is only one part of the problem. The other part is correcting errors once detected."
+        },
+        {
+          "id": 3142,
+          "similarity": 0.7760901232825762,
+          "preview": "It should be clear by now that a major goal in designing error detection algorithms is to maximize t"
+        },
+        {
+          "id": 3149,
+          "similarity": 0.7590321617758148,
+          "preview": "- All single-bit errors, as long as the _𝑥_ _[𝑘]_ and _𝑥_ [0] terms have nonzero coefficients  \n- Al"
+        },
+        {
+          "id": 3137,
+          "similarity": 0.7475701932686567,
+          "preview": "This is a rather poor error detection scheme for two reasons. First, it sends _𝑛_ redundant bits for"
+        },
+        {
+          "id": 3151,
+          "similarity": 0.7385108938402069,
+          "preview": "As we saw in the previous section, frames are sometimes corrupted while in transit, with an error co"
+        }
+      ],
+      "avg_similarity": 0.7715102164151879
+    },
+    {
+      "method": "Category Direct + Vector",
+      "category_id": 17,
+      "category_name": "error detection",
+      "query_used": "error detection Computer Networks > Physical & Data Link Layer > error detection",
+      "chunks": [
+        {
+          "id": 3136,
+          "similarity": 0.6266177537920936,
+          "preview": "Detecting errors is only one part of the problem. The other part is correcting errors once detected."
+        },
+        {
+          "id": 3149,
+          "similarity": 0.6220935160394356,
+          "preview": "- All single-bit errors, as long as the _𝑥_ _[𝑘]_ and _𝑥_ [0] terms have nonzero coefficients  \n- Al"
+        },
+        {
+          "id": 3047,
+          "similarity": 0.5916575804535368,
+          "preview": "Less commonly, the software running on one of the nodes that handles the packet makes a mistake. For"
+        },
+        {
+          "id": 3139,
+          "similarity": 0.589495198743147,
+          "preview": "Our first approach to error detection is exemplified by the Internet checksum. Although it is not us"
+        },
+        {
+          "id": 3151,
+          "similarity": 0.5838033687729826,
+          "preview": "As we saw in the previous section, frames are sometimes corrupted while in transit, with an error co"
+        }
+      ],
+      "avg_similarity": 0.6027334835602391
+    },
+    {
+      "method": "Hybrid (Vector + Keyword)",
+      "category_id": 17,
+      "category_name": "error detection",
+      "query_used": "Vector: Error detection ensures data integrity during transmission in computer networks by identifying bit e... | Keyword: error detection",
+      "chunks": [
+        {
+          "id": 3136,
+          "similarity": 0.8207043476757501,
+          "preview": "Detecting errors is only one part of the problem. The other part is correcting errors once detected."
+        },
+        {
+          "id": 3149,
+          "similarity": 0.7720129217393196,
+          "preview": "- All single-bit errors, as long as the _𝑥_ _[𝑘]_ and _𝑥_ [0] terms have nonzero coefficients  \n- Al"
+        },
+        {
+          "id": 3137,
+          "similarity": 0.7637130423381996,
+          "preview": "This is a rather poor error detection scheme for two reasons. First, it sends _𝑛_ redundant bits for"
+        },
+        {
+          "id": 3142,
+          "similarity": 0.7562226790322476,
+          "preview": "It should be clear by now that a major goal in designing error detection algorithms is to maximize t"
+        },
+        {
+          "id": 3151,
+          "similarity": 0.7472356146389979,
+          "preview": "As we saw in the previous section, frames are sometimes corrupted while in transit, with an error co"
+        }
+      ],
+      "avg_similarity": 0.7719777210849029
+    },
+    {
+      "method": "Hybrid (HyDE Keywords)",
+      "category_id": 17,
+      "category_name": "error detection",
+      "query_used": "Vector: HyDE | Keywords: CRC parity checks checksums ARQ",
+      "chunks": [
+        {
+          "id": 3136,
+          "similarity": 0.8164422162552316,
+          "preview": "Detecting errors is only one part of the problem. The other part is correcting errors once detected."
+        },
+        {
+          "id": 3149,
+          "similarity": 0.7555566849175177,
+          "preview": "- All single-bit errors, as long as the _𝑥_ _[𝑘]_ and _𝑥_ [0] terms have nonzero coefficients  \n- Al"
+        },
+        {
+          "id": 3151,
+          "similarity": 0.748119784446141,
+          "preview": "As we saw in the previous section, frames are sometimes corrupted while in transit, with an error co"
+        },
+        {
+          "id": 3137,
+          "similarity": 0.7423565268196709,
+          "preview": "This is a rather poor error detection scheme for two reasons. First, it sends _𝑛_ redundant bits for"
+        },
+        {
+          "id": 3142,
+          "similarity": 0.7200009296382573,
+          "preview": "It should be clear by now that a major goal in designing error detection algorithms is to maximize t"
+        }
+      ],
+      "avg_similarity": 0.7564952284153638
+    },
+    {
+      "method": "Hybrid (HyDE Keywords v2)",
+      "category_id": 17,
+      "category_name": "error detection",
+      "query_used": "Vector: HyDE | Keywords v2: error detection data integrity parity check checksum cyclic redundancy check",
+      "chunks": [
+        {
+          "id": 3136,
+          "similarity": 0.8326710883792035,
+          "preview": "Detecting errors is only one part of the problem. The other part is correcting errors once detected."
+        },
+        {
+          "id": 3137,
+          "similarity": 0.7525956285085126,
+          "preview": "This is a rather poor error detection scheme for two reasons. First, it sends _𝑛_ redundant bits for"
+        },
+        {
+          "id": 3149,
+          "similarity": 0.7506590499440391,
+          "preview": "- All single-bit errors, as long as the _𝑥_ _[𝑘]_ and _𝑥_ [0] terms have nonzero coefficients  \n- Al"
+        },
+        {
+          "id": 3142,
+          "similarity": 0.7503174522033936,
+          "preview": "It should be clear by now that a major goal in designing error detection algorithms is to maximize t"
+        },
+        {
+          "id": 3138,
+          "similarity": 0.7402556956968881,
+          "preview": "Instead, they are derived directly from the original message using some well-defined algorithm. Both"
+        }
+      ],
+      "avg_similarity": 0.7652997829464073
+    },
+    {
+      "method": "HyDE + Vector",
+      "category_id": 18,
+      "category_name": "mac address",
+      "query_used": "**MAC Address (Media Access Control)** is a unique 48-bit identifier assigned to network interfaces for communication at the data link layer of the OSI model. It ensures device-level addressing within...",
+      "chunks": [
+        {
+          "id": 3180,
+          "similarity": 0.7146756369661179,
+          "preview": "### 2.6.2 Access Protocol  \nWe now turn our attention to the algorithm that controls access to a sha"
+        },
+        {
+          "id": 3439,
+          "similarity": 0.6812399321805657,
+          "preview": "IP has a subrange of its address space reserved for multicast addresses. In IPv4, these addresses ar"
+        },
+        {
+          "id": 3326,
+          "similarity": 0.6754461782052706,
+          "preview": "Resolution Protocol (ARP). The goal of ARP is to enable each host on a network to build up a table o"
+        },
+        {
+          "id": 3305,
+          "similarity": 0.6706854798625725,
+          "preview": "Ethernet, has an IP address on the interface to the wireless network whose network part is the same "
+        },
+        {
+          "id": 3327,
+          "similarity": 0.6639895965707606,
+          "preview": "Figure 3.24 shows the ARP packet format for IP-to-Ethernet address mappings. In fact, ARP can be use"
+        }
+      ],
+      "avg_similarity": 0.6812073647570575
+    },
+    {
+      "method": "Category Direct + Vector",
+      "category_id": 18,
+      "category_name": "mac address",
+      "query_used": "mac address Computer Networks > Physical & Data Link Layer > mac address",
+      "chunks": [
+        {
+          "id": 3421,
+          "similarity": 0.5738298262145111,
+          "preview": "Addresses, as we will see shortly, are a lot like classless IPv4 addresses, only much longer. These "
+        },
+        {
+          "id": 3327,
+          "similarity": 0.5713227064574616,
+          "preview": "Figure 3.24 shows the ARP packet format for IP-to-Ethernet address mappings. In fact, ARP can be use"
+        },
+        {
+          "id": 3324,
+          "similarity": 0.5683530108263781,
+          "preview": "In the previous section we talked about how to get IP datagrams to the right physical network but gl"
+        },
+        {
+          "id": 3180,
+          "similarity": 0.5672041476831572,
+          "preview": "### 2.6.2 Access Protocol  \nWe now turn our attention to the algorithm that controls access to a sha"
+        },
+        {
+          "id": 3328,
+          "similarity": 0.5646794191386321,
+          "preview": "Ethernet addresses are configured into the network adaptor by the manufacturer, and this process is "
+        }
+      ],
+      "avg_similarity": 0.569077822064028
+    },
+    {
+      "method": "Hybrid (Vector + Keyword)",
+      "category_id": 18,
+      "category_name": "mac address",
+      "query_used": "Vector: MAC (Media Access Control) addresses are unique 48-bit identifiers assigned to network interfaces at... | Keyword: mac address",
+      "chunks": [
+        {
+          "id": 3180,
+          "similarity": 0.694157293406871,
+          "preview": "### 2.6.2 Access Protocol  \nWe now turn our attention to the algorithm that controls access to a sha"
+        },
+        {
+          "id": 3439,
+          "similarity": 0.6798182872687496,
+          "preview": "IP has a subrange of its address space reserved for multicast addresses. In IPv4, these addresses ar"
+        },
+        {
+          "id": 3183,
+          "similarity": 0.6709914484963928,
+          "preview": "Micro Devices has been assigned the 24-bit prefix 080020 (or 8:0:20). A given manufacturer then make"
+        },
+        {
+          "id": 3182,
+          "similarity": 0.6688685052614347,
+          "preview": "Each host on an Ethernet—in fact, every Ethernet host in the world—has a unique Ethernet address. Te"
+        },
+        {
+          "id": 3305,
+          "similarity": 0.6663987649383537,
+          "preview": "Ethernet, has an IP address on the interface to the wireless network whose network part is the same "
+        }
+      ],
+      "avg_similarity": 0.6760468598743603
+    },
+    {
+      "method": "Hybrid (HyDE Keywords)",
+      "category_id": 18,
+      "category_name": "mac address",
+      "query_used": "Vector: HyDE | Keywords: MAC addresses Ethernet frames ARP OUI MAC filtering",
+      "chunks": [
+        {
+          "id": 3180,
+          "similarity": 0.710255675787491,
+          "preview": "### 2.6.2 Access Protocol  \nWe now turn our attention to the algorithm that controls access to a sha"
+        },
+        {
+          "id": 3305,
+          "similarity": 0.7018247045499908,
+          "preview": "Ethernet, has an IP address on the interface to the wireless network whose network part is the same "
+        },
+        {
+          "id": 3439,
+          "similarity": 0.6941880142820643,
+          "preview": "IP has a subrange of its address space reserved for multicast addresses. In IPv4, these addresses ar"
+        },
+        {
+          "id": 3182,
+          "similarity": 0.6856685546050137,
+          "preview": "Each host on an Ethernet—in fact, every Ethernet host in the world—has a unique Ethernet address. Te"
+        },
+        {
+          "id": 3183,
+          "similarity": 0.680082815169006,
+          "preview": "Micro Devices has been assigned the 24-bit prefix 080020 (or 8:0:20). A given manufacturer then make"
+        }
+      ],
+      "avg_similarity": 0.6944039528787133
+    },
+    {
+      "method": "Hybrid (HyDE Keywords v2)",
+      "category_id": 18,
+      "category_name": "mac address",
+      "query_used": "Vector: HyDE | Keywords v2: media access control address resolution protocol unicast multicast broadcast",
+      "chunks": [
+        {
+          "id": 3180,
+          "similarity": 0.7170414459127854,
+          "preview": "### 2.6.2 Access Protocol  \nWe now turn our attention to the algorithm that controls access to a sha"
+        },
+        {
+          "id": 3439,
+          "similarity": 0.708387177646286,
+          "preview": "IP has a subrange of its address space reserved for multicast addresses. In IPv4, these addresses ar"
+        },
+        {
+          "id": 3183,
+          "similarity": 0.6951357745293955,
+          "preview": "Micro Devices has been assigned the 24-bit prefix 080020 (or 8:0:20). A given manufacturer then make"
+        },
+        {
+          "id": 3305,
+          "similarity": 0.6852487806094093,
+          "preview": "Ethernet, has an IP address on the interface to the wireless network whose network part is the same "
+        },
+        {
+          "id": 3421,
+          "similarity": 0.6709817498195929,
+          "preview": "Addresses, as we will see shortly, are a lot like classless IPv4 addresses, only much longer. These "
+        }
+      ],
+      "avg_similarity": 0.6953589857034939
+    },
+    {
+      "method": "HyDE + Vector",
+      "category_id": 32,
+      "category_name": "congestion control",
+      "query_used": "**Question:**  \nExplain the core principles of **congestion control** mechanisms in TCP/IP networks, focusing on how they adapt transmission rates to avoid network collapse while maintaining efficienc...",
+      "chunks": [
+        {
+          "id": 3682,
+          "similarity": 0.7739670448351439,
+          "preview": "This section explores congestion control more deeply. In doing so, it is important to understand tha"
+        },
+        {
+          "id": 3747,
+          "similarity": 0.7639697213627898,
+          "preview": "TCP flows. This property is often enforced by ensuring that the flow’s behavior adheres to an equati"
+        },
+        {
+          "id": 3660,
+          "similarity": 0.7622857564938144,
+          "preview": "Broadly speaking, the idea of TCP congestion control is for each source to determine how much capaci"
+        },
+        {
+          "id": 3626,
+          "similarity": 0.7619126660537395,
+          "preview": "Congestion control and resource allocation involve both hosts and network elements such as routers. "
+        },
+        {
+          "id": 3745,
+          "similarity": 0.7378786556795307,
+          "preview": "We conclude our discussion of QoS by returning full circle to TCP congestion control, but this time "
+        }
+      ],
+      "avg_similarity": 0.7600027688850037
+    },
+    {
+      "method": "Category Direct + Vector",
+      "category_id": 32,
+      "category_name": "congestion control",
+      "query_used": "congestion control Computer Networks > Transport Layer > congestion control",
+      "chunks": [
+        {
+          "id": 3626,
+          "similarity": 0.6883355988290575,
+          "preview": "Congestion control and resource allocation involve both hosts and network elements such as routers. "
+        },
+        {
+          "id": 3682,
+          "similarity": 0.6749341364333324,
+          "preview": "This section explores congestion control more deeply. In doing so, it is important to understand tha"
+        },
+        {
+          "id": 3625,
+          "similarity": 0.6569386129446145,
+          "preview": "When long queues persist and drops become common, the network is said to be _congested_ . Most netwo"
+        },
+        {
+          "id": 3506,
+          "similarity": 0.6476133490826556,
+          "preview": "Since many people confuse congestion control and flow control, we restate the difference. _Flow cont"
+        },
+        {
+          "id": 3627,
+          "similarity": 0.6355674457729551,
+          "preview": "Resource allocation and congestion control are complex issues that have been the subject of much stu"
+        }
+      ],
+      "avg_similarity": 0.660677828612523
+    },
+    {
+      "method": "Hybrid (Vector + Keyword)",
+      "category_id": 32,
+      "category_name": "congestion control",
+      "query_used": "Vector: **Query:**  \n\"What is the purpose of congestion control mechanisms in network transport layers, such... | Keyword: congestion control",
+      "chunks": [
+        {
+          "id": 3627,
+          "similarity": 0.7152051929227017,
+          "preview": "Resource allocation and congestion control are complex issues that have been the subject of much stu"
+        },
+        {
+          "id": 3682,
+          "similarity": 0.7556449830659956,
+          "preview": "This section explores congestion control more deeply. In doing so, it is important to understand tha"
+        },
+        {
+          "id": 3625,
+          "similarity": 0.6886143897244951,
+          "preview": "When long queues persist and drops become common, the network is said to be _congested_ . Most netwo"
+        },
+        {
+          "id": 3660,
+          "similarity": 0.727919302003995,
+          "preview": "Broadly speaking, the idea of TCP congestion control is for each source to determine how much capaci"
+        },
+        {
+          "id": 3626,
+          "similarity": 0.7251212522064175,
+          "preview": "Congestion control and resource allocation involve both hosts and network elements such as routers. "
+        }
+      ],
+      "avg_similarity": 0.722501023984721
+    },
+    {
+      "method": "Hybrid (HyDE Keywords)",
+      "category_id": 32,
+      "category_name": "congestion control",
+      "query_used": "Vector: HyDE | Keywords: Congestion Control Transport Layer AIMD Window Scaling",
+      "chunks": [
+        {
+          "id": 3626,
+          "similarity": 0.7699095335975041,
+          "preview": "Congestion control and resource allocation involve both hosts and network elements such as routers. "
+        },
+        {
+          "id": 3627,
+          "similarity": 0.7662396260800028,
+          "preview": "Resource allocation and congestion control are complex issues that have been the subject of much stu"
+        },
+        {
+          "id": 3506,
+          "similarity": 0.7373991636120703,
+          "preview": "Since many people confuse congestion control and flow control, we restate the difference. _Flow cont"
+        },
+        {
+          "id": 3625,
+          "similarity": 0.7359918089367942,
+          "preview": "When long queues persist and drops become common, the network is said to be _congested_ . Most netwo"
+        },
+        {
+          "id": 3682,
+          "similarity": 0.7304591115069584,
+          "preview": "This section explores congestion control more deeply. In doing so, it is important to understand tha"
+        }
+      ],
+      "avg_similarity": 0.747999848746666
+    },
+    {
+      "method": "Hybrid (HyDE Keywords v2)",
+      "category_id": 32,
+      "category_name": "congestion control",
+      "query_used": "Vector: HyDE | Keywords v2: slow start congestion avoidance fast retransmit congestion window duplicate acks",
+      "chunks": [
+        {
+          "id": 3662,
+          "similarity": 0.7693257002071858,
+          "preview": "CongestionWindow based on the level of congestion it perceives to exist in the network. This involve"
+        },
+        {
+          "id": 3665,
+          "similarity": 0.7600200277893543,
+          "preview": "Figure 6.8.: Packets in transit during additive increase, with one packet being added each RTT.  \n\nF"
+        },
+        {
+          "id": 3679,
+          "similarity": 0.7577063487375805,
+          "preview": "Finally, there is one last improvement we can make. When the fast retransmit mechanism signals conge"
+        },
+        {
+          "id": 3626,
+          "similarity": 0.7535776586218441,
+          "preview": "Congestion control and resource allocation involve both hosts and network elements such as routers. "
+        },
+        {
+          "id": 3682,
+          "similarity": 0.7484315167588484,
+          "preview": "This section explores congestion control more deeply. In doing so, it is important to understand tha"
+        }
+      ],
+      "avg_similarity": 0.7578122504229625
+    },
+    {
+      "method": "HyDE + Vector",
+      "category_id": 42,
+      "category_name": "http status code categories",
+      "query_used": "HTTP status codes categorize server responses into five classes based on standard ranges and purposes. **1xx (Informational)** indicates provisional processing (e.g., `100 Continue`). **2xx (Success)*...",
+      "chunks": [
+        {
+          "id": 3945,
+          "similarity": 0.7931455848428435,
+          "preview": "Like request messages, response messages begin with a single START_LINE. In this case, the line spec"
+        },
+        {
+          "id": 3943,
+          "similarity": 0.6665112011420382,
+          "preview": "The first line of an HTTP request message specifies three things: the operation to be performed, the"
+        },
+        {
+          "id": 3942,
+          "similarity": 0.6554948360048195,
+          "preview": "There are zero or more of these MESSAGE_HEADER lines—the set is terminated by a blank line—each of\nw"
+        },
+        {
+          "id": 3950,
+          "similarity": 0.6427913750380376,
+          "preview": "While 1.1 is still widely supported, a new version (2.0) was formally approved by the IETF in 2015. "
+        },
+        {
+          "id": 3941,
+          "similarity": 0.6408831428135706,
+          "preview": "Figure 9.3.: The Safari web browser.  \n\nWhen you ask your browser to view a page, your browser (the "
+        }
+      ],
+      "avg_similarity": 0.6797652279682618
+    },
+    {
+      "method": "Category Direct + Vector",
+      "category_id": 42,
+      "category_name": "http status code categories",
+      "query_used": "http status code categories Computer Networks > HTTP > http status code categories",
+      "chunks": [
+        {
+          "id": 3945,
+          "similarity": 0.5688934685851443,
+          "preview": "Like request messages, response messages begin with a single START_LINE. In this case, the line spec"
+        },
+        {
+          "id": 3950,
+          "similarity": 0.5534470569185178,
+          "preview": "While 1.1 is still widely supported, a new version (2.0) was formally approved by the IETF in 2015. "
+        },
+        {
+          "id": 3888,
+          "similarity": 0.5320307944382776,
+          "preview": "When HTTP is used in this way, it is known as HTTPS (Secure HTTP). In fact, HTTP itself is unchanged"
+        },
+        {
+          "id": 3941,
+          "similarity": 0.5288319373040291,
+          "preview": "Figure 9.3.: The Safari web browser.  \n\nWhen you ask your browser to view a page, your browser (the "
+        },
+        {
+          "id": 3855,
+          "similarity": 0.5188332798598414,
+          "preview": "Secure Socket Layer (SSL)/Transport Layer Security (TLS), the protocol most often used to secure Web"
+        }
+      ],
+      "avg_similarity": 0.5404073074211622
+    },
+    {
+      "method": "Hybrid (Vector + Keyword)",
+      "category_id": 42,
+      "category_name": "http status code categories",
+      "query_used": "Vector: HTTP status codes categorize server responses into five classes based on the first digit (1xx–5xx). ... | Keyword: http status code categories",
+      "chunks": [
+        {
+          "id": 3945,
+          "similarity": 0.7946196946900269,
+          "preview": "Like request messages, response messages begin with a single START_LINE. In this case, the line spec"
+        },
+        {
+          "id": 3943,
+          "similarity": 0.6710246381995467,
+          "preview": "The first line of an HTTP request message specifies three things: the operation to be performed, the"
+        },
+        {
+          "id": 3942,
+          "similarity": 0.6423266315868972,
+          "preview": "There are zero or more of these MESSAGE_HEADER lines—the set is terminated by a blank line—each of\nw"
+        },
+        {
+          "id": 3598,
+          "similarity": 0.6398241195448774,
+          "preview": "HEADERS (flags = END_HEADERS)  \n:status = 200  \ngrpc-encoding = gzip  \ncontent-type = application/gr"
+        },
+        {
+          "id": 3941,
+          "similarity": 0.6350348104888679,
+          "preview": "Figure 9.3.: The Safari web browser.  \n\nWhen you ask your browser to view a page, your browser (the "
+        }
+      ],
+      "avg_similarity": 0.6765659789020433
+    },
+    {
+      "method": "Hybrid (HyDE Keywords)",
+      "category_id": 42,
+      "category_name": "http status code categories",
+      "query_used": "Vector: HyDE | Keywords: HTTP status codes 2xx 4xx 5xx",
+      "chunks": [
+        {
+          "id": 3945,
+          "similarity": 0.7930640586912451,
+          "preview": "Like request messages, response messages begin with a single START_LINE. In this case, the line spec"
+        },
+        {
+          "id": 3943,
+          "similarity": 0.660645190662024,
+          "preview": "The first line of an HTTP request message specifies three things: the operation to be performed, the"
+        },
+        {
+          "id": 3942,
+          "similarity": 0.6422000208759501,
+          "preview": "There are zero or more of these MESSAGE_HEADER lines—the set is terminated by a blank line—each of\nw"
+        },
+        {
+          "id": 3941,
+          "similarity": 0.6365450866403873,
+          "preview": "Figure 9.3.: The Safari web browser.  \n\nWhen you ask your browser to view a page, your browser (the "
+        },
+        {
+          "id": 3950,
+          "similarity": 0.6333767446732985,
+          "preview": "While 1.1 is still widely supported, a new version (2.0) was formally approved by the IETF in 2015. "
+        }
+      ],
+      "avg_similarity": 0.673166220308581
+    },
+    {
+      "method": "Hybrid (HyDE Keywords v2)",
+      "category_id": 42,
+      "category_name": "http status code categories",
+      "query_used": "Vector: HyDE | Keywords v2: provisional processing successful request redirection mandate invalid request server failure",
+      "chunks": [
+        {
+          "id": 3945,
+          "similarity": 0.7685254046793722,
+          "preview": "Like request messages, response messages begin with a single START_LINE. In this case, the line spec"
+        },
+        {
+          "id": 3943,
+          "similarity": 0.662379503666337,
+          "preview": "The first line of an HTTP request message specifies three things: the operation to be performed, the"
+        },
+        {
+          "id": 3950,
+          "similarity": 0.6302851149015648,
+          "preview": "While 1.1 is still widely supported, a new version (2.0) was formally approved by the IETF in 2015. "
+        },
+        {
+          "id": 3941,
+          "similarity": 0.6281127646945317,
+          "preview": "Figure 9.3.: The Safari web browser.  \n\nWhen you ask your browser to view a page, your browser (the "
+        },
+        {
+          "id": 3046,
+          "similarity": 0.6251407240667959,
+          "preview": "There are three general classes of failure that network designers have to worry about. First, as a p"
+        }
+      ],
+      "avg_similarity": 0.6628887024017203
+    }
+  ]
+}

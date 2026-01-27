@@ -1,0 +1,150 @@
+{
+  "summary": {
+    "total_questions": 10,
+    "avg_faithfulness": 1.0,
+    "avg_answer_relevancy": 0.7235525913494696,
+    "avg_context_precision": 0.9999999999
+  },
+  "questions": [
+    {
+      "index": 1,
+      "question": "물리 계층(Physical Layer)이 주로 담당하는 기능은?",
+      "question_type": "multiple_choice",
+      "difficulty": 1,
+      "answer": "원시 비트 전송",
+      "explanation": "물리 계층은 통신 링크 상에서 원시 비트(raw bit)를 전송하는 역할을 한다.",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.6306924343002844,
+      "context_precision": 0.9999999999,
+      "chunk_ids": [
+        3064
+      ]
+    },
+    {
+      "index": 2,
+      "question": "네트워크 어댑터가 수행하는 주요 두 가지 기능은 무엇인가?",
+      "question_type": "short_answer",
+      "difficulty": 1,
+      "answer": "비트→신호 변환, 신호→비트 변환",
+      "explanation": "네트워크 어댑터는 송신 측에서는 비트를 신호로 변환하고 수신 측에서는 신호를 다시 비트로 복원한다.",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.7384627366764394,
+      "context_precision": 0.9999999999,
+      "chunk_ids": [
+        3116
+      ]
+    },
+    {
+      "index": 3,
+      "question": "인터넷 아키텍처에서 TCP와 UDP가 속한 계층은?",
+      "question_type": "multiple_choice",
+      "difficulty": 2,
+      "answer": "전송 계층",
+      "explanation": "TCP와 UDP는 전송 계층에 위치하며 애플리케이션 프로그램에게 논리 채널을 제공한다.",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.8399151285991485,
+      "context_precision": 0.9999999999,
+      "chunk_ids": [
+        3067
+      ]
+    },
+    {
+      "index": 4,
+      "question": "프로토콜이 제공하는 서비스 인터페이스와 관련된 구체적인 예를 들어 설명하시오.",
+      "question_type": "essay",
+      "difficulty": 3,
+      "answer": "서비스 인터페이스는 프로토콜이 상위 계층에 제공하는 연산을 의미한다. 예를 들어 HTTP 프로토콜은 웹 브라우저가 원격 서버로부터 페이지를 가져오는(fetch) 연산을 제공할 수 있다.",
+      "explanation": "프로토콜의 서비스 인터페이스는 로컬 객체들이 사용할 수 있는 연산 집합을 정의한다. 이는 프로토콜 구현체가 제공하는 기능으로, HTTP의 경우 페이지를 가져오는 작업이 이에 해당된다.",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.6950046338064826,
+      "context_precision": 0.9999999999,
+      "chunk_ids": [
+        3054
+      ]
+    },
+    {
+      "index": 5,
+      "question": "다음 중 애플리케이션 계층에 해당하는 프로토콜은?",
+      "question_type": "multiple_choice",
+      "difficulty": 2,
+      "answer": "HTTP",
+      "explanation": "HTTP는 웹 브라우저와 서버 간의 통신을 위한 애플리케이션 계층 프로토콜이다.",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.6758138783440218,
+      "context_precision": 0.9999999999,
+      "chunk_ids": [
+        3065
+      ]
+    },
+    {
+      "index": 6,
+      "question": "데이터 링크 계층의 단위 데이터를 무엇이라 부르는가?",
+      "question_type": "short_answer",
+      "difficulty": 1,
+      "answer": "프레임",
+      "explanation": "데이터 링크 계층에서는 비트 스트림을 모아 프레임(frame)이라는 더 큰 단위로 묶는다.",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.7346633365974531,
+      "context_precision": 0.9999999999,
+      "chunk_ids": [
+        3064
+      ]
+    },
+    {
+      "index": 7,
+      "question": "TCP와 UDP의 차이점을 설명하시오.",
+      "question_type": "essay",
+      "difficulty": 2,
+      "answer": "TCP는 신뢰성 있는 바이트 스트림 전송을 제공하고 연결 지향적 프로토콜인 반면, UDP는 비연결 지향적이고 신뢰성을 보장하지 않는다.",
+      "explanation": "TCP는 오류 검출, 재전송, 흐름 제어 등을 통해 신뢰성을 보장하지만 UDP는 이러한 기능이 없어 실시간 응용에 유리하다.",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.8173920070751276,
+      "context_precision": 0.9999999999,
+      "chunk_ids": [
+        3067
+      ]
+    },
+    {
+      "index": 8,
+      "question": "세션 계층의 주요 목적은 무엇인가?",
+      "question_type": "multiple_choice",
+      "difficulty": 3,
+      "answer": "응용 프로그램 내 여러 스트림을 통합 관리",
+      "explanation": "세션 계층은 오디오 스트림과 비디오 스트림처럼 서로 다른 트랜스포트 스트림을 단일 애플리케이션 환경에서 관리하는 이름을 제공한다.",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.723873458623425,
+      "context_precision": 0.9999999999,
+      "chunk_ids": [
+        3065
+      ]
+    },
+    {
+      "index": 9,
+      "question": "OSI 모델에서 하위 3계층에 속하는 장비들은 무엇인가?",
+      "question_type": "short_answer",
+      "difficulty": 2,
+      "answer": "스위치, 호스트",
+      "explanation": "물리·데이터링크·네트워크 계층은 스위치와 호스트 모두에서 구현되며 중간 장비들도 포함한다.",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.6564734259583451,
+      "context_precision": 0.9999999999,
+      "chunk_ids": [
+        3064
+      ]
+    },
+    {
+      "index": 10,
+      "question": "다음 중 네트워크 계층의 주요 책임은?",
+      "question_type": "multiple_choice",
+      "difficulty": 3,
+      "answer": "노드 간 라우팅",
+      "explanation": "네트워크 계층은 패킷 스위치 네트워크 내에서 노드 간 경로를 설정(routing)하는 역할을 한다.",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.7232348735139671,
+      "context_precision": 0.9999999999,
+      "chunk_ids": [
+        3064
+      ]
+    }
+  ]
+}

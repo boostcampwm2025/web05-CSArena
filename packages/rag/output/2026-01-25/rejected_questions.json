@@ -1,0 +1,171 @@
+[
+  {
+    "question_type": "multiple_choice",
+    "difficulty": 2,
+    "question": "REST 아키텍처의 주요 장점 중 하나로 올바른 것은?",
+    "answer": "HTTP 프로토콜 활용 가능",
+    "explanation": "REST는 HTTP 프로토콜을 사용하여 웹 인프라(프록시, CDN 등)를 활용할 수 있어 확장성과 안정성이 높다.",
+    "options": [
+      "전용 프로토콜 사용",
+      "복잡한 WSDL 정의 필요",
+      "HTTP 프로토콜 활용 가능",
+      "보안 취약"
+    ],
+    "correct_index": 2,
+    "category_id": 36,
+    "category_name": "client server model",
+    "chunk_ids": [
+      3971
+    ],
+    "scores": {
+      "faithfulness": 0.75,
+      "answer_relevancy": 0.7878093913315278
+    },
+    "rejected_at": "2026-01-25T22:14:26.796970"
+  },
+  {
+    "question_type": "essay",
+    "difficulty": 2,
+    "question": "TCP가 요청/응답 패러다임에 완벽히 맞지 않는 이유를 설명하시오.",
+    "answer": "TCP는 신뢰성 있는 바이트 스트림을 제공하지만, 요청과 응답을 개별적으로 처리하기보다는 연속된 데이터 흐름으로 취급하기 때문이다.",
+    "explanation": "TCP는 세그먼트 단위로 데이터를 전송하므로, 각 요청/응답 쌍을 구분하려면 추가적인 메커니즘이 필요하다.",
+    "options": [],
+    "correct_index": 0,
+    "category_id": 36,
+    "category_name": "client server model",
+    "chunk_ids": [
+      3566
+    ],
+    "scores": {
+      "faithfulness": 0.5,
+      "answer_relevancy": 0.811608453952125
+    },
+    "rejected_at": "2026-01-25T22:14:26.797017"
+  },
+  {
+    "question_type": "multiple_choice",
+    "difficulty": 1,
+    "question": "네트워크 시스템에서 서로 다른 계층의 프로토콜이 상호 작용하는 구조를 무엇이라 하는가?",
+    "answer": "레이어링",
+    "explanation": "OSI 모델이나 TCP/IP 모델처럼 각 계층이 특화된 기능을 담당하며 계층 간에 서비스를 제공한다.",
+    "options": [
+      "모듈화",
+      "레이어링",
+      "인터페이싱",
+      "캡슐화"
+    ],
+    "correct_index": 1,
+    "category_id": 36,
+    "category_name": "client server model",
+    "chunk_ids": [
+      3054
+    ],
+    "scores": {
+      "faithfulness": 0.0,
+      "answer_relevancy": 0.7271666330171341
+    },
+    "rejected_at": "2026-01-25T22:14:26.797022"
+  },
+  {
+    "question_type": "multiple_choice",
+    "difficulty": 1,
+    "question": "인터넷워크(internetwork)의 주요 구성 요소로 올바르게 짝지어진 것은?",
+    "answer": "H와 R",
+    "explanation": "인터넷워크는 여러 네트워크를 연결한 구조로, 호스트(H)와 라우터(R)로 구성된다.",
+    "options": [
+      "H와 N",
+      "R와 S",
+      "H와 R",
+      "P와 Q"
+    ],
+    "correct_index": 2,
+    "category_id": 4,
+    "category_name": "network components",
+    "chunk_ids": [
+      3287
+    ],
+    "scores": {
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.6586481902345902
+    },
+    "rejected_at": "2026-01-25T22:15:55.344868"
+  },
+  {
+    "question_type": "essay",
+    "difficulty": 3,
+    "question": "프로토콜의 서비스 인터페이스가 상위 계층 객체에게 제공하는 통신 서비스를 설명하시오.",
+    "answer": "상위 계층의 애플리케이션 프로세스 등이 메시지를 교환하기 위한 통신 서비스를 제공한다. 예를 들어 요청/응답 프로토콜은 메시지 송수신 기능을 지원하고, HTTP 프로토콜은 원격 서버에서 페이지를 가져오는 작업을 가능하게 한다.",
+    "explanation": "서비스 인터페이스는 로컬 객체들이 프로토콜을 통해 수행할 수 있는 연산을 정의한다.",
+    "options": [],
+    "correct_index": 0,
+    "category_id": 4,
+    "category_name": "network components",
+    "chunk_ids": [
+      3054
+    ],
+    "scores": {
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.6905468392837836
+    },
+    "rejected_at": "2026-01-25T22:15:55.344882"
+  },
+  {
+    "question_type": "short_answer",
+    "difficulty": 1,
+    "question": "그림 3.15에서 H와 R이 나타내는 용어의 영문 약자는 각각 무엇인가?",
+    "answer": "Host, Router",
+    "explanation": "H는 Host(호스트), R은 Router(라우터)를 의미한다.",
+    "options": [],
+    "correct_index": 0,
+    "category_id": 4,
+    "category_name": "network components",
+    "chunk_ids": [
+      3287
+    ],
+    "scores": {
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.6885591864152624
+    },
+    "rejected_at": "2026-01-25T22:15:55.344885"
+  },
+  {
+    "question_type": "essay",
+    "difficulty": 2,
+    "question": "스위치와 라우터의 공통점과 차이점을 설명하시오.",
+    "answer": "공통점: 둘 다 패킷 전달 기능을 수행하며 소프트웨어/하드웨어 조합으로 구현됨. 차이점: 스위치는 Layer 2(LAN)에서 MAC 주소 기반으로 작동하고, 라우터는 Layer 3(IP)에서 논리 주소 기반으로 작동하며 서로 다른 네트워크 연결을 담당함.",
+    "explanation": "스위치와 라우터는 유사한 내부 구조를 가지지만 작업하는 계층과 방식이 다르다.",
+    "options": [],
+    "correct_index": 0,
+    "category_id": 4,
+    "category_name": "network components",
+    "chunk_ids": [
+      3374,
+      3235
+    ],
+    "scores": {
+      "faithfulness": 0.6666666666666666,
+      "answer_relevancy": 0.6911259082299077
+    },
+    "rejected_at": "2026-01-25T22:15:55.344888"
+  },
+  {
+    "question_type": "essay",
+    "difficulty": 2,
+    "question": "계층적 네트워크 구조에서 각 계층이 다른 계층과 상호작용하는 방식을 설명하시오.",
+    "answer": "각 계층은 자신만의 추상적 객체(프로토콜)를 사용하여 하위 계층에 서비스 요청을 보내고 상위 계층에 결과를 반환한다. 예를 들어 응용 계층은 전송 계층을 통해 데이터를 전달받고, 전송 계층은 네트워크 계층(IP)을 이용해 패킷을 라우팅한다.",
+    "explanation": "계층화는 모듈화를 통해 복잡한 네트워크 설계를 단순화하며, 각 계층은 독립적으로 기능한다.",
+    "options": [],
+    "correct_index": 0,
+    "category_id": 4,
+    "category_name": "network components",
+    "chunk_ids": [
+      3054,
+      3287
+    ],
+    "scores": {
+      "faithfulness": 0.0,
+      "answer_relevancy": 0.6905468392837834
+    },
+    "rejected_at": "2026-01-25T22:15:55.344892"
+  }
+]

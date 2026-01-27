@@ -1,7 +1,7 @@
 import { createContext, useContext } from 'react';
 import { useState } from 'react';
 
-type Scene = 'home' | 'match' | 'single-play' | 'problem-bank' | 'my-page';
+type Scene = 'home' | 'match' | 'single-play' | 'problem-bank' | 'my-page' | 'leaderboard';
 type SceneAPI = { scene: Scene; setScene: React.Dispatch<React.SetStateAction<Scene>> };
 
 const SceneCtx = createContext<SceneAPI | null>(null);
