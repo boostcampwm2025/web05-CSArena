@@ -348,6 +348,9 @@ export class RoundProgressionService {
       const finalResult = this.calculateFinalResult(roomId);
       const session = this.sessionManager.getGameSession(roomId);
 
+      // DB 저장 및 ELO 변화량 획득
+      const eloChanges = await this.matchPersistence.saveMatchToDatabase(roomId, finalResult);
+
       // 각 플레이어에게 match:end 이벤트 발송
       this.server.to(session.player1SocketId).emit('match:end', {
         isWin: finalResult.winnerId === session.player1Id,
@@ -355,6 +358,7 @@ export class RoundProgressionService {
           my: session.player1Score,
           opponent: session.player2Score,
         },
+        tierPointChange: eloChanges?.player1Change ?? 0,
       });
 
       this.server.to(session.player2SocketId).emit('match:end', {
@@ -363,10 +367,10 @@ export class RoundProgressionService {
           my: session.player2Score,
           opponent: session.player1Score,
         },
+        tierPointChange: eloChanges?.player2Change ?? 0,
       });
 
-      // DB 저장 및 세션 정리
-      await this.matchPersistence.saveMatchToDatabase(roomId, finalResult);
+      // 세션 정리
       this.sessionManager.deleteGameSession(roomId);
       this.roundTimer.clearAllTimers(roomId);
     } catch (error) {
