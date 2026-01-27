@@ -18,11 +18,16 @@ export function useLeaderboard() {
 
   const fetchLeaderboard = useCallback(async () => {
     if (!accessToken) {
+      setData(null);
+      setError(null);
+      setIsLoading(false);
+
       return;
     }
 
     setIsLoading(true);
     setError(null);
+    setData(null);
 
     try {
       const response = await getLeaderboard(currentType, accessToken);
