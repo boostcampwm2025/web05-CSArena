@@ -171,6 +171,8 @@ export class AuthService {
       return null;
     }
 
+    const tierPoint = user.statistics?.tierPoint ?? 1000;
+
     return {
       id: user.id,
       visibleId: user.id.toString(),
@@ -178,7 +180,8 @@ export class AuthService {
       email: user.email,
       userProfile: user.userProfile,
       oauthProvider: user.oauthProvider,
-      tier: calculateTier(user.statistics?.tierPoint ?? 1000),
+      tier: calculateTier(tierPoint),
+      tierPoint,
       expPoint: user.statistics?.expPoint ?? 0,
       winCount: user.statistics?.winCount ?? 0,
       loseCount: user.statistics?.loseCount ?? 0,
@@ -186,13 +189,16 @@ export class AuthService {
   }
 
   private sanitizeUser(user: User) {
+    const tierPoint = user.statistics?.tierPoint ?? 1000;
+
     return {
       id: user.id,
       visibleId: user.id.toString(),
       nickname: user.nickname,
       email: user.email,
       userProfile: user.userProfile,
-      tier: calculateTier(user.statistics?.tierPoint ?? 1000),
+      tier: calculateTier(tierPoint),
+      tierPoint,
       expPoint: user.statistics?.expPoint ?? 0,
       winCount: user.statistics?.winCount ?? 0,
       loseCount: user.statistics?.loseCount ?? 0,
