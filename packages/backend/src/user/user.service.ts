@@ -16,13 +16,7 @@ import { TierHistoryResponseDto } from './dto/tier-history-response.dto';
 import { MatchHistoryItemDto, MatchHistoryResponseDto } from './dto/match-history-response.dto';
 import { calculateLevel } from '../common/utils/level.util';
 import { calculateTier } from '../common/utils/tier.util';
-
-interface ProblemStatsRaw {
-  totalSolved: string;
-  correctCount: string;
-  incorrectCount: string;
-  partialCount: string;
-}
+import { ProblemStatsRaw } from './interfaces';
 
 @Injectable()
 export class UserService {

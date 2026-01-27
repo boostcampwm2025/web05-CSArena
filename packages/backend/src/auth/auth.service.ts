@@ -8,25 +8,7 @@ import { GithubProfile } from './strategies/github.strategy';
 import { AuthenticatedUser, JwtPayload } from './strategies/jwt.strategy';
 import { calculateTier } from '../common/utils/tier.util';
 import { ELO_CONFIG } from '../common/utils/elo.util';
-
-interface TokenPair {
-  accessToken: string;
-  refreshToken: string;
-}
-
-interface LoginResult extends TokenPair {
-  user: {
-    id: number;
-    visibleId: string;
-    nickname: string;
-    email: string | null;
-    userProfile: string | null;
-    tier: string;
-    expPoint: number;
-    winCount: number;
-    loseCount: number;
-  };
-}
+import { LoginResult, TokenPair } from './interfaces';
 
 @Injectable()
 export class AuthService {
