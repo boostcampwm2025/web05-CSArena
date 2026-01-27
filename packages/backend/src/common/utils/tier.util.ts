@@ -1,17 +1,17 @@
 export function calculateTier(tierPoint: number): string {
-  if (tierPoint >= 2000) {
+  if (tierPoint >= 2500) {
     return 'diamond';
   }
 
-  if (tierPoint >= 1500) {
+  if (tierPoint >= 2000) {
     return 'platinum';
   }
 
-  if (tierPoint >= 1000) {
+  if (tierPoint >= 1500) {
     return 'gold';
   }
 
-  if (tierPoint >= 500) {
+  if (tierPoint >= 1000) {
     return 'silver';
   }
 

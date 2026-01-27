@@ -333,16 +333,20 @@ export class MatchPersistenceService {
       where: { userId: loserId },
     });
 
-    if (!winnerStats || !loserStats) {
-      this.logger.error(`UserStatistics 없음 - winner: ${winnerId}, loser: ${loserId}`);
-
-      return;
+    if (!winnerStats) {
+      throw new Error(
+        `UserStatistics not found for winner userId: ${winnerId}. Cannot update ELO.`,
+      );
     }
 
-    const winnerElo = winnerStats.tierPoint || 1000;
-    const loserElo = loserStats.tierPoint || 1000;
-    const winnerTotalGames = winnerStats.totalMatches || 0;
-    const loserTotalGames = loserStats.totalMatches || 0;
+    if (!loserStats) {
+      throw new Error(`UserStatistics not found for loser userId: ${loserId}. Cannot update ELO.`);
+    }
+
+    const winnerElo = winnerStats.tierPoint ?? 1000;
+    const loserElo = loserStats.tierPoint ?? 1000;
+    const winnerTotalGames = winnerStats.totalMatches ?? 0;
+    const loserTotalGames = loserStats.totalMatches ?? 0;
 
     // ELO 계산
     const { winnerNewRating, loserNewRating, winnerChange, loserChange } = calculateMatchEloUpdate(
@@ -357,9 +361,26 @@ export class MatchPersistenceService {
         `패자: ${loserId} (${loserElo} → ${loserNewRating}, ${loserChange})`,
     );
 
-    // UserStatistics 업데이트
-    await manager.update(UserStatistics, { userId: winnerId }, { tierPoint: winnerNewRating });
-    await manager.update(UserStatistics, { userId: loserId }, { tierPoint: loserNewRating });
+    // UserStatistics 업데이트 (승패 기록 + ELO)
+    await manager.update(
+      UserStatistics,
+      { userId: winnerId },
+      {
+        tierPoint: winnerNewRating,
+        winCount: () => 'win_count + 1',
+        totalMatches: () => 'total_matches + 1',
+      },
+    );
+
+    await manager.update(
+      UserStatistics,
+      { userId: loserId },
+      {
+        tierPoint: loserNewRating,
+        loseCount: () => 'lose_count + 1',
+        totalMatches: () => 'total_matches + 1',
+      },
+    );
 
     // 티어 변동 히스토리 기록
     await this.recordTierHistory(manager, winnerId, matchId, winnerChange, winnerNewRating);
@@ -388,11 +409,15 @@ export class MatchPersistenceService {
       where: { name: tierName },
     });
 
-    const tierId = tier?.id || 1;
+    if (!tier) {
+      throw new Error(
+        `Tier '${tierName}' not found for ELO ${newElo}. Cannot record tier history for user ${userId}.`,
+      );
+    }
 
     await manager.insert(UserTierHistory, {
       userId,
-      tierId,
+      tierId: tier.id,
       tierPoint: newElo,
       matchId,
       tierChange,

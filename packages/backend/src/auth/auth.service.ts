@@ -7,6 +7,7 @@ import { User, UserStatistics } from '../user/entity';
 import { GithubProfile } from './strategies/github.strategy';
 import { AuthenticatedUser, JwtPayload } from './strategies/jwt.strategy';
 import { calculateTier } from '../common/utils/tier.util';
+import { ELO_CONFIG } from '../common/utils/elo.util';
 
 interface TokenPair {
   accessToken: string;
@@ -104,7 +105,7 @@ export class AuthService {
         userId: savedUser.id,
         winCount: 0,
         loseCount: 0,
-        tierPoint: 0,
+        tierPoint: ELO_CONFIG.INITIAL_RATING,
         totalMatches: 0,
         expPoint: 0,
       });
@@ -195,10 +196,10 @@ export class AuthService {
       email: user.email,
       userProfile: user.userProfile,
       oauthProvider: user.oauthProvider,
-      tier: calculateTier(user.statistics?.tierPoint || 0),
-      expPoint: user.statistics?.expPoint || 0,
-      winCount: user.statistics?.winCount || 0,
-      loseCount: user.statistics?.loseCount || 0,
+      tier: calculateTier(user.statistics?.tierPoint ?? 1000),
+      expPoint: user.statistics?.expPoint ?? 0,
+      winCount: user.statistics?.winCount ?? 0,
+      loseCount: user.statistics?.loseCount ?? 0,
     };
   }
 
@@ -209,10 +210,10 @@ export class AuthService {
       nickname: user.nickname,
       email: user.email,
       userProfile: user.userProfile,
-      tier: calculateTier(user.statistics?.tierPoint || 0),
-      expPoint: user.statistics?.expPoint || 0,
-      winCount: user.statistics?.winCount || 0,
-      loseCount: user.statistics?.loseCount || 0,
+      tier: calculateTier(user.statistics?.tierPoint ?? 1000),
+      expPoint: user.statistics?.expPoint ?? 0,
+      winCount: user.statistics?.winCount ?? 0,
+      loseCount: user.statistics?.loseCount ?? 0,
     };
   }
 }
