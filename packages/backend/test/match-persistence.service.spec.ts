@@ -130,7 +130,7 @@ describe('MatchPersistenceService', () => {
       mockSessionManager.getGameSession.mockReturnValue(mockSession);
     });
 
-    it('매치 데이터를 성공적으로 저장해야 함', async () => {
+    it('매치 데이터를 성공적으로 저장하고 ELO 변화량을 반환해야 함', async () => {
       // Mock UserStatistics (ELO 업데이트용)
       mockEntityManager.findOne.mockResolvedValue({
         userId: 1,
@@ -148,7 +148,7 @@ describe('MatchPersistenceService', () => {
         .mockResolvedValueOnce({}) // Round Answers
         .mockResolvedValueOnce({}); // User Problem Banks
 
-      await service.saveMatchToDatabase(roomId, finalResult);
+      const result = await service.saveMatchToDatabase(roomId, finalResult);
 
       expect(mockDataSource.transaction).toHaveBeenCalled();
 
@@ -187,9 +187,40 @@ describe('MatchPersistenceService', () => {
         { userId: 2 },
         expect.objectContaining({ tierPoint: expect.any(Number) })
       );
+
+      // Verify ELO 변화량 반환
+      expect(result).toBeDefined();
+      expect(result).toHaveProperty('player1Change');
+      expect(result).toHaveProperty('player2Change');
+      expect(typeof result.player1Change).toBe('number');
+      expect(typeof result.player2Change).toBe('number');
+      expect(result.player1Change).toBeGreaterThan(0); // 승자는 증가
+      expect(result.player2Change).toBeLessThan(0); // 패자는 감소
     });
 
-    it('트랜잭션 중 에러 발생 시 재시도 후 로깅하고 정상 종료해야 함', async () => {
+    it('무승부 시 null을 반환해야 함', async () => {
+      const drawResult = {
+        winnerId: null,
+        scores: {
+          [player1Id]: 10,
+          [player2Id]: 10,
+        },
+        isDraw: true,
+      };
+
+      mockQueryBuilder.execute
+        .mockResolvedValueOnce({ generatedMaps: [{ id: 999 }] }) // Match ID
+        .mockResolvedValueOnce({ generatedMaps: [{ id: 50, roundNumber: 1 }] }) // Round IDs
+        .mockResolvedValueOnce({}) // Round Answers
+        .mockResolvedValueOnce({}); // User Problem Banks
+
+      const result = await service.saveMatchToDatabase(roomId, drawResult);
+
+      expect(result).toBeNull();
+      expect(mockDataSource.transaction).toHaveBeenCalled();
+    });
+
+    it('트랜잭션 중 에러 발생 시 재시도 후 null 반환해야 함', async () => {
       jest.useFakeTimers();
       mockDataSource.transaction.mockRejectedValue(new Error('DB Error'));
 
@@ -198,7 +229,7 @@ describe('MatchPersistenceService', () => {
       // 모든 재시도 타이머 실행
       await jest.runAllTimersAsync();
 
-      await expect(promise).resolves.toBeUndefined();
+      await expect(promise).resolves.toBeNull();
       jest.useRealTimers();
     });
 
