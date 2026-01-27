@@ -1,7 +1,15 @@
 import { useRoundResult } from '@/pages/single-play/hooks/useRoundResult';
 
 export default function RoundResult() {
-  const { nickname, curRound, question, submitAnswer, onClickNextBtn } = useRoundResult();
+  const {
+    nickname,
+    curQuestion,
+    submittedAnswer,
+    isCorrect,
+    aiFeedback,
+    isFetchingQuestion,
+    onClickNextBtn,
+  } = useRoundResult();
 
   return (
     <div className="flex h-full items-center justify-center">
@@ -10,7 +18,7 @@ export default function RoundResult() {
           className="bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-center text-4xl font-black text-transparent"
           style={{ fontFamily: '"Press Start 2P"' }}
         >
-          ROUND {curRound + 1} RESULT
+          RESULT
         </div>
 
         {/* Player Answer */}
@@ -28,10 +36,10 @@ export default function RoundResult() {
               YOUR ANSWER
             </div>
             <div className="text-base text-white" style={{ fontFamily: 'Orbitron' }}>
-              {submitAnswer.answer}
+              {submittedAnswer}
             </div>
           </div>
-          {submitAnswer.isCorrect ? (
+          {isCorrect ? (
             <div className="border-2 border-emerald-400 bg-emerald-500/20 py-2 text-center">
               <p
                 className="text-base font-bold text-emerald-400"
@@ -56,18 +64,30 @@ export default function RoundResult() {
             CORRECT ANSWER
           </div>
           <div className="text-base text-white" style={{ fontFamily: 'Orbitron' }}>
-            {question.type === 'multiple_choice' && question.answer}
-            {question.type === 'short_answer' && question.answer}
-            {question.type === 'essay' && question.sampleAnswer}
+            {curQuestion?.type === 'multiple_choice' && curQuestion?.answer}
+            {curQuestion?.type === 'short_answer' && curQuestion?.answer}
+            {curQuestion?.type === 'essay' && curQuestion?.sampleAnswer}
+          </div>
+        </div>
+
+        {/* AI Feedback */}
+        <div className="flex flex-col gap-2 border-4 border-purple-400 bg-gradient-to-r from-slate-800/95 to-slate-900/95 p-4 shadow-2xl shadow-purple-500/30">
+          <div className="text-sm font-bold text-purple-400" style={{ fontFamily: 'Orbitron' }}>
+            <i className="ri-robot-2-line mr-2" />
+            AI Feedback
+          </div>
+          <div className="text-base text-white" style={{ fontFamily: 'Orbitron' }}>
+            {aiFeedback}
           </div>
         </div>
 
         {/* Action Buttons */}
         <div className="flex w-full justify-end">
           <button
-            className="border-2 border-slate-400 bg-gradient-to-r from-slate-600 to-slate-700 px-6 py-3 text-2xl font-bold text-white transition-all duration-200 hover:scale-105 hover:from-slate-500 hover:to-slate-600"
+            className="border-2 border-slate-400 bg-gradient-to-r from-slate-600 to-slate-700 px-6 py-3 text-2xl font-bold text-white transition-all duration-200 enabled:hover:scale-105 enabled:hover:from-slate-500 enabled:hover:to-slate-600 disabled:from-slate-500/60 disabled:to-slate-600/60 disabled:text-white/60"
             style={{ fontFamily: 'Orbitron' }}
             onClick={onClickNextBtn}
+            disabled={isFetchingQuestion}
           >
             <i className="ri-play-fill mr-2" />
             Next

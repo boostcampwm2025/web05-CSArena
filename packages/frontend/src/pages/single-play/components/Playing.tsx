@@ -1,7 +1,7 @@
 import { usePlaying } from '@/pages/single-play/hooks/usePlaying';
 
 export default function Playing() {
-  const { curRound, question, answer, setAnswer, isSubmitting, onClickSubmitBtn } = usePlaying();
+  const { answer, setAnswer, curQuestion, isSubmitting, onClickSubmitBtn } = usePlaying();
 
   return (
     <div className="flex h-full items-center justify-center">
@@ -10,7 +10,7 @@ export default function Playing() {
           className="bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-center text-4xl font-black text-transparent"
           style={{ fontFamily: '"Press Start 2P"' }}
         >
-          ROUND {curRound + 1}
+          Question
         </div>
 
         {/* Question Card */}
@@ -19,12 +19,12 @@ export default function Playing() {
             <div className="flex items-center gap-4">
               <div className="border-2 border-purple-300 bg-purple-500 px-4 py-2">
                 <p className="text-sm font-bold text-white" style={{ fontFamily: 'Orbitron' }}>
-                  {question.category[0]}
+                  {curQuestion?.category[0]}
                 </p>
               </div>
               <div className="border-2 border-amber-300 bg-amber-500 px-4 py-2">
                 <p className="text-sm font-bold text-white" style={{ fontFamily: 'Orbitron' }}>
-                  {question.category[1]}
+                  {curQuestion?.category[1]}
                 </p>
               </div>
               <div className="border-2 border-emerald-300 bg-emerald-500 px-4 py-2">
@@ -34,28 +34,28 @@ export default function Playing() {
               </div>
               <div className="border-2 border-green-300 bg-green-500 px-4 py-2">
                 <p className="text-sm font-bold text-white" style={{ fontFamily: 'Orbitron' }}>
-                  {question.difficulty}
+                  {curQuestion?.difficulty}
                 </p>
               </div>
             </div>
           </div>
 
           <div className="text-xl leading-relaxed text-white" style={{ fontFamily: 'Orbitron' }}>
-            {question.type === 'multiple_choice' ? (
+            {curQuestion?.type === 'multiple_choice' ? (
               <span>
-                {question.question}
+                {curQuestion.question}
                 <br />
                 <br />
-                {`A: ${question.options.A}`}
+                {`A: ${curQuestion.options.A}`}
                 <br />
-                {`B: ${question.options.B}`}
+                {`B: ${curQuestion.options.B}`}
                 <br />
-                {`C: ${question.options.C}`}
+                {`C: ${curQuestion.options.C}`}
                 <br />
-                {`D: ${question.options.D}`}
+                {`D: ${curQuestion.options.D}`}
               </span>
             ) : (
-              <span>{question.question}</span>
+              <span>{curQuestion?.question}</span>
             )}
           </div>
 

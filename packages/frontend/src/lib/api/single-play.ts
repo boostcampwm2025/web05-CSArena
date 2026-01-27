@@ -11,12 +11,12 @@ export function fetchCategories(accessToken: string | null, signal?: AbortSignal
   return request<GetCategoriesRes>('/api/singleplay/categories', accessToken, { signal });
 }
 
-export function fetchQuestions(
+export function fetchQuestion(
   accessToken: string | null,
   categoryIds: number[],
   signal?: AbortSignal,
 ) {
-  return request<GetQuestionsRes>('/api/singleplay/questions', accessToken, {
+  return request<GetQuestionsRes>('/api/singleplay/question', accessToken, {
     query: { categoryId: categoryIds },
     signal,
   });

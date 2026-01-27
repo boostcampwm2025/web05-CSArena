@@ -1,24 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { useUser } from '@/feature/auth/useUser';
-import {
-  useCategory,
-  usePhase,
-  useQuestion,
-  useResult,
-  useRound,
-} from '@/feature/single-play/useRound';
+import { fetchCategories, fetchQuestion } from '@/lib/api/single-play';
 
 import { CategoryItem } from '@/pages/single-play/types/types';
-import { fetchCategories, fetchQuestions } from '@/lib/api/single-play';
+
+import { useUser } from '@/feature/auth/useUser';
+import { useCategory, usePhase, useQuestion } from '@/feature/single-play/useRound';
 
 export function usePreparing() {
   const { accessToken } = useUser();
   const { selectedCategoryIds, setSelectedCategoryIds } = useCategory();
   const { setPhase } = usePhase();
-  const { setCurRound, setTotalRounds } = useRound();
-  const { setQuestions } = useQuestion();
-  const { setSubmitAnswers, setCorrectCnt, setTotalPoints } = useResult();
+  const { setCurQuestion } = useQuestion();
 
   const [categories, setCategories] = useState<Record<number, CategoryItem>>({});
   const [isLoadingCategories, setIsLoadingCategories] = useState<boolean>(false);
@@ -93,16 +86,10 @@ export function usePreparing() {
     setIsLoadingQuestions(true);
 
     try {
-      const data = await fetchQuestions(accessToken, selectedCategoryIds, controller.signal);
+      const data = await fetchQuestion(accessToken, selectedCategoryIds, controller.signal);
 
-      setCurRound(0);
-      setTotalRounds(data.questions.length);
-      setQuestions(data.questions);
-      setSubmitAnswers([]);
-      setCorrectCnt(0);
-      setTotalPoints(0);
-
-      setPhase('playing');
+      setCurQuestion(data.question);
+      setPhase({ kind: 'playing' });
     } catch (e) {
       if (e instanceof DOMException && e.name === 'AbortError') {
         return;
@@ -112,17 +99,7 @@ export function usePreparing() {
     } finally {
       setIsLoadingQuestions(false);
     }
-  }, [
-    accessToken,
-    selectedCategoryIds,
-    setPhase,
-    setCurRound,
-    setTotalRounds,
-    setQuestions,
-    setSubmitAnswers,
-    setCorrectCnt,
-    setTotalPoints,
-  ]);
+  }, [accessToken, selectedCategoryIds, setPhase, setCurQuestion]);
 
   return {
     categories,

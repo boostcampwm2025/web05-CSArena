@@ -61,9 +61,7 @@ describe('SinglePlayService', () => {
 
     service = module.get<SinglePlayService>(SinglePlayService);
     categoryRepository = module.get<Repository<Category>>(getRepositoryToken(Category));
-    questionRepository = module.get<Repository<QuestionEntity>>(
-      getRepositoryToken(QuestionEntity),
-    );
+    questionRepository = module.get<Repository<QuestionEntity>>(getRepositoryToken(QuestionEntity));
     quizService = module.get<QuizService>(QuizService);
   });
 
@@ -180,14 +178,7 @@ describe('SinglePlayService', () => {
 
       expect(result).toEqual({
         score: 10,
-        question: {
-          id: 1,
-          content: 'What is React?',
-          correctAnswer: 'React',
-        },
-        userAnswer: 'React',
-        correctAnswer: 'React',
-        aiFeedback: 'Perfect!',
+        grade: { submittedAnswer: 'React', isCorrect: true, aiFeedback: 'Perfect!' },
       });
       expect(mockDataSource.transaction).toHaveBeenCalled();
     });

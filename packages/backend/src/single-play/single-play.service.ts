@@ -96,14 +96,7 @@ export class SinglePlayService {
     answer: string,
   ): Promise<{
     score: number;
-    question: {
-      id: number;
-      content: string | object;
-      correctAnswer: string;
-    };
-    userAnswer: string;
-    correctAnswer: string;
-    aiFeedback: string;
+    grade: { submittedAnswer: string; isCorrect: boolean; aiFeedback: string };
   }> {
     try {
       const question = await this.findQuestionById(questionId);
@@ -118,14 +111,11 @@ export class SinglePlayService {
 
       return {
         score: finalScore,
-        question: {
-          id: question.id,
-          content: question.content,
-          correctAnswer: question.correctAnswer,
+        grade: {
+          submittedAnswer: answer,
+          isCorrect: grade.isCorrect,
+          aiFeedback: grade.feedback,
         },
-        userAnswer: answer,
-        correctAnswer: question.correctAnswer,
-        aiFeedback: grade.feedback,
       };
     } catch (error) {
       if (error instanceof NotFoundException) {

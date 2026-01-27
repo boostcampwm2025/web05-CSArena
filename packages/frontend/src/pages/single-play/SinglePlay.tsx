@@ -1,10 +1,9 @@
-import { usePhase } from '@/feature/single-play/useRound';
+import { QuestionProvider, usePhase } from '@/feature/single-play/useRound';
 
 import TopBar from './components/Topbar';
 import Preparing from './components/Preparing';
 import Playing from './components/Playing';
 import RoundResult from './components/RoundResult';
-import SinglePlayResult from './components/SinglePlayResult';
 
 export default function SinglePlay() {
   const { phase } = usePhase();
@@ -30,10 +29,11 @@ export default function SinglePlay() {
       </div>
 
       <div className="relative z-10 min-h-0 flex-1">
-        {phase === 'preparing' && <Preparing />}
-        {phase === 'playing' && <Playing />}
-        {phase === 'round-result' && <RoundResult />}
-        {phase === 'result' && <SinglePlayResult />}
+        <QuestionProvider>
+          {phase.kind === 'preparing' && <Preparing />}
+          {phase.kind === 'playing' && <Playing />}
+          {phase.kind === 'result' && <RoundResult />}
+        </QuestionProvider>
       </div>
     </div>
   );

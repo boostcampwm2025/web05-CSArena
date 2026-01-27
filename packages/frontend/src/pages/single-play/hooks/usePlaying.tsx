@@ -3,15 +3,13 @@ import { useCallback, useRef, useState } from 'react';
 import { submitAnswer } from '@/lib/api/single-play';
 
 import { useUser } from '@/feature/auth/useUser';
-import { usePhase, useQuestion, useResult, useRound } from '@/feature/single-play/useRound';
+import { usePhase, useQuestion } from '@/feature/single-play/useRound';
 
 export function usePlaying() {
   const { accessToken } = useUser();
 
-  const { setPhase } = usePhase();
-  const { curRound } = useRound();
-  const { questions } = useQuestion();
-  const { setSubmitAnswers, setCorrectCnt, setTotalPoints } = useResult();
+  const { phase, setPhase } = usePhase();
+  const { curQuestion } = useQuestion();
 
   const [answer, setAnswer] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -19,6 +17,10 @@ export function usePlaying() {
   const submitControllerRef = useRef<AbortController | null>(null);
 
   const onClickSubmitBtn = useCallback(async () => {
+    if (phase.kind !== 'playing') {
+      return;
+    }
+
     const trimmed = answer.trim();
 
     if (trimmed === '') {
@@ -35,15 +37,20 @@ export function usePlaying() {
     try {
       const data = await submitAnswer(
         accessToken,
-        { questionId: Number(questions[curRound].id), answer: trimmed },
+        { questionId: Number(curQuestion?.id), answer: trimmed },
         controller.signal,
       );
 
-      setSubmitAnswers((prev) => [...prev, { answer: trimmed, isCorrect: data.grade.isCorrect }]);
-      setCorrectCnt((prev) => (data.grade.isCorrect ? prev + 1 : prev));
-      setTotalPoints(data.totalScore);
-
-      setPhase('round-result');
+      setPhase({
+        kind: 'result',
+        result: {
+          submittedAnswer: data.grade.submittedAnswer,
+          isCorrect: data.grade.isCorrect,
+          aiFeedback: data.grade.aiFeedback,
+        },
+        next: undefined,
+        isFetchingQuestion: false,
+      });
     } catch (e) {
       if (e instanceof DOMException && e.name === 'AbortError') {
         return;
@@ -53,22 +60,12 @@ export function usePlaying() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [
-    accessToken,
-    answer,
-    questions,
-    curRound,
-    setSubmitAnswers,
-    setCorrectCnt,
-    setTotalPoints,
-    setPhase,
-  ]);
+  }, [accessToken, answer, phase.kind, setPhase, curQuestion]);
 
   return {
-    curRound,
-    question: questions[curRound],
     answer,
     setAnswer,
+    curQuestion,
     isSubmitting,
     onClickSubmitBtn,
   };
