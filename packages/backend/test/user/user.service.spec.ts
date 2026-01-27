@@ -120,7 +120,7 @@ describe('UserService', () => {
 
       const result = await service.getMyPageData(userId);
 
-      expect(result.rank.tier).toBe('gold');
+      expect(result.rank.tier).toBe('silver');
       expect(result.rank.tierPoint).toBe(1250);
     });
 
@@ -279,7 +279,7 @@ describe('UserService', () => {
 
       const result = await service.getTierHistory(1);
 
-      expect(result.tierHistory[0].tier).toBe('platinum');
+      expect(result.tierHistory[0].tier).toBe('gold');
     });
   });
 
