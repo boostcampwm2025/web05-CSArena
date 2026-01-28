@@ -52,7 +52,7 @@ export function RecentActivityList({ matchHistory }: RecentActivityListProps) {
       </div>
 
       {/* Activity List */}
-      <div className="flex-1 overflow-hidden p-3">
+      <div className="scrollbar-hide flex-1 overflow-y-auto p-3">
         {matchHistory.length === 0 ? (
           <div className="flex h-full items-center justify-center">
             <p className="text-sm text-gray-400" style={{ fontFamily: 'Orbitron' }}>
@@ -100,12 +100,12 @@ export function RecentActivityList({ matchHistory }: RecentActivityListProps) {
                     </p>
                   </div>
 
-                  {/* Date */}
                   <div
                     className="flex-shrink-0 text-[10px] text-cyan-400"
                     style={{ fontFamily: 'Orbitron' }}
                   >
-                    {new Date(config.date).toLocaleDateString('en-US', {
+                    {new Date(config.date).toLocaleDateString('ko-KR', {
+                      timeZone: 'Asia/Seoul',
                       month: '2-digit',
                       day: '2-digit',
                     })}

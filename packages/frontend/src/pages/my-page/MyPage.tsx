@@ -24,23 +24,25 @@ export default function MyPage() {
       </div>
 
       <div className="relative z-10 flex h-full flex-col">
-        {/* Header - Compact */}
-        <header className="flex flex-shrink-0 items-center justify-between border-b-2 border-cyan-400 bg-slate-900/90 p-2">
-          <button
-            onClick={onClickBack}
-            className="flex items-center gap-1 rounded border border-cyan-400 bg-cyan-400/20 px-3 py-1 text-xs font-bold text-cyan-400 transition-all duration-200 hover:scale-105 hover:bg-cyan-400/40"
-            style={{ fontFamily: 'Orbitron' }}
-          >
-            <i className="ri-arrow-left-line" />
-            <span>BACK</span>
-          </button>
-
-          <h1 className="text-xl font-bold text-cyan-400" style={{ fontFamily: 'Press Start 2P' }}>
-            <i className="ri-user-line mr-2" />
-            MY PAGE
-          </h1>
-
-          <div className="w-16" />
+        {/* Header */}
+        <header className="relative z-10 flex flex-shrink-0 items-center justify-between border-b-4 border-cyan-400 bg-gradient-to-r from-slate-800/95 to-slate-900/95 p-4">
+          <div className="flex items-center justify-center">
+            <button
+              onClick={onClickBack}
+              className="border-2 border-slate-400 bg-gradient-to-r from-slate-600 to-slate-700 px-4 py-2 font-bold text-white transition-all duration-200 hover:scale-105 hover:from-slate-500 hover:to-slate-600"
+              style={{ fontFamily: 'Orbitron' }}
+            >
+              <i className="ri-arrow-left-line mr-2" />
+              BACK
+            </button>
+            <h1
+              className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text px-4 py-2 text-3xl font-black text-transparent"
+              style={{ fontFamily: 'Orbitron' }}
+            >
+              <i className="ri-user-line mr-3" />
+              MY PAGE
+            </h1>
+          </div>
         </header>
 
         {/* Content - No Scroll */}
