@@ -11,7 +11,7 @@ import { Server, Socket } from 'socket.io';
 import { MatchmakingService } from './matchmaking.service';
 import { GameSessionManager } from '../game/game-session-manager';
 import { RoundProgressionService } from '../game/round-progression.service';
-import { UserInfo } from '../game/interfaces/user.interface';
+import { UserInfo } from '../user/interfaces';
 import { MatchmakingSessionManager } from './matchmaking-session-manager';
 import { AuthService } from '../auth/auth.service';
 import { AuthenticatedUser } from '../auth/strategies/jwt.strategy';
@@ -57,9 +57,11 @@ export class MatchmakingGateway implements OnGatewayConnection, OnGatewayDisconn
     }
 
     const fullUser = await this.authService.getUserById(authUser.id);
+    const tierPoint = fullUser?.statistics?.tierPoint ?? 1000;
     const userInfo: UserInfo = {
       nickname: authUser.nickname,
-      tier: fullUser ? calculateTier(fullUser.statistics?.tierPoint ?? 1000) : 'bronze',
+      tier: fullUser ? calculateTier(tierPoint) : 'bronze',
+      tierPoint,
       exp_point: fullUser?.statistics?.expPoint ?? 0,
     };
 

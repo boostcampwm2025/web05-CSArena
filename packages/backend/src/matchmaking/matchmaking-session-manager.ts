@@ -1,5 +1,5 @@
 import { QueueSession } from './queue/queue.session';
-import { UserInfo } from '../game/interfaces/user.interface';
+import { UserInfo } from '../user/interfaces';
 import { randomUUID } from 'crypto';
 
 export class MatchmakingSessionManager {

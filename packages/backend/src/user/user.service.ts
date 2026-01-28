@@ -3,8 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User, UserStatistics } from './entity';
 import { UserProblemBank } from '../problem-bank/entity';
-import { UserTierHistory } from '../tier/entity/user-tier-history.entity';
-import { Match } from '../match/entity/match.entity';
+import { UserTierHistory } from '../tier/entity';
+import { Match } from '../match/entity';
 import {
   MatchStatsDto,
   MyPageResponseDto,

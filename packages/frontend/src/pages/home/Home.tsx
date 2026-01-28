@@ -1,6 +1,7 @@
 import { useHome } from './hooks/useHome';
 
 import LoginModal from './components/LoginModal';
+import TierBadge from '@/shared/TierBadge';
 
 export default function Home() {
   const {
@@ -73,13 +74,7 @@ export default function Home() {
                     {userData.nickname}
                   </h2>
                   <div className="flex gap-4">
-                    <span
-                      className="text-base font-bold text-amber-400"
-                      style={{ fontFamily: 'Orbitron' }}
-                    >
-                      <i className="ri-vip-crown-line mr-1" />
-                      {userData.tier}
-                    </span>
+                    <TierBadge tier={userData.tier} className="text-base" />
                     <span
                       className="text-base font-bold text-pink-400"
                       style={{ fontFamily: 'Orbitron' }}

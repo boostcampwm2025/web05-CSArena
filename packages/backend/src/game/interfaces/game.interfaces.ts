@@ -1,5 +1,5 @@
 import { Question as QuestionEntity } from '../../quiz/entity';
-import { UserInfo } from './user.interface';
+import { UserInfo } from '../../user/interfaces';
 
 // ============================================
 // Game Session & Round State
@@ -128,6 +128,7 @@ export interface MatchEndEvent {
     my: number;
     opponent: number;
   };
+  tierPointChange: number;
 }
 
 // submit:answer

@@ -2,6 +2,7 @@ import { useUser } from '@/feature/auth/useUser';
 import { useMatch } from '@/feature/matching/useMatch';
 import { useMatchResult } from '../hooks/useMatchResult';
 import Feedback from './match-result/Feedback';
+import TierBadge from '@/shared/TierBadge';
 
 export default function MatchResult() {
   const { userData } = useUser();
@@ -37,22 +38,44 @@ export default function MatchResult() {
           {/* Player 1 */}
           <div className="w-full border-4 border-cyan-400 bg-gradient-to-r from-slate-800/95 to-slate-900/95 p-4 shadow-2xl shadow-cyan-500/30">
             <div className="flex flex-col items-stretch justify-center gap-4">
-              <div className="flex items-center justify-start gap-4">
-                <div className="flex h-16 w-16 items-center justify-center rounded-xl border-2 border-white bg-gradient-to-br from-cyan-400 to-purple-500">
-                  <i className="ri-user-star-line text-4xl text-white" />
-                </div>
-                <div className="flex flex-col text-left">
-                  <div
-                    className="text-lg font-bold text-cyan-300"
-                    style={{ fontFamily: 'Orbitron, sans-serif' }}
-                  >
-                    {userData?.nickname}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-xl border-2 border-white bg-gradient-to-br from-cyan-400 to-purple-500">
+                    <i className="ri-user-star-line text-4xl text-white" />
                   </div>
-                  <div
-                    className="text-2xl font-bold text-emerald-400"
-                    style={{ fontFamily: 'Orbitron, sans-serif' }}
-                  >
-                    {matchResult.myTotalPoints} PTS
+                  <div className="flex flex-col text-left">
+                    <div
+                      className="text-lg font-bold text-cyan-300"
+                      style={{ fontFamily: 'Orbitron, sans-serif' }}
+                    >
+                      {userData?.nickname}
+                    </div>
+                    <div
+                      className="text-2xl font-bold text-emerald-400"
+                      style={{ fontFamily: 'Orbitron, sans-serif' }}
+                    >
+                      {matchResult.myTotalPoints} PTS
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                  <TierBadge tier={userData?.tier ?? 'bronze'} className="text-base" />
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="text-base text-gray-300"
+                      style={{ fontFamily: 'Orbitron, sans-serif' }}
+                    >
+                      {userData?.tierPoint ?? 0}
+                    </span>
+                    {matchResult.myTierPointChange !== undefined && (
+                      <span
+                        className={`text-base font-bold ${matchResult.myTierPointChange >= 0 ? 'text-emerald-400' : 'text-red-400'}`}
+                        style={{ fontFamily: 'Orbitron, sans-serif' }}
+                      >
+                        ({matchResult.myTierPointChange >= 0 ? '+' : ''}
+                        {matchResult.myTierPointChange})
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -70,23 +93,28 @@ export default function MatchResult() {
           {/* Player 2 */}
           <div className="w-full border-4 border-pink-400 bg-gradient-to-r from-slate-800/95 to-slate-900/95 p-4 shadow-2xl shadow-pink-500/30">
             <div className="flex flex-col items-stretch justify-center gap-4">
-              <div className="flex items-center justify-start gap-4">
-                <div className="flex h-16 w-16 items-center justify-center rounded-xl border-2 border-white bg-gradient-to-br from-pink-400 to-rose-500">
-                  <i className="ri-user-star-line text-4xl text-white" />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-xl border-2 border-white bg-gradient-to-br from-pink-400 to-rose-500">
+                    <i className="ri-user-star-line text-4xl text-white" />
+                  </div>
+                  <div className="flex flex-col text-left">
+                    <div
+                      className="text-lg font-bold text-pink-300"
+                      style={{ fontFamily: 'Orbitron, sans-serif' }}
+                    >
+                      {opponentInfo?.nickname}
+                    </div>
+                    <div
+                      className="text-2xl font-bold text-emerald-400"
+                      style={{ fontFamily: 'Orbitron, sans-serif' }}
+                    >
+                      {matchResult.opponentTotalPoints} PTS
+                    </div>
+                  </div>
                 </div>
-                <div className="flex flex-col text-left">
-                  <div
-                    className="text-lg font-bold text-pink-300"
-                    style={{ fontFamily: 'Orbitron, sans-serif' }}
-                  >
-                    {opponentInfo?.nickname}
-                  </div>
-                  <div
-                    className="text-2xl font-bold text-emerald-400"
-                    style={{ fontFamily: 'Orbitron, sans-serif' }}
-                  >
-                    {matchResult.opponentTotalPoints} PTS
-                  </div>
+                <div className="flex flex-col items-end gap-1">
+                  <TierBadge tier={opponentInfo?.tier ?? 'bronze'} className="text-base" />
                 </div>
               </div>
               <div className="border-2 border-pink-400 bg-pink-500/20 py-1 text-center">

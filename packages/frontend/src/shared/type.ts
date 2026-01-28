@@ -2,6 +2,7 @@ export type UserData = {
   userId: string;
   nickname: string;
   tier: string;
+  tierPoint: number;
   expPoint: number;
   isSentFeedback: boolean;
 };

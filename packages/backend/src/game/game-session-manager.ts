@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { UserInfo } from './interfaces/user.interface';
+import { UserInfo } from '../user/interfaces';
 import { Question as QuestionEntity } from '../quiz/entity';
 import {
   GameSession,

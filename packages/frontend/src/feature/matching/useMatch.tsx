@@ -7,7 +7,7 @@ import { getSocket } from '@/lib/socket';
 import { useUser } from '@/feature/auth/useUser';
 
 type MatchState = 'matching' | 'inGame' | 'match-end';
-type OpponentInfo = { nickname: string; tier: string; expPoint: number } | null;
+type OpponentInfo = { nickname: string; tier: string; tierPoint: number; expPoint: number } | null;
 
 type QuestionContent =
   | { type: 'multiple'; question: string; option: string[] }
@@ -34,6 +34,7 @@ type MatchResult = {
   opponentTotalPoints: number;
   opponentWinCount: number;
   roundResults: RoundResult[];
+  myTierPointChange?: number;
 };
 
 type MatchAPI = {
@@ -61,13 +62,30 @@ export function MatchProvider({ children }: { children: React.ReactNode }) {
   const socketRef = useRef(getSocket(accessToken));
 
   const handleUserInfo = useCallback(
-    (payload: { nickname: string | undefined; tier: string; exp_point: number }) => {
+    (payload: {
+      nickname: string | undefined;
+      tier: string;
+      tierPoint: number;
+      exp_point: number;
+    }) => {
       setUserData((prev) => {
         if (!prev) {
-          return prev;
+          return {
+            userId: '',
+            nickname: payload.nickname ?? '',
+            tier: payload.tier,
+            tierPoint: payload.tierPoint,
+            expPoint: payload.exp_point,
+            isSentFeedback: false,
+          };
         }
 
-        return { ...prev, tier: payload.tier, expPoint: payload.exp_point };
+        return {
+          ...prev,
+          tier: payload.tier,
+          tierPoint: payload.tierPoint,
+          expPoint: payload.exp_point,
+        };
       });
 
       const socket = socketRef.current;
@@ -95,15 +113,31 @@ export function MatchProvider({ children }: { children: React.ReactNode }) {
     setMatchState('inGame');
   }, []);
 
-  const handleMatchEnd = useCallback((payload: MatchEnd) => {
-    setMatchResult((prev) => ({
-      ...prev,
-      myTotalPoints: payload.finalScores.my,
-      opponentTotalPoints: payload.finalScores.opponent,
-    }));
+  const handleMatchEnd = useCallback(
+    (payload: MatchEnd) => {
+      setMatchResult((prev) => ({
+        ...prev,
+        myTotalPoints: payload.finalScores.my,
+        opponentTotalPoints: payload.finalScores.opponent,
+        myTierPointChange: payload.tierPointChange,
+      }));
 
-    setMatchState('match-end');
-  }, []);
+      // 티어포인트 업데이트
+      setUserData((prev) => {
+        if (!prev) {
+          return prev;
+        }
+
+        return {
+          ...prev,
+          tierPoint: prev.tierPoint + payload.tierPointChange,
+        };
+      });
+
+      setMatchState('match-end');
+    },
+    [setUserData],
+  );
 
   useEffect(() => {
     const socket = socketRef.current;

@@ -122,7 +122,34 @@ export class GameGateway implements OnGatewayDisconnect, OnGatewayInit {
         reason: 'disconnect',
       });
 
+      // DB 저장 (연결 끊김 기록) - 상대방이 승자
+      let eloChanges: { player1Change: number; player2Change: number } | null = null;
+
+      try {
+        const finalResult = {
+          winnerId: opponentId,
+          scores: {
+            [gameSession.player1Id]: gameSession.player1Score,
+            [gameSession.player2Id]: gameSession.player2Score,
+          },
+          isDraw: false,
+        };
+        eloChanges = await this.matchPersistence.saveMatchToDatabase(
+          disconnectInfo.roomId,
+          finalResult,
+        );
+      } catch (error) {
+        this.logger.error(
+          `Failed to save match after disconnect: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        );
+      }
+
       // 상대방에게 match:end 이벤트 전송
+      const opponentTierPointChange =
+        opponentId === gameSession.player1Id
+          ? (eloChanges?.player1Change ?? 0)
+          : (eloChanges?.player2Change ?? 0);
+
       this.server.to(opponentSocketId).emit('match:end', {
         isWin: true,
         finalScores: {
@@ -135,24 +162,8 @@ export class GameGateway implements OnGatewayDisconnect, OnGatewayInit {
               ? gameSession.player1Score
               : gameSession.player2Score,
         },
+        tierPointChange: opponentTierPointChange,
       });
-
-      // DB 저장 (연결 끊김 기록) - 상대방이 승자
-      try {
-        const finalResult = {
-          winnerId: opponentId,
-          scores: {
-            [gameSession.player1Id]: gameSession.player1Score,
-            [gameSession.player2Id]: gameSession.player2Score,
-          },
-          isDraw: false,
-        };
-        await this.matchPersistence.saveMatchToDatabase(disconnectInfo.roomId, finalResult);
-      } catch (error) {
-        this.logger.error(
-          `Failed to save match after disconnect: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        );
-      }
 
       // 세션 정리
       this.sessionManager.deleteGameSession(disconnectInfo.roomId);

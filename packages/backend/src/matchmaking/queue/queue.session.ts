@@ -1,4 +1,4 @@
-import { UserInfo } from '../../game/interfaces/user.interface';
+import { UserInfo } from '../../user/interfaces';
 
 export interface QueueSession {
   sessionId: string;
