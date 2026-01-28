@@ -257,6 +257,22 @@ export default function MatchResult() {
                     Answer: {result.bestAnswer}
                   </span>
                 </div>
+
+                {/* AI Feedback */}
+                {result.explanation && (
+                  <div className="flex flex-col gap-1 border border-purple-400 bg-purple-500/20 p-2">
+                    <span
+                      className="text-xs font-bold text-purple-400"
+                      style={{ fontFamily: 'Orbitron' }}
+                    >
+                      <i className="ri-robot-2-line mr-1" />
+                      AI Feedback
+                    </span>
+                    <span className="text-xs text-white" style={{ fontFamily: 'Orbitron' }}>
+                      {result.explanation}
+                    </span>
+                  </div>
+                )}
               </div>
             ))}
           </div>

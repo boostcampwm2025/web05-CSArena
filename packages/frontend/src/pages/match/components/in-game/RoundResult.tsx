@@ -7,7 +7,8 @@ export default function RoundResult() {
   const { opponentInfo } = useMatch();
   const { roundIndex } = useRoundPhase();
   const { remainedSec } = useRoundTick();
-  const { myAnswer, myIsCorrect, opponentAnswer, opponentIsCorrect, bestAnswer } = useRoundScore();
+  const { myAnswer, myIsCorrect, opponentAnswer, opponentIsCorrect, bestAnswer, explanation } =
+    useRoundScore();
 
   return (
     <div className="flex h-full items-center justify-center">
@@ -112,6 +113,17 @@ export default function RoundResult() {
           </div>
           <div className="text-base text-white" style={{ fontFamily: 'Orbitron' }}>
             {bestAnswer}
+          </div>
+        </div>
+
+        {/* AI Feedback */}
+        <div className="flex flex-col gap-2 border-4 border-purple-400 bg-gradient-to-r from-slate-800/95 to-slate-900/95 p-4 shadow-2xl shadow-purple-500/30">
+          <div className="text-sm font-bold text-purple-400" style={{ fontFamily: 'Orbitron' }}>
+            <i className="ri-robot-2-line mr-2" />
+            AI Feedback
+          </div>
+          <div className="text-base text-white" style={{ fontFamily: 'Orbitron' }}>
+            {explanation}
           </div>
         </div>
       </div>

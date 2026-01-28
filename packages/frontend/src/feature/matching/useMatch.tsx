@@ -26,6 +26,7 @@ type RoundResult = {
   myAnswer: string;
   opponentAnswer: string;
   bestAnswer: string;
+  explanation: string;
 };
 
 type MatchResult = {

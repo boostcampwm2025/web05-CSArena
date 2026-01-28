@@ -101,6 +101,7 @@ export function RoundProvider({ children }: { children: React.ReactNode }) {
             myAnswer: '',
             opponentAnswer: '',
             bestAnswer: '',
+            explanation: '',
           },
         ],
       }));
@@ -133,6 +134,7 @@ export function RoundProvider({ children }: { children: React.ReactNode }) {
         roundResult.myAnswer = payload.results.my.submitted;
         roundResult.opponentAnswer = payload.results.opponent.submitted;
         roundResult.bestAnswer = payload.solution.bestAnswer;
+        roundResult.explanation = payload.solution.explanation;
 
         return {
           myTotalPoints: payload.results.my.total,
