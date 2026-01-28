@@ -25,13 +25,11 @@ export default function Match() {
         />
       </div>
 
-      {matchState === 'matching' && <Matching />}
-      {matchState === 'inGame' && (
-        <RoundProvider>
-          <InGame />
-        </RoundProvider>
-      )}
-      {matchState === 'match-end' && <MatchResult />}
+      <RoundProvider>
+        {matchState === 'matching' && <Matching />}
+        {matchState === 'inGame' && <InGame />}
+        {matchState === 'match-end' && <MatchResult />}
+      </RoundProvider>
     </div>
   );
 }
