@@ -130,6 +130,7 @@ export default function Playing() {
                   autoFocus
                   onChange={(e) => setAnswer(e.target.value)}
                   onKeyDown={(e) => {
+                    if (e.nativeEvent.isComposing) return;
                     if (e.key === 'Enter' && answer.trim() !== '' && !isSubmit && !isSubmitting) {
                       onClickSubmitBtn();
                     }

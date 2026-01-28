@@ -73,11 +73,13 @@ export default function Playing() {
                 style={{ fontFamily: 'Orbitron' }}
                 onChange={(e) => setAnswer(e.target.value)}
                 onKeyDown={(e) => {
+                  if (e.nativeEvent.isComposing) return;
                   if (e.key === 'Enter' && answer.trim() !== '' && !isSubmitting) {
                     void onClickSubmitBtn();
                   }
                 }}
                 autoFocus
+                disabled={isSubmitting}
               />
             )}
             <button
