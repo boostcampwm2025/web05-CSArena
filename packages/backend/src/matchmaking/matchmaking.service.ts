@@ -30,4 +30,15 @@ export class MatchmakingService {
   getSessionId(userId: string): string | undefined {
     return this.userToSessionId.get(userId);
   }
+
+  /**
+   * Polling으로 발견된 매칭들을 가져옴
+   */
+  getPollingMatches(): Match[] {
+    if ('getAndClearPendingMatches' in this.matchQueue) {
+      return (this.matchQueue as EloMatchQueue).getAndClearPendingMatches();
+    }
+
+    return [];
+  }
 }
