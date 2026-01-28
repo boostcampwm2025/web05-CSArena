@@ -3,13 +3,14 @@ import { useCallback, useRef, useState } from 'react';
 import { submitAnswer } from '@/lib/api/single-play';
 
 import { useUser } from '@/feature/auth/useUser';
-import { usePhase, useQuestion } from '@/feature/single-play/useRound';
+import { useMatchId, usePhase, useQuestion } from '@/feature/single-play/useRound';
 
 export function usePlaying() {
   const { accessToken } = useUser();
 
   const { phase, setPhase } = usePhase();
   const { curQuestion } = useQuestion();
+  const { matchId } = useMatchId();
 
   const [answer, setAnswer] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -32,12 +33,19 @@ export function usePlaying() {
     const controller = new AbortController();
     submitControllerRef.current = controller;
 
+    if (matchId === null) {
+      // TODO: 공통 에러 모달 - matchId가 없으면 세션이 시작되지 않은 것
+      console.error('matchId가 없습니다. 세션을 다시 시작해주세요.');
+
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
       const data = await submitAnswer(
         accessToken,
-        { questionId: Number(curQuestion?.id), answer: trimmed },
+        { matchId, questionId: Number(curQuestion?.id), answer: trimmed },
         controller.signal,
       );
 
@@ -60,7 +68,7 @@ export function usePlaying() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [accessToken, answer, phase.kind, setPhase, curQuestion]);
+  }, [accessToken, answer, phase.kind, setPhase, curQuestion, matchId]);
 
   return {
     answer,
