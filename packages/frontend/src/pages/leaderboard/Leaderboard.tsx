@@ -239,7 +239,7 @@ export default function Leaderboard() {
 
         <div className="flex h-full w-full flex-col overflow-hidden border-4 border-cyan-400 bg-gradient-to-r from-slate-800/90 to-slate-900/90 shadow-2xl shadow-cyan-500/30">
           {/* Scrollable List with Sticky Header */}
-          <div className="flex-1 overflow-y-auto">
+          <div className="scrollbar-hide flex-1 overflow-y-auto">
             {/* Table Header (Sticky) */}
             <div className="sticky top-0 z-10 grid grid-cols-7 items-center gap-4 border-b-2 border-cyan-400 bg-slate-900 py-4">
               <div

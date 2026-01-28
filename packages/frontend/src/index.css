@@ -13,3 +13,12 @@ html, body, #root {
   height: 100%;
   overflow: hidden;
 }
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
