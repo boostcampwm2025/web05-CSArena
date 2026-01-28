@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 
+import { useScene } from '@/feature/useScene';
+
 function formatTime(seconds: number) {
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;
@@ -8,7 +10,12 @@ function formatTime(seconds: number) {
 }
 
 export default function Matching() {
+  const { setScene } = useScene();
   const [time, setTime] = useState<number>(0);
+
+  const handleCancel = () => {
+    setScene('home');
+  };
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -108,10 +115,10 @@ export default function Matching() {
             className="animate-pulse text-2xl font-bold text-cyan-300"
             style={{ fontFamily: 'Orbitron' }}
           >
-            SEARCHING FOR OPPONENT...
+            상대를 찾는 중...
           </p>
           <p className="text-base text-purple-300" style={{ fontFamily: 'Orbitron' }}>
-            Finding a worthy challenger
+            대전 상대를 탐색하고 있습니다
           </p>
         </div>
 
@@ -119,29 +126,25 @@ export default function Matching() {
         <div className="border-4 border-cyan-400 bg-gradient-to-r from-slate-800/90 to-slate-900/90 px-8 py-4 shadow-2xl shadow-cyan-500/30">
           <div className="text-center">
             <div className="text-xs text-cyan-300" style={{ fontFamily: 'Orbitron' }}>
-              ELAPSED TIME
+              대기 시간
             </div>
-            <div className="text-3xl font-bold text-pink-400" style={{ fontFamily: 'Orbitron' }}>
+            <div
+              className="min-w-[5ch] text-3xl font-bold text-pink-400"
+              style={{ fontFamily: 'Orbitron' }}
+            >
               {formatTime(time)}
             </div>
           </div>
         </div>
 
-        {/* Loading dots */}
-        <div className="mt-6 flex space-x-2">
-          <div
-            className="h-3 w-3 animate-bounce rounded-full bg-cyan-400"
-            style={{ animationDelay: '0s' }}
-          />
-          <div
-            className="h-3 w-3 animate-bounce rounded-full bg-purple-400"
-            style={{ animationDelay: '0.2s' }}
-          />
-          <div
-            className="h-3 w-3 animate-bounce rounded-full bg-pink-400"
-            style={{ animationDelay: '0.4s' }}
-          />
-        </div>
+        {/* Cancel Button */}
+        <button
+          onClick={handleCancel}
+          className="mt-6 cursor-pointer border-2 border-pink-400 bg-transparent px-8 py-3 text-pink-400 transition-all hover:bg-pink-400 hover:text-white"
+          style={{ fontFamily: 'Orbitron' }}
+        >
+          매칭 취소
+        </button>
       </div>
     </div>
   );
