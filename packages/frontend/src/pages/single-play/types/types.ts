@@ -48,8 +48,11 @@ export type GetCategoriesRes = { categories: CategoryItem[] };
 
 export type GetQuestionsRes = { question: Question };
 
-export type SubmitAnswerReq = { questionId: number; answer: string };
+export type StartSessionRes = { matchId: number };
+
+export type SubmitAnswerReq = { matchId: number; questionId: number; answer: string };
 
 export type SubmitAnswerRes = {
+  score: number;
   grade: { submittedAnswer: string; isCorrect: boolean; aiFeedback: string };
 };
