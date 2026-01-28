@@ -73,8 +73,22 @@ describe('LeaderboardService', () => {
 
     it('랭킹 목록과 내 순위를 반환한다', async () => {
       const rankings = [
-        { nickname: 'user1', userProfile: 'http://example.com/1.jpg', tierPoint: '2500', winCount: '50', loseCount: '10', tier: 'diamond' },
-        { nickname: 'user2', userProfile: null, tierPoint: '2000', winCount: '40', loseCount: '15', tier: 'platinum' },
+        {
+          nickname: 'user1',
+          userProfile: 'http://example.com/1.jpg',
+          tierPoint: '2500',
+          winCount: '50',
+          loseCount: '10',
+          tier: 'diamond',
+        },
+        {
+          nickname: 'user2',
+          userProfile: null,
+          tierPoint: '2000',
+          winCount: '40',
+          loseCount: '15',
+          tier: 'platinum',
+        },
       ];
       const myStats = {
         nickname: 'testUser',
@@ -87,7 +101,10 @@ describe('LeaderboardService', () => {
 
       setupMultiMocks(rankings, myStats, 5);
 
-      const result = (await service.getLeaderboard(MatchType.MULTI, 1)) as MultiLeaderboardResponseDto;
+      const result = (await service.getLeaderboard(
+        MatchType.MULTI,
+        1,
+      )) as MultiLeaderboardResponseDto;
 
       expect(result.rankings).toHaveLength(2);
       expect(result.rankings[0].rank).toBe(1);
@@ -101,7 +118,14 @@ describe('LeaderboardService', () => {
 
     it('tierPoint가 가장 높으면 1등을 반환한다', async () => {
       const rankings = [
-        { nickname: 'topUser', userProfile: null, tierPoint: '3000', winCount: '100', loseCount: '5', tier: 'diamond' },
+        {
+          nickname: 'topUser',
+          userProfile: null,
+          tierPoint: '3000',
+          winCount: '100',
+          loseCount: '5',
+          tier: 'diamond',
+        },
       ];
       const myStats = {
         nickname: 'topUser',
@@ -114,7 +138,10 @@ describe('LeaderboardService', () => {
 
       setupMultiMocks(rankings, myStats, 0);
 
-      const result = (await service.getLeaderboard(MatchType.MULTI, 1)) as MultiLeaderboardResponseDto;
+      const result = (await service.getLeaderboard(
+        MatchType.MULTI,
+        1,
+      )) as MultiLeaderboardResponseDto;
 
       expect(result.rankings[0].rank).toBe(1);
       expect(result.myRanking.rank).toBe(1);
@@ -122,9 +149,30 @@ describe('LeaderboardService', () => {
 
     it('동점자는 같은 rank를 가진다 (tierPoint, 승률, 플레이 수 모두 동일)', async () => {
       const rankings = [
-        { nickname: 'user1', userProfile: null, tierPoint: '1000', winCount: '10', loseCount: '10', tier: 'silver' },
-        { nickname: 'user2', userProfile: null, tierPoint: '1000', winCount: '10', loseCount: '10', tier: 'silver' },
-        { nickname: 'user3', userProfile: null, tierPoint: '1000', winCount: '10', loseCount: '10', tier: 'silver' },
+        {
+          nickname: 'user1',
+          userProfile: null,
+          tierPoint: '1000',
+          winCount: '10',
+          loseCount: '10',
+          tier: 'silver',
+        },
+        {
+          nickname: 'user2',
+          userProfile: null,
+          tierPoint: '1000',
+          winCount: '10',
+          loseCount: '10',
+          tier: 'silver',
+        },
+        {
+          nickname: 'user3',
+          userProfile: null,
+          tierPoint: '1000',
+          winCount: '10',
+          loseCount: '10',
+          tier: 'silver',
+        },
       ];
       const myStats = {
         nickname: 'user1',
@@ -137,7 +185,10 @@ describe('LeaderboardService', () => {
 
       setupMultiMocks(rankings, myStats, 0);
 
-      const result = (await service.getLeaderboard(MatchType.MULTI, 1)) as MultiLeaderboardResponseDto;
+      const result = (await service.getLeaderboard(
+        MatchType.MULTI,
+        1,
+      )) as MultiLeaderboardResponseDto;
 
       expect(result.rankings[0].rank).toBe(1);
       expect(result.rankings[1].rank).toBe(1);
@@ -146,8 +197,22 @@ describe('LeaderboardService', () => {
 
     it('tierPoint가 같아도 승률이 다르면 다른 rank를 가진다', async () => {
       const rankings = [
-        { nickname: 'user1', userProfile: null, tierPoint: '1000', winCount: '8', loseCount: '2', tier: 'silver' }, // 80%
-        { nickname: 'user2', userProfile: null, tierPoint: '1000', winCount: '6', loseCount: '4', tier: 'silver' }, // 60%
+        {
+          nickname: 'user1',
+          userProfile: null,
+          tierPoint: '1000',
+          winCount: '8',
+          loseCount: '2',
+          tier: 'silver',
+        }, // 80%
+        {
+          nickname: 'user2',
+          userProfile: null,
+          tierPoint: '1000',
+          winCount: '6',
+          loseCount: '4',
+          tier: 'silver',
+        }, // 60%
       ];
       const myStats = {
         nickname: 'user2',
@@ -160,7 +225,10 @@ describe('LeaderboardService', () => {
 
       setupMultiMocks(rankings, myStats, 1);
 
-      const result = (await service.getLeaderboard(MatchType.MULTI, 1)) as MultiLeaderboardResponseDto;
+      const result = (await service.getLeaderboard(
+        MatchType.MULTI,
+        1,
+      )) as MultiLeaderboardResponseDto;
 
       expect(result.rankings[0].rank).toBe(1);
       expect(result.rankings[1].rank).toBe(2);
@@ -168,8 +236,22 @@ describe('LeaderboardService', () => {
 
     it('tierPoint와 승률이 같아도 플레이 수가 다르면 다른 rank를 가진다', async () => {
       const rankings = [
-        { nickname: 'user1', userProfile: null, tierPoint: '1000', winCount: '10', loseCount: '10', tier: 'silver' }, // 50%, 20판
-        { nickname: 'user2', userProfile: null, tierPoint: '1000', winCount: '5', loseCount: '5', tier: 'silver' }, // 50%, 10판
+        {
+          nickname: 'user1',
+          userProfile: null,
+          tierPoint: '1000',
+          winCount: '10',
+          loseCount: '10',
+          tier: 'silver',
+        }, // 50%, 20판
+        {
+          nickname: 'user2',
+          userProfile: null,
+          tierPoint: '1000',
+          winCount: '5',
+          loseCount: '5',
+          tier: 'silver',
+        }, // 50%, 10판
       ];
       const myStats = {
         nickname: 'user2',
@@ -182,7 +264,10 @@ describe('LeaderboardService', () => {
 
       setupMultiMocks(rankings, myStats, 1);
 
-      const result = (await service.getLeaderboard(MatchType.MULTI, 1)) as MultiLeaderboardResponseDto;
+      const result = (await service.getLeaderboard(
+        MatchType.MULTI,
+        1,
+      )) as MultiLeaderboardResponseDto;
 
       expect(result.rankings[0].rank).toBe(1);
       expect(result.rankings[1].rank).toBe(2);
@@ -190,7 +275,14 @@ describe('LeaderboardService', () => {
 
     it('내 통계 정보가 없으면 NotFoundException을 던진다', async () => {
       const rankings = [
-        { nickname: 'user1', userProfile: null, tierPoint: '2500', winCount: '50', loseCount: '10', tier: 'diamond' },
+        {
+          nickname: 'user1',
+          userProfile: null,
+          tierPoint: '2500',
+          winCount: '50',
+          loseCount: '10',
+          tier: 'diamond',
+        },
       ];
 
       setupMultiMocks(rankings, null, 0);
@@ -219,8 +311,20 @@ describe('LeaderboardService', () => {
 
     it('랭킹 목록과 내 순위를 반환한다', async () => {
       const rankings = [
-        { nickname: 'user1', userProfile: null, expPoint: '15000', solvedCount: '100', correctCount: '85' },
-        { nickname: 'user2', userProfile: null, expPoint: '12000', solvedCount: '80', correctCount: '60' },
+        {
+          nickname: 'user1',
+          userProfile: null,
+          expPoint: '15000',
+          solvedCount: '100',
+          correctCount: '85',
+        },
+        {
+          nickname: 'user2',
+          userProfile: null,
+          expPoint: '12000',
+          solvedCount: '80',
+          correctCount: '60',
+        },
       ];
       const myStats = {
         nickname: 'testUser',
@@ -232,23 +336,44 @@ describe('LeaderboardService', () => {
 
       setupSingleMocks(rankings, myStats, 2);
 
-      const result = (await service.getLeaderboard(MatchType.SINGLE, 1)) as SingleLeaderboardResponseDto;
+      const result = (await service.getLeaderboard(
+        MatchType.SINGLE,
+        1,
+      )) as SingleLeaderboardResponseDto;
 
       expect(result.rankings).toHaveLength(2);
       expect(result.rankings[0].rank).toBe(1);
       expect(result.rankings[0].expPoint).toBe(15000);
-      expect(result.rankings[0].level).toBe(150);
+      expect(result.rankings[0].level).toBe(17);
       expect(result.rankings[0].solvedCount).toBe(100);
       expect(result.rankings[1].rank).toBe(2);
       expect(result.myRanking.rank).toBe(3);
-      expect(result.myRanking.level).toBe(80);
+      expect(result.myRanking.level).toBe(13);
     });
 
     it('동점자는 같은 rank를 가진다 (expPoint, 정답률, 푼 문제 수 모두 동일)', async () => {
       const rankings = [
-        { nickname: 'user1', userProfile: null, expPoint: '1000', solvedCount: '10', correctCount: '8' },
-        { nickname: 'user2', userProfile: null, expPoint: '1000', solvedCount: '10', correctCount: '8' },
-        { nickname: 'user3', userProfile: null, expPoint: '1000', solvedCount: '10', correctCount: '8' },
+        {
+          nickname: 'user1',
+          userProfile: null,
+          expPoint: '1000',
+          solvedCount: '10',
+          correctCount: '8',
+        },
+        {
+          nickname: 'user2',
+          userProfile: null,
+          expPoint: '1000',
+          solvedCount: '10',
+          correctCount: '8',
+        },
+        {
+          nickname: 'user3',
+          userProfile: null,
+          expPoint: '1000',
+          solvedCount: '10',
+          correctCount: '8',
+        },
       ];
       const myStats = {
         nickname: 'user1',
@@ -260,7 +385,10 @@ describe('LeaderboardService', () => {
 
       setupSingleMocks(rankings, myStats, 0);
 
-      const result = (await service.getLeaderboard(MatchType.SINGLE, 1)) as SingleLeaderboardResponseDto;
+      const result = (await service.getLeaderboard(
+        MatchType.SINGLE,
+        1,
+      )) as SingleLeaderboardResponseDto;
 
       expect(result.rankings[0].rank).toBe(1);
       expect(result.rankings[1].rank).toBe(1);
@@ -269,8 +397,20 @@ describe('LeaderboardService', () => {
 
     it('expPoint가 같아도 정답률이 다르면 다른 rank를 가진다', async () => {
       const rankings = [
-        { nickname: 'user1', userProfile: null, expPoint: '1000', solvedCount: '10', correctCount: '9' }, // 90%
-        { nickname: 'user2', userProfile: null, expPoint: '1000', solvedCount: '10', correctCount: '7' }, // 70%
+        {
+          nickname: 'user1',
+          userProfile: null,
+          expPoint: '1000',
+          solvedCount: '10',
+          correctCount: '9',
+        }, // 90%
+        {
+          nickname: 'user2',
+          userProfile: null,
+          expPoint: '1000',
+          solvedCount: '10',
+          correctCount: '7',
+        }, // 70%
       ];
       const myStats = {
         nickname: 'user2',
@@ -282,7 +422,10 @@ describe('LeaderboardService', () => {
 
       setupSingleMocks(rankings, myStats, 1);
 
-      const result = (await service.getLeaderboard(MatchType.SINGLE, 1)) as SingleLeaderboardResponseDto;
+      const result = (await service.getLeaderboard(
+        MatchType.SINGLE,
+        1,
+      )) as SingleLeaderboardResponseDto;
 
       expect(result.rankings[0].rank).toBe(1);
       expect(result.rankings[1].rank).toBe(2);
@@ -290,8 +433,20 @@ describe('LeaderboardService', () => {
 
     it('expPoint와 정답률이 같아도 푼 문제 수가 다르면 다른 rank를 가진다', async () => {
       const rankings = [
-        { nickname: 'user1', userProfile: null, expPoint: '1000', solvedCount: '20', correctCount: '16' }, // 80%, 20문제
-        { nickname: 'user2', userProfile: null, expPoint: '1000', solvedCount: '10', correctCount: '8' }, // 80%, 10문제
+        {
+          nickname: 'user1',
+          userProfile: null,
+          expPoint: '1000',
+          solvedCount: '20',
+          correctCount: '16',
+        }, // 80%, 20문제
+        {
+          nickname: 'user2',
+          userProfile: null,
+          expPoint: '1000',
+          solvedCount: '10',
+          correctCount: '8',
+        }, // 80%, 10문제
       ];
       const myStats = {
         nickname: 'user2',
@@ -303,14 +458,25 @@ describe('LeaderboardService', () => {
 
       setupSingleMocks(rankings, myStats, 1);
 
-      const result = (await service.getLeaderboard(MatchType.SINGLE, 1)) as SingleLeaderboardResponseDto;
+      const result = (await service.getLeaderboard(
+        MatchType.SINGLE,
+        1,
+      )) as SingleLeaderboardResponseDto;
 
       expect(result.rankings[0].rank).toBe(1);
       expect(result.rankings[1].rank).toBe(2);
     });
 
     it('푼 문제가 없으면 solvedCount와 correctCount는 0을 반환한다', async () => {
-      const rankings = [{ nickname: 'user1', userProfile: null, expPoint: '100', solvedCount: '0', correctCount: '0' }];
+      const rankings = [
+        {
+          nickname: 'user1',
+          userProfile: null,
+          expPoint: '100',
+          solvedCount: '0',
+          correctCount: '0',
+        },
+      ];
       const myStats = {
         nickname: 'testUser',
         userProfile: null,
@@ -321,7 +487,10 @@ describe('LeaderboardService', () => {
 
       setupSingleMocks(rankings, myStats, 0);
 
-      const result = (await service.getLeaderboard(MatchType.SINGLE, 1)) as SingleLeaderboardResponseDto;
+      const result = (await service.getLeaderboard(
+        MatchType.SINGLE,
+        1,
+      )) as SingleLeaderboardResponseDto;
 
       expect(result.rankings[0].solvedCount).toBe(0);
       expect(result.rankings[0].correctCount).toBe(0);
@@ -329,7 +498,15 @@ describe('LeaderboardService', () => {
     });
 
     it('내 통계 정보가 없으면 NotFoundException을 던진다', async () => {
-      const rankings = [{ nickname: 'user1', userProfile: null, expPoint: '15000', solvedCount: '100', correctCount: '85' }];
+      const rankings = [
+        {
+          nickname: 'user1',
+          userProfile: null,
+          expPoint: '15000',
+          solvedCount: '100',
+          correctCount: '85',
+        },
+      ];
 
       setupSingleMocks(rankings, null, 0);
 
@@ -359,7 +536,10 @@ describe('LeaderboardService', () => {
         .mockReturnValueOnce(myStatsQB)
         .mockReturnValueOnce(rankCountQB);
 
-      const result = (await service.getLeaderboard(MatchType.MULTI, 1)) as MultiLeaderboardResponseDto;
+      const result = (await service.getLeaderboard(
+        MatchType.MULTI,
+        1,
+      )) as MultiLeaderboardResponseDto;
 
       expect(result.rankings).toHaveLength(0);
       expect(result.myRanking.rank).toBe(1);
@@ -367,10 +547,38 @@ describe('LeaderboardService', () => {
 
     it('동점자 다음 순위는 건너뛴다 (1, 1, 1, 4)', async () => {
       const rankings = [
-        { nickname: 'user1', userProfile: null, tierPoint: '2000', winCount: '10', loseCount: '10', tier: 'gold' },
-        { nickname: 'user2', userProfile: null, tierPoint: '2000', winCount: '10', loseCount: '10', tier: 'gold' },
-        { nickname: 'user3', userProfile: null, tierPoint: '2000', winCount: '10', loseCount: '10', tier: 'gold' },
-        { nickname: 'user4', userProfile: null, tierPoint: '1000', winCount: '5', loseCount: '5', tier: 'silver' },
+        {
+          nickname: 'user1',
+          userProfile: null,
+          tierPoint: '2000',
+          winCount: '10',
+          loseCount: '10',
+          tier: 'gold',
+        },
+        {
+          nickname: 'user2',
+          userProfile: null,
+          tierPoint: '2000',
+          winCount: '10',
+          loseCount: '10',
+          tier: 'gold',
+        },
+        {
+          nickname: 'user3',
+          userProfile: null,
+          tierPoint: '2000',
+          winCount: '10',
+          loseCount: '10',
+          tier: 'gold',
+        },
+        {
+          nickname: 'user4',
+          userProfile: null,
+          tierPoint: '1000',
+          winCount: '5',
+          loseCount: '5',
+          tier: 'silver',
+        },
       ];
       const myStats = {
         nickname: 'user4',
@@ -396,7 +604,10 @@ describe('LeaderboardService', () => {
         .mockReturnValueOnce(myStatsQB)
         .mockReturnValueOnce(rankCountQB);
 
-      const result = (await service.getLeaderboard(MatchType.MULTI, 1)) as MultiLeaderboardResponseDto;
+      const result = (await service.getLeaderboard(
+        MatchType.MULTI,
+        1,
+      )) as MultiLeaderboardResponseDto;
 
       expect(result.rankings[0].rank).toBe(1);
       expect(result.rankings[1].rank).toBe(1);

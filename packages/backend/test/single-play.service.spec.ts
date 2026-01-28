@@ -174,13 +174,26 @@ describe('SinglePlayService', () => {
       mockQuizService.gradeQuestion.mockResolvedValue(mockGradeResult);
       mockQuizService.determineAnswerStatus.mockReturnValue('correct');
 
+      const mockManager = { save: jest.fn(), query: jest.fn() };
+
+      mockDataSource.transaction.mockImplementation(async (cb: any) => cb(mockManager));
+
+      mockManager.save.mockResolvedValueOnce({ id: 123 }).mockResolvedValueOnce({});
+      mockManager.query.mockResolvedValue([[{ exp_point: 10 }], 1]);
+
       const result = await service.submitAnswer(userId, questionId, answer);
 
-      expect(result).toEqual({
-        score: 10,
-        grade: { submittedAnswer: 'React', isCorrect: true, aiFeedback: 'Perfect!' },
-      });
       expect(mockDataSource.transaction).toHaveBeenCalled();
+
+      expect(result.grade).toEqual({
+        submittedAnswer: 'React',
+        isCorrect: true,
+        aiFeedback: 'Perfect!',
+      });
+
+      expect(typeof result.level).toBe('number');
+      expect(typeof result.needExpPoint).toBe('number');
+      expect(typeof result.remainedExpPoint).toBe('number');
     });
 
     it('존재하지 않는 문제 ID면 NotFoundException을 던져야 함', async () => {

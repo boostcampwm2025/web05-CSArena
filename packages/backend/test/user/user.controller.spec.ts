@@ -53,10 +53,10 @@ describe('UserController', () => {
         tier: 'gold',
         tierPoint: 1250,
       },
-      level: {
+      levelInfo: {
         level: 42,
-        expForCurrentLevel: 0,
-        expForNextLevel: 100,
+        remainedExpPoint: 0,
+        needExpPoint: 100,
       },
       matchStats: {
         totalMatches: 100,

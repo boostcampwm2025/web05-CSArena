@@ -141,10 +141,10 @@ describe('UserService', () => {
 
       const result = await service.getMyPageData(userId);
 
-      expect(result.level).toEqual({
-        level: 42,
-        expForCurrentLevel: 0,
-        expForNextLevel: 100,
+      expect(result.levelInfo).toEqual({
+        level: 9,
+        remainedExpPoint: 600,
+        needExpPoint: 900,
       });
     });
 
@@ -231,7 +231,7 @@ describe('UserService', () => {
 
       expect(result.rank.tierPoint).toBe(0);
       expect(result.rank.tier).toBe('bronze');
-      expect(result.level.level).toBe(0);
+      expect(result.levelInfo.level).toBe(1);
       expect(result.matchStats.totalMatches).toBe(0);
     });
   });
@@ -352,9 +352,7 @@ describe('UserService', () => {
                   },
                 ],
               },
-              answers: [
-                { userId: 1, score: 100, answerStatus: 'correct' },
-              ],
+              answers: [{ userId: 1, score: 100, answerStatus: 'correct' }],
             },
           ],
         },
