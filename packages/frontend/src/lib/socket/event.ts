@@ -47,7 +47,9 @@ export type RoundTick = { remainedSec: number };
 
 export type SubmitAnswerReq = { answer: string };
 
-export type SubmitAnswerRes = { ok: true } | { ok: false; error: string };
+export type SubmitAnswerRes =
+  | { ok: true; opponentSubmitted: boolean }
+  | { ok: false; error: string };
 
 export type MatchEnd = {
   isWin: boolean;

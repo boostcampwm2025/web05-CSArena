@@ -4,7 +4,8 @@ import { usePlaying } from '@/pages/match/hooks/usePlaying';
 export default function Playing() {
   const { category, difficulty, point, content } = useQuestion();
   const { remainedSec } = useRoundTick();
-  const { isSubmit, isSubmitting, answer, setAnswer, onClickSubmitBtn } = usePlaying();
+  const { isSubmit, isSubmitting, opponentSubmitted, answer, setAnswer, onClickSubmitBtn } =
+    usePlaying();
 
   return (
     <div className="flex h-full items-center justify-center">
@@ -74,11 +75,43 @@ export default function Playing() {
           </div>
 
           {/* Answer Input */}
-          {isSubmit ? (
-            <div className="item-center flex justify-center">
-              <p className="text-3xl text-green-400" style={{ fontFamily: 'Orbitron' }}>
-                Your response has been submitted
-              </p>
+          {isSubmit || isSubmitting ? (
+            <div className="flex justify-center py-12">
+              <div className="relative flex flex-col items-center gap-6 border-4 border-cyan-400 bg-gradient-to-br from-slate-900/95 via-purple-900/30 to-slate-900/95 p-12 shadow-2xl shadow-cyan-500/40">
+                {/* 회전 로딩 스피너 */}
+                <div className="relative">
+                  <div className="h-24 w-24 animate-spin rounded-full border-8 border-slate-700 border-t-cyan-400 shadow-lg shadow-cyan-400/50"></div>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <i
+                      className={`text-5xl ${opponentSubmitted ? 'ri-check-line text-green-400' : 'ri-user-line text-purple-400'}`}
+                    ></i>
+                  </div>
+                </div>
+
+                {/* 메시지 */}
+                <div className="flex flex-col items-center gap-2">
+                  <p
+                    className="text-3xl font-bold text-cyan-300"
+                    style={{ fontFamily: 'Orbitron' }}
+                  >
+                    {opponentSubmitted ? 'GRADING IN PROGRESS' : 'WAITING FOR OPPONENT'}
+                  </p>
+                  <p
+                    className="flex items-center gap-1 text-lg text-slate-400"
+                    style={{ fontFamily: 'Orbitron' }}
+                  >
+                    {opponentSubmitted ? '답안을 채점하고 있습니다' : '상대방이 답을 작성 중입니다'}
+                    <span className="flex">
+                      <span className="animate-[bounce_1.4s_ease-in-out_0s_infinite]">.</span>
+                      <span className="animate-[bounce_1.4s_ease-in-out_0.2s_infinite]">.</span>
+                      <span className="animate-[bounce_1.4s_ease-in-out_0.4s_infinite]">.</span>
+                    </span>
+                  </p>
+                </div>
+
+                {/* 네온 글로우 효과 */}
+                <div className="absolute inset-0 -z-10 animate-pulse border-4 border-cyan-400/30 blur-xl"></div>
+              </div>
             </div>
           ) : (
             <div className="flex flex-col gap-4">

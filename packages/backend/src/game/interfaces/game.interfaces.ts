@@ -139,4 +139,5 @@ export interface SubmitAnswerRequest {
 export interface SubmitAnswerResponse {
   ok: boolean;
   error?: string;
+  opponentSubmitted?: boolean;
 }

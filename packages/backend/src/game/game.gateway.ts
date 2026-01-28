@@ -68,15 +68,21 @@ export class GameGateway implements OnGatewayDisconnect, OnGatewayInit {
         return { ok: false, error: 'Answer already submitted' };
       }
 
-      // 답안 제출
-      this.sessionManager.submitAnswer(roomId, userId, data.answer);
-
-      // 상대에게 제출 알림
+      // 상대 플레이어 ID와 소켓 ID 확인
+      const opponentId =
+        userId === gameSession.player1Id ? gameSession.player2Id : gameSession.player1Id;
       const opponentSocketId =
         userId === gameSession.player1Id
           ? gameSession.player2SocketId
           : gameSession.player1SocketId;
 
+      // 답안 제출 전에 상대가 이미 제출했는지 확인
+      const opponentAlreadySubmitted = this.sessionManager.hasPlayerSubmitted(roomId, opponentId);
+
+      // 답안 제출
+      this.sessionManager.submitAnswer(roomId, userId, data.answer);
+
+      // 상대에게 제출 알림
       this.server.to(opponentSocketId).emit('opponent:submitted', {});
 
       // 양쪽 모두 제출했으면 그레이딩 시작
@@ -86,7 +92,9 @@ export class GameGateway implements OnGatewayDisconnect, OnGatewayInit {
         await this.roundProgression.phaseGrading(roomId);
       }
 
-      return { ok: true };
+      const response = { ok: true, opponentSubmitted: opponentAlreadySubmitted };
+
+      return response;
     } catch (error) {
       return { ok: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
