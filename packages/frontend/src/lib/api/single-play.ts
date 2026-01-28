@@ -1,6 +1,7 @@
 import {
   GetCategoriesRes,
   GetQuestionsRes,
+  StartSessionRes,
   SubmitAnswerReq,
   SubmitAnswerRes,
 } from '@/pages/single-play/types/types';
@@ -18,6 +19,13 @@ export function fetchQuestion(
 ) {
   return request<GetQuestionsRes>('/api/singleplay/question', accessToken, {
     query: { categoryId: categoryIds },
+    signal,
+  });
+}
+
+export function startSession(accessToken: string | null, signal?: AbortSignal) {
+  return request<StartSessionRes>('/api/singleplay/start', accessToken, {
+    method: 'POST',
     signal,
   });
 }
