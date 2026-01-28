@@ -7,11 +7,6 @@ describe('EloMatchQueue', () => {
     queue = new EloMatchQueue();
   });
 
-  afterEach(() => {
-    // 테스트 종료 시 polling interval 정리
-    queue.onModuleDestroy();
-  });
-
   describe('기본 매칭 기능', () => {
     it('비어있는 큐에 플레이어 추가 시 null 반환', () => {
       const match = queue.add('user1', 1000);
@@ -206,23 +201,11 @@ describe('EloMatchQueue', () => {
   });
 
   describe('모듈 라이프사이클', () => {
-    it('onModuleInit 호출 시 polling 시작', () => {
-      const newQueue = new EloMatchQueue();
-      newQueue.onModuleInit();
-
-      // polling interval이 설정되었는지 확인
-      // (내부 변수라 직접 확인 불가, 기능 테스트로 대체)
-      expect(newQueue).toBeDefined();
-
-      newQueue.onModuleDestroy();
-    });
-
-    it('onModuleDestroy 호출 시 polling 중지', () => {
-      queue.onModuleInit();
-      queue.onModuleDestroy();
-
-      // interval이 정리되었는지 확인
+    it('EloMatchQueue는 내부 폴링을 하지 않음', () => {
+      // 내부 폴링이 제거되었으므로 OnModuleInit/OnModuleDestroy가 없음
+      // MatchmakingGateway가 주기적으로 getAndClearPendingMatches()를 호출
       expect(queue).toBeDefined();
+      expect(queue.getAndClearPendingMatches).toBeDefined();
     });
   });
 });

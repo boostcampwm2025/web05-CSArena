@@ -1,7 +1,7 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { IMatchQueue, Match, QueuedPlayer } from '../interfaces/matchmaking.interface';
 import { randomUUID } from 'crypto';
-import { MATCH_RANGES, POLLING_INTERVAL_MS } from '../constants/matchmaking.constants';
+import { MATCH_RANGES } from '../constants/matchmaking.constants';
 
 /**
  * ELO 기반 매칭 큐
@@ -12,27 +12,9 @@ import { MATCH_RANGES, POLLING_INTERVAL_MS } from '../constants/matchmaking.cons
  * - 30초+: ±500 ELO
  */
 @Injectable()
-export class EloMatchQueue implements IMatchQueue, OnModuleInit, OnModuleDestroy {
+export class EloMatchQueue implements IMatchQueue {
   private readonly logger = new Logger(EloMatchQueue.name);
   private queue: QueuedPlayer[] = [];
-  private pollingInterval: NodeJS.Timeout | null = null;
-
-  onModuleInit() {
-    // 주기적으로 큐의 플레이어들끼리 재매칭 시도
-    this.pollingInterval = setInterval(() => {
-      this.attemptRematchExistingPlayers();
-    }, POLLING_INTERVAL_MS);
-
-    this.logger.log('EloMatchQueue polling started');
-  }
-
-  onModuleDestroy() {
-    if (this.pollingInterval) {
-      clearInterval(this.pollingInterval);
-      this.pollingInterval = null;
-      this.logger.log('EloMatchQueue polling stopped');
-    }
-  }
 
   add(userId: string, eloRating: number): Match | null {
     // 중복 체크
@@ -229,7 +211,6 @@ export class EloMatchQueue implements IMatchQueue, OnModuleInit, OnModuleDestroy
 
   /**
    * Polling으로 발견된 매칭들을 가져옴
-   * GameGateway에서 호출하여 처리
    */
   getAndClearPendingMatches(): Match[] {
     return this.attemptRematchExistingPlayers();
