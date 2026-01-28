@@ -141,7 +141,7 @@ export function MatchProvider({ children }: { children: React.ReactNode }) {
 
       socket.disconnect();
     };
-  }, [handleUserInfo, handleMatchFound, handleOpponentDisconnected, handleMatchEnd]);
+  }, [handleConnectCompleted, handleMatchFound, handleOpponentDisconnected, handleMatchEnd]);
 
   return (
     <MatchCtx.Provider
