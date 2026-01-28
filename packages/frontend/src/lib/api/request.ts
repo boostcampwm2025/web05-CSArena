@@ -65,6 +65,7 @@ export async function request<TResponse = void>(
   }
 
   const text = await res.text();
+  const trimmed = text.trim();
 
-  return text ? (JSON.parse(text) as TResponse) : (undefined as TResponse);
+  return trimmed ? (JSON.parse(trimmed) as TResponse) : (undefined as TResponse);
 }
