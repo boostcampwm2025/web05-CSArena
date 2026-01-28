@@ -15,17 +15,41 @@ export default function MatchResult() {
       <div className="flex h-full w-full max-w-6xl flex-col items-stretch justify-center gap-4">
         {/* Winner Banner */}
         <div
-          className={`flex flex-col items-center justify-center gap-1 border-4 bg-gradient-to-r py-2 text-center ${matchResult.myTotalPoints != matchResult.opponentTotalPoints ? (matchResult.myTotalPoints > matchResult.opponentTotalPoints ? 'border-emerald-400 from-emerald-500/20 to-cyan-500/20' : 'border-red-400 from-red-500/20 to-rose-500/20') : 'border-amber-400 from-amber-500/20 to-orange-500/20'}`}
+          className={`flex flex-col items-center justify-center gap-1 border-4 bg-gradient-to-r py-2 text-center ${
+            // isWin이 있으면 우선 사용 (탈주 등 특수 케이스)
+            matchResult.isWin !== undefined
+              ? matchResult.isWin
+                ? 'border-emerald-400 from-emerald-500/20 to-cyan-500/20'
+                : 'border-red-400 from-red-500/20 to-rose-500/20'
+              : // isWin이 없으면 점수로 판단 (정상 종료)
+                matchResult.myTotalPoints != matchResult.opponentTotalPoints
+                ? matchResult.myTotalPoints > matchResult.opponentTotalPoints
+                  ? 'border-emerald-400 from-emerald-500/20 to-cyan-500/20'
+                  : 'border-red-400 from-red-500/20 to-rose-500/20'
+                : 'border-amber-400 from-amber-500/20 to-orange-500/20'
+          }`}
         >
           <div className="text-3xl font-black" style={{ fontFamily: '"Press Start 2P"' }}>
-            {matchResult.myTotalPoints > matchResult.opponentTotalPoints && (
-              <span className="text-emerald-400">VICTORY!</span>
-            )}
-            {matchResult.myTotalPoints < matchResult.opponentTotalPoints && (
-              <span className="text-red-400">DEFEAT</span>
-            )}
-            {matchResult.myTotalPoints === matchResult.opponentTotalPoints && (
-              <span className="text-amber-400">DRAW</span>
+            {/* isWin이 있으면 우선 사용 */}
+            {matchResult.isWin !== undefined ? (
+              matchResult.isWin ? (
+                <span className="text-emerald-400">VICTORY!</span>
+              ) : (
+                <span className="text-red-400">DEFEAT</span>
+              )
+            ) : (
+              // isWin이 없으면 점수로 판단
+              <>
+                {matchResult.myTotalPoints > matchResult.opponentTotalPoints && (
+                  <span className="text-emerald-400">VICTORY!</span>
+                )}
+                {matchResult.myTotalPoints < matchResult.opponentTotalPoints && (
+                  <span className="text-red-400">DEFEAT</span>
+                )}
+                {matchResult.myTotalPoints === matchResult.opponentTotalPoints && (
+                  <span className="text-amber-400">DRAW</span>
+                )}
+              </>
             )}
           </div>
           <div className="text-2xl font-bold text-white" style={{ fontFamily: 'Orbitron' }}>

@@ -36,6 +36,7 @@ type MatchResult = {
   opponentWinCount: number;
   roundResults: RoundResult[];
   myTierPointChange?: number;
+  isWin?: boolean;
 };
 
 type MatchAPI = {
@@ -86,6 +87,13 @@ export function MatchProvider({ children }: { children: React.ReactNode }) {
     setMatchState('inGame');
   }, []);
 
+  const handleOpponentDisconnected = useCallback(() => {
+    setMatchResult((prev) => ({
+      ...prev,
+      myWinCount: prev.myWinCount + 1,
+    }));
+  }, []);
+
   const handleMatchEnd = useCallback(
     (payload: MatchEnd) => {
       setMatchResult((prev) => ({
@@ -93,6 +101,7 @@ export function MatchProvider({ children }: { children: React.ReactNode }) {
         myTotalPoints: payload.finalScores.my,
         opponentTotalPoints: payload.finalScores.opponent,
         myTierPointChange: payload.tierPointChange,
+        isWin: payload.isWin, // 서버에서 받은 승패 여부 저장
       }));
 
       // 티어포인트 업데이트
@@ -117,6 +126,7 @@ export function MatchProvider({ children }: { children: React.ReactNode }) {
 
     socket.on('connect:completed', handleConnectCompleted);
     socket.on('match:found', handleMatchFound);
+    socket.on('opponent:disconnected', handleOpponentDisconnected);
     socket.on('match:end', handleMatchEnd);
 
     if (!socket.connected) {
@@ -126,11 +136,12 @@ export function MatchProvider({ children }: { children: React.ReactNode }) {
     return () => {
       socket.off('connect:completed', handleConnectCompleted);
       socket.off('match:found', handleMatchFound);
+      socket.off('opponent:disconnected', handleOpponentDisconnected);
       socket.off('match:end', handleMatchEnd);
 
       socket.disconnect();
     };
-  }, [handleConnectCompleted, handleMatchFound, handleMatchEnd]);
+  }, [handleConnectCompleted, handleMatchFound, handleOpponentDisconnected, handleMatchEnd]);
 
   return (
     <MatchCtx.Provider
