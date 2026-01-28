@@ -10,6 +10,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { FeedbackModule } from './feedback/feedback.module';
 import { ProblemBankModule } from './problem-bank/problem-bank.module';
+import { LeaderboardModule } from './leaderboard/leaderboard.module';
 import { feedbackLoggerConfig } from './common/winston.config';
 import { WinstonModule } from 'nest-winston';
 import { AuthModule } from './auth/auth.module';
@@ -53,6 +54,7 @@ const metadata: ModuleMetadata = {
     FeedbackModule,
     SinglePlayModule,
     ProblemBankModule,
+    LeaderboardModule,
     UserModule,
   ],
   controllers: [AppController, HealthController],
