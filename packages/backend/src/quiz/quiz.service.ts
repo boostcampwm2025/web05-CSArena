@@ -466,16 +466,30 @@ export class QuizService {
    * 객관식 채점 (내부 메서드)
    */
   private gradeMultipleChoice(question: QuestionEntity, submissions: Submission[]): GradeResult[] {
+    const content = question.content as { question: string; options: MultipleChoiceOptions };
+    const options = content?.options;
+
     return submissions.map((sub) => {
-      const sanitizedAnswer = sub.answer.trim().toUpperCase();
+      const sanitizedAnswer = sub.answer.trim().toUpperCase() as keyof MultipleChoiceOptions;
       const isCorrect = sanitizedAnswer === question.correctAnswer;
+      const correctAnswerKey = question.correctAnswer as keyof MultipleChoiceOptions;
+
+      let feedback: string;
+
+      if (isCorrect) {
+        feedback = '정답입니다!';
+      } else if (options && options[correctAnswerKey]) {
+        feedback = `오답입니다. 정답은 ${question.correctAnswer}번 "${options[correctAnswerKey]}"입니다.`;
+      } else {
+        feedback = `오답입니다. 정답은 ${question.correctAnswer}번입니다.`;
+      }
 
       return {
         playerId: sub.playerId,
         answer: sub.answer,
         isCorrect,
-        score: isCorrect ? 10 : 0, // 객관식은 맞으면 10점 (만점), 틀리면 0점
-        feedback: isCorrect ? 'Correct!' : `Wrong. The answer was ${question.correctAnswer}.`,
+        score: isCorrect ? 10 : 0,
+        feedback,
       };
     });
   }
