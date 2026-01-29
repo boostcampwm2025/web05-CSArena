@@ -583,12 +583,13 @@ ${JSON.stringify(sanitizedAnswersForPrompt)}
     });
 
     // 원본 답안으로 결과 매핑 (살균 전 답안 유지)
-    return this.mapGradeResults(result.grades, submissions);
+    return this.mapGradeResults(result.grades, submissions, question.type);
   }
 
   private mapGradeResults(
     grades: Omit<GradeResult, 'answer'>[],
     submissions: Submission[],
+    questionType: 'short_answer' | 'essay',
   ): GradeResult[] {
     return submissions.map((submission) => {
       const grade = grades.find((g) => g.playerId === submission.playerId);
@@ -601,15 +602,20 @@ ${JSON.stringify(sanitizedAnswersForPrompt)}
         playerId: grade.playerId,
         answer: submission.answer,
         isCorrect: grade.isCorrect,
-        score: this.validateScore(grade.score, grade.isCorrect),
+        score: this.validateScore(grade.score, grade.isCorrect, questionType),
         feedback: grade.feedback,
       };
     });
   }
 
-  private validateScore(score: number, isCorrect: boolean): number {
+  private validateScore(
+    score: number,
+    isCorrect: boolean,
+    questionType: 'short_answer' | 'essay',
+  ): number {
     const MIN_SCORE = 0;
     const MAX_SCORE = 10;
+    const ESSAY_PARTIAL_THRESHOLD = 3; // 서술형 부분 점수 최소 기준
 
     // 타입 검증
     if (typeof score !== 'number' || isNaN(score)) {
@@ -625,9 +631,18 @@ ${JSON.stringify(sanitizedAnswersForPrompt)}
       return Math.max(MIN_SCORE, Math.min(MAX_SCORE, score));
     }
 
-    // 정답/오답 일관성 검증
+    // 서술형: 부분 점수 허용 (3점 이상 유지, 2점 이하 0점 처리)
+    if (questionType === 'essay') {
+      if (score < ESSAY_PARTIAL_THRESHOLD) {
+        return MIN_SCORE;
+      }
+
+      return score;
+    }
+
+    // 단답형: 정답/오답 일관성 검증
     if (!isCorrect && score > 0) {
-      this.logger.warn(`오답인데 점수 있음: ${score}`);
+      this.logger.warn(`단답형 오답인데 점수 있음: ${score}`);
 
       return MIN_SCORE;
     }
@@ -726,20 +741,23 @@ ${JSON.stringify(sanitizedAnswersForPrompt)}
    * AI 점수를 난이도별 게임 점수로 변환
    * - AI 점수(0~10)를 난이도별 만점 기준으로 비율 계산
    * - Easy: 만점 10점, Medium: 만점 20점, Hard: 만점 30점
-   * @param aiScore AI가 부여한 점수 (0~10)
+   * - 서술형 부분 점수(3~6점)도 비율 계산하여 게임 점수 부여
+   * @param aiScore AI가 부여한 점수 (0~10, 이미 validateScore를 거친 값)
    * @param difficulty 문제 난이도 (1~5 또는 null)
-   * @param isCorrect 정답 여부
+   * @param isCorrect 정답 여부 (서술형 부분 점수의 경우 false이지만 aiScore > 0)
    * @returns 게임 점수
    */
   public calculateGameScore(
     aiScore: number,
     difficulty: number | null,
-    isCorrect: boolean,
+    _isCorrect: boolean,
   ): number {
-    if (!isCorrect) {
+    // aiScore가 0이면 게임 점수도 0 (오답 또는 서술형 낙제)
+    if (aiScore === 0) {
       return 0;
     }
 
+    // aiScore > 0이면 정답 또는 서술형 부분 점수이므로 게임 점수 계산
     const difficultyLevel = mapDifficulty(difficulty);
     const maxScore = SCORE_MAP[difficultyLevel];
 
