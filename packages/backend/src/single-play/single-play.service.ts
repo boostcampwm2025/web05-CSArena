@@ -232,13 +232,21 @@ export class SinglePlayService {
     return await this.connection.transaction(async (manager) => {
       const uid = this.parseUserId(userId);
 
-      // matchId 유효성 검증
-      const matchExists = await manager.findOne(Match, {
+      // matchId, 소유자, matchType 검증
+      const match = await manager.findOne(Match, {
         where: { id: matchId },
       });
 
-      if (!matchExists) {
+      if (!match) {
         throw new NotFoundException('존재하지 않는 세션입니다.');
+      }
+
+      if (match.player1Id !== uid) {
+        throw new NotFoundException('본인의 세션이 아닙니다.');
+      }
+
+      if (match.matchType !== 'single') {
+        throw new NotFoundException('싱글플레이 세션이 아닙니다.');
       }
 
       const answerStatus = this.quizService.determineAnswerStatus(

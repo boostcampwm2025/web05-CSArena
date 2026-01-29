@@ -216,7 +216,7 @@ describe('SinglePlayService', () => {
 
       mockDataSource.transaction.mockImplementation(async (cb: any) => cb(mockManager));
 
-      mockManager.findOne.mockResolvedValue({ id: matchId });
+      mockManager.findOne.mockResolvedValue({ id: matchId, player1Id: 1, matchType: 'single' });
       mockManager.save.mockResolvedValue({});
       mockManager.query.mockResolvedValue([[{ exp_point: 10 }], 1]);
 
@@ -291,6 +291,84 @@ describe('SinglePlayService', () => {
       );
       await expect(service.submitAnswer(userId, matchId, questionId, answer)).rejects.toThrow(
         '존재하지 않는 세션입니다.',
+      );
+    });
+
+    it('다른 사용자의 matchId면 NotFoundException을 던져야 함', async () => {
+      const userId = '1';
+      const matchId = 123;
+      const questionId = 1;
+      const answer = 'Answer';
+      const mockQuestion = {
+        id: 1,
+        questionType: 'short',
+        content: 'What is React?',
+        difficulty: 1,
+        correctAnswer: 'React',
+      } as QuestionEntity;
+
+      const mockGradeResult = [
+        {
+          playerId: 'single-player',
+          answer: 'Answer',
+          isCorrect: true,
+          score: 10,
+          feedback: 'Good!',
+        },
+      ];
+
+      const mockManager = { findOne: jest.fn() };
+      mockDataSource.transaction.mockImplementation(async (cb: any) => cb(mockManager));
+
+      mockQuestionRepository.findOne.mockResolvedValue(mockQuestion);
+      mockQuizService.gradeQuestion.mockResolvedValue(mockGradeResult);
+      // 다른 사용자(player1Id: 2)의 세션
+      mockManager.findOne.mockResolvedValue({ id: matchId, player1Id: 2, matchType: 'single' });
+
+      await expect(service.submitAnswer(userId, matchId, questionId, answer)).rejects.toThrow(
+        NotFoundException,
+      );
+      await expect(service.submitAnswer(userId, matchId, questionId, answer)).rejects.toThrow(
+        '본인의 세션이 아닙니다.',
+      );
+    });
+
+    it('싱글플레이가 아닌 matchType이면 NotFoundException을 던져야 함', async () => {
+      const userId = '1';
+      const matchId = 123;
+      const questionId = 1;
+      const answer = 'Answer';
+      const mockQuestion = {
+        id: 1,
+        questionType: 'short',
+        content: 'What is React?',
+        difficulty: 1,
+        correctAnswer: 'React',
+      } as QuestionEntity;
+
+      const mockGradeResult = [
+        {
+          playerId: 'single-player',
+          answer: 'Answer',
+          isCorrect: true,
+          score: 10,
+          feedback: 'Good!',
+        },
+      ];
+
+      const mockManager = { findOne: jest.fn() };
+      mockDataSource.transaction.mockImplementation(async (cb: any) => cb(mockManager));
+
+      mockQuestionRepository.findOne.mockResolvedValue(mockQuestion);
+      mockQuizService.gradeQuestion.mockResolvedValue(mockGradeResult);
+      // matchType이 'multi'인 세션
+      mockManager.findOne.mockResolvedValue({ id: matchId, player1Id: 1, matchType: 'multi' });
+
+      await expect(service.submitAnswer(userId, matchId, questionId, answer)).rejects.toThrow(
+        NotFoundException,
+      );
+      await expect(service.submitAnswer(userId, matchId, questionId, answer)).rejects.toThrow(
+        '싱글플레이 세션이 아닙니다.',
       );
     });
   });
