@@ -148,24 +148,30 @@ export class LeaderboardService {
     const tierPoint = Number(myStats.tierPoint);
     const winCount = Number(myStats.winCount);
     const loseCount = Number(myStats.loseCount);
-    const totalGames = winCount + loseCount;
-    const winRate = totalGames > 0 ? winCount / totalGames : 0;
 
-    const rank = await this.userStatisticsRepository
-      .createQueryBuilder('us')
-      .where(
-        `us.tierPoint > :tierPoint
-        OR (us.tierPoint = :tierPoint AND
-            CASE WHEN us.winCount + us.loseCount > 0 THEN us.winCount * 1.0 / (us.winCount + us.loseCount) ELSE 0 END > :winRate)
-        OR (us.tierPoint = :tierPoint AND
-            CASE WHEN us.winCount + us.loseCount > 0 THEN us.winCount * 1.0 / (us.winCount + us.loseCount) ELSE 0 END = :winRate AND
-            us.winCount + us.loseCount > :totalGames)`,
-        { tierPoint, winRate, totalGames },
-      )
-      .getCount();
+    // RANK() 윈도우 함수를 사용하여 DB에서 직접 순위 계산
+    const result: Array<{ rank: string | number }> = await this.userStatisticsRepository.query(
+      `
+      SELECT rank FROM (
+        SELECT
+          user_id,
+          RANK() OVER (
+            ORDER BY
+              tier_point DESC,
+              (CASE WHEN win_count + lose_count > 0 THEN win_count * 1.0 / (win_count + lose_count) ELSE 0 END) DESC,
+              (win_count + lose_count) DESC
+          ) as rank
+        FROM user_statistics
+      ) as ranked
+      WHERE user_id = $1
+      `,
+      [userId],
+    );
+
+    const rank = result[0] ? Number(result[0].rank) : 0;
 
     return {
-      rank: rank + 1,
+      rank,
       nickname: myStats.nickname,
       userProfile: myStats.userProfile,
       tierPoint,
@@ -285,39 +291,40 @@ export class LeaderboardService {
     const expPoint = Number(myStats.expPoint);
     const solvedCount = Number(myStats.solvedCount);
     const correctCount = Number(myStats.correctCount);
-    const correctRate = solvedCount > 0 ? correctCount / solvedCount : 0;
 
-    const rank = await this.userStatisticsRepository
-      .createQueryBuilder('us')
-      .leftJoin(
-        (qb) =>
-          qb
-            .select('pb.userId', 'odbc')
-            .addSelect('COUNT(*)', 'solved_count')
-            .addSelect(
-              "SUM(CASE WHEN pb.answerStatus = 'correct' THEN 1 ELSE 0 END)",
-              'correct_count',
-            )
-            .from(UserProblemBank, 'pb')
-            .innerJoin('pb.match', 'm')
-            .where("m.matchType = 'single'")
-            .groupBy('pb.userId'),
-        'pb_stats',
-        'us.userId = pb_stats.odbc',
-      )
-      .where(
-        `us.expPoint > :expPoint
-        OR (us.expPoint = :expPoint AND
-            CASE WHEN COALESCE(pb_stats.solved_count, 0) > 0 THEN COALESCE(pb_stats.correct_count, 0) * 1.0 / pb_stats.solved_count ELSE 0 END > :correctRate)
-        OR (us.expPoint = :expPoint AND
-            CASE WHEN COALESCE(pb_stats.solved_count, 0) > 0 THEN COALESCE(pb_stats.correct_count, 0) * 1.0 / pb_stats.solved_count ELSE 0 END = :correctRate AND
-            COALESCE(pb_stats.solved_count, 0) > :solvedCount)`,
-        { expPoint, correctRate, solvedCount },
-      )
-      .getCount();
+    // RANK() 윈도우 함수를 사용하여 DB에서 직접 순위 계산
+    const result: Array<{ rank: string | number }> = await this.userStatisticsRepository.query(
+      `
+      SELECT rank FROM (
+        SELECT
+          us.user_id,
+          RANK() OVER (
+            ORDER BY
+              us.exp_point DESC,
+              (CASE WHEN COALESCE(pb_stats.solved_count, 0) > 0 THEN COALESCE(pb_stats.correct_count, 0) * 1.0 / pb_stats.solved_count ELSE 0 END) DESC,
+              COALESCE(pb_stats.solved_count, 0) DESC
+          ) as rank
+        FROM user_statistics us
+        LEFT JOIN (
+          SELECT
+            pb.user_id,
+            COUNT(*) as solved_count,
+            SUM(CASE WHEN pb.answer_status = 'correct' THEN 1 ELSE 0 END) as correct_count
+          FROM user_problem_banks pb
+          INNER JOIN matches m ON m.id = pb.match_id
+          WHERE m.match_type = 'single'
+          GROUP BY pb.user_id
+        ) pb_stats ON us.user_id = pb_stats.user_id
+      ) as ranked
+      WHERE user_id = $1
+      `,
+      [userId],
+    );
+
+    const rank = result[0] ? Number(result[0].rank) : 0;
 
     return {
-      rank: rank + 1,
+      rank,
       nickname: myStats.nickname,
       userProfile: myStats.userProfile,
       expPoint,

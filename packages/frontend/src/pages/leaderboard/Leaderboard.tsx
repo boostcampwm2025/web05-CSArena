@@ -305,17 +305,18 @@ export default function Leaderboard() {
                 NO DATA AVAILABLE
               </div>
             )}
-            {/* Sticky My Ranking Footer (Inside Scroll Container) */}
-            {data?.myRanking && (
-              <div className="sticky bottom-0 z-20 border-t-4 border-cyan-400 bg-slate-900 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.3)]">
-                <RankingItem
-                  item={data.myRanking}
-                  rank={data.myRanking.rank}
-                  isMulti={currentType === 'multi'}
-                />
-              </div>
-            )}
           </div>
+
+          {/* Fixed My Ranking Footer */}
+          {data?.myRanking && (
+            <div className="z-20 border-t-4 border-cyan-400 bg-slate-900 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.3)]">
+              <RankingItem
+                item={data.myRanking}
+                rank={data.myRanking.rank}
+                isMulti={currentType === 'multi'}
+              />
+            </div>
+          )}
         </div>
       </div>
 

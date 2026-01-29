@@ -34,6 +34,7 @@ describe('LeaderboardService', () => {
   beforeEach(async () => {
     mockUserStatisticsRepository = {
       createQueryBuilder: jest.fn(),
+      query: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -54,21 +55,19 @@ describe('LeaderboardService', () => {
   });
 
   describe('Multi 모드 리더보드', () => {
-    const setupMultiMocks = (rankings: any[], myStats: any, rankCount = 0) => {
+    const setupMultiMocks = (rankings: any[], myStats: any, myRank = 1) => {
       const rankingsQB = createMockQueryBuilder({
         getRawMany: jest.fn().mockResolvedValue(rankings),
       });
       const myStatsQB = createMockQueryBuilder({
         getRawOne: jest.fn().mockResolvedValue(myStats),
       });
-      const rankCountQB = createMockQueryBuilder({
-        getCount: jest.fn().mockResolvedValue(rankCount),
-      });
 
       mockUserStatisticsRepository.createQueryBuilder
         .mockReturnValueOnce(rankingsQB)
-        .mockReturnValueOnce(myStatsQB)
-        .mockReturnValueOnce(rankCountQB);
+        .mockReturnValueOnce(myStatsQB);
+
+      mockUserStatisticsRepository.query.mockResolvedValue([{ rank: String(myRank) }]);
     };
 
     it('랭킹 목록과 내 순위를 반환한다', async () => {
@@ -99,7 +98,7 @@ describe('LeaderboardService', () => {
         tier: 'gold',
       };
 
-      setupMultiMocks(rankings, myStats, 5);
+      setupMultiMocks(rankings, myStats, 6);
 
       const result = (await service.getLeaderboard(
         MatchType.MULTI,
@@ -136,7 +135,7 @@ describe('LeaderboardService', () => {
         tier: 'diamond',
       };
 
-      setupMultiMocks(rankings, myStats, 0);
+      setupMultiMocks(rankings, myStats, 1);
 
       const result = (await service.getLeaderboard(
         MatchType.MULTI,
@@ -183,7 +182,7 @@ describe('LeaderboardService', () => {
         tier: 'silver',
       };
 
-      setupMultiMocks(rankings, myStats, 0);
+      setupMultiMocks(rankings, myStats, 1);
 
       const result = (await service.getLeaderboard(
         MatchType.MULTI,
@@ -223,7 +222,7 @@ describe('LeaderboardService', () => {
         tier: 'silver',
       };
 
-      setupMultiMocks(rankings, myStats, 1);
+      setupMultiMocks(rankings, myStats, 2);
 
       const result = (await service.getLeaderboard(
         MatchType.MULTI,
@@ -262,7 +261,7 @@ describe('LeaderboardService', () => {
         tier: 'silver',
       };
 
-      setupMultiMocks(rankings, myStats, 1);
+      setupMultiMocks(rankings, myStats, 2);
 
       const result = (await service.getLeaderboard(
         MatchType.MULTI,
@@ -292,21 +291,19 @@ describe('LeaderboardService', () => {
   });
 
   describe('Single 모드 리더보드', () => {
-    const setupSingleMocks = (rankings: any[], myStats: any, rankCount = 0) => {
+    const setupSingleMocks = (rankings: any[], myStats: any, myRank = 1) => {
       const rankingsQB = createMockQueryBuilder({
         getRawMany: jest.fn().mockResolvedValue(rankings),
       });
       const myStatsQB = createMockQueryBuilder({
         getRawOne: jest.fn().mockResolvedValue(myStats),
       });
-      const rankCountQB = createMockQueryBuilder({
-        getCount: jest.fn().mockResolvedValue(rankCount),
-      });
 
       mockUserStatisticsRepository.createQueryBuilder
         .mockReturnValueOnce(rankingsQB)
-        .mockReturnValueOnce(myStatsQB)
-        .mockReturnValueOnce(rankCountQB);
+        .mockReturnValueOnce(myStatsQB);
+
+      mockUserStatisticsRepository.query.mockResolvedValue([{ rank: String(myRank) }]);
     };
 
     it('랭킹 목록과 내 순위를 반환한다', async () => {
@@ -334,7 +331,7 @@ describe('LeaderboardService', () => {
         correctCount: '40',
       };
 
-      setupSingleMocks(rankings, myStats, 2);
+      setupSingleMocks(rankings, myStats, 3);
 
       const result = (await service.getLeaderboard(
         MatchType.SINGLE,
@@ -383,7 +380,7 @@ describe('LeaderboardService', () => {
         correctCount: '8',
       };
 
-      setupSingleMocks(rankings, myStats, 0);
+      setupSingleMocks(rankings, myStats, 1);
 
       const result = (await service.getLeaderboard(
         MatchType.SINGLE,
@@ -420,7 +417,7 @@ describe('LeaderboardService', () => {
         correctCount: '7',
       };
 
-      setupSingleMocks(rankings, myStats, 1);
+      setupSingleMocks(rankings, myStats, 2);
 
       const result = (await service.getLeaderboard(
         MatchType.SINGLE,
@@ -456,7 +453,7 @@ describe('LeaderboardService', () => {
         correctCount: '8',
       };
 
-      setupSingleMocks(rankings, myStats, 1);
+      setupSingleMocks(rankings, myStats, 2);
 
       const result = (await service.getLeaderboard(
         MatchType.SINGLE,
@@ -485,7 +482,7 @@ describe('LeaderboardService', () => {
         correctCount: '0',
       };
 
-      setupSingleMocks(rankings, myStats, 0);
+      setupSingleMocks(rankings, myStats, 1);
 
       const result = (await service.getLeaderboard(
         MatchType.SINGLE,
@@ -527,14 +524,12 @@ describe('LeaderboardService', () => {
           tier: 'silver',
         }),
       });
-      const rankCountQB = createMockQueryBuilder({
-        getCount: jest.fn().mockResolvedValue(0),
-      });
 
       mockUserStatisticsRepository.createQueryBuilder
         .mockReturnValueOnce(rankingsQB)
-        .mockReturnValueOnce(myStatsQB)
-        .mockReturnValueOnce(rankCountQB);
+        .mockReturnValueOnce(myStatsQB);
+
+      mockUserStatisticsRepository.query.mockResolvedValue([{ rank: '1' }]);
 
       const result = (await service.getLeaderboard(
         MatchType.MULTI,
@@ -595,14 +590,12 @@ describe('LeaderboardService', () => {
       const myStatsQB = createMockQueryBuilder({
         getRawOne: jest.fn().mockResolvedValue(myStats),
       });
-      const rankCountQB = createMockQueryBuilder({
-        getCount: jest.fn().mockResolvedValue(3),
-      });
 
       mockUserStatisticsRepository.createQueryBuilder
         .mockReturnValueOnce(rankingsQB)
-        .mockReturnValueOnce(myStatsQB)
-        .mockReturnValueOnce(rankCountQB);
+        .mockReturnValueOnce(myStatsQB);
+
+      mockUserStatisticsRepository.query.mockResolvedValue([{ rank: '4' }]);
 
       const result = (await service.getLeaderboard(
         MatchType.MULTI,
