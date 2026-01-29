@@ -277,7 +277,7 @@ export class SinglePlayService {
     const parsed = parseInt(userId, 10);
 
     if (isNaN(parsed)) {
-      throw new Error(`유효하지 않은 userId: ${userId}`);
+      throw new NotFoundException(`유효하지 않은 userId: ${userId}`);
     }
 
     return parsed;

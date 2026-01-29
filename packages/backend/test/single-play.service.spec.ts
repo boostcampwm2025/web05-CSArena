@@ -241,7 +241,7 @@ describe('SinglePlayService', () => {
     });
 
     it('존재하지 않는 문제 ID면 NotFoundException을 던져야 함', async () => {
-      const userId = 'user1';
+      const userId = '1';
       const matchId = 123;
       const questionId = 999;
       const answer = 'Answer';
@@ -257,7 +257,7 @@ describe('SinglePlayService', () => {
     });
 
     it('존재하지 않는 matchId면 NotFoundException을 던져야 함', async () => {
-      const userId = 'user1';
+      const userId = '1';
       const matchId = 999;
       const questionId = 1;
       const answer = 'Answer';
