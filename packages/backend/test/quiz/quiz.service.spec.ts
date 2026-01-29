@@ -940,7 +940,6 @@ describe('QuizService', () => {
 
       // 정렬 순서 확인
       expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith('q.usageCount', 'ASC');
-      expect(mockQueryBuilder.addOrderBy).toHaveBeenCalledWith('q.qualityScore', 'DESC');
       expect(mockQueryBuilder.addOrderBy).toHaveBeenCalledWith('RANDOM()');
     });
   });

@@ -25,6 +25,7 @@ describe('SinglePlayService', () => {
     generateSinglePlayQuestions: jest.fn(),
     gradeQuestion: jest.fn(),
     determineAnswerStatus: jest.fn().mockReturnValue('correct'),
+    incrementUsageCount: jest.fn().mockResolvedValue(undefined),
   };
 
   const mockDataSource = {
