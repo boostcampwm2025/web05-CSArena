@@ -76,10 +76,10 @@ describe('RoundProgressionService - AI Score Weighted Grading Logic', () => {
         roomId,
         player1Id,
         'socket1',
-        { nickname: 'Player1', tier: 'gold', tierPoint: 1500, exp_point: 1500 },
+        { nickname: 'Player1', profileImage: null, tier: 'gold', tierPoint: 1500, exp_point: 1500 },
         player2Id,
         'socket2',
-        { nickname: 'Player2', tier: 'silver', tierPoint: 1200, exp_point: 1200 },
+        { nickname: 'Player2', profileImage: null, tier: 'silver', tierPoint: 1200, exp_point: 1200 },
       );
       sessionManager.startNextRound(roomId);
     });
