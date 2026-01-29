@@ -27,6 +27,9 @@ export class Question {
   })
   correctAnswer: string;
 
+  @Column({ type: 'text', nullable: false })
+  explanation: string;
+
   @Column({ type: 'int', nullable: true })
   difficulty: number | null;
 

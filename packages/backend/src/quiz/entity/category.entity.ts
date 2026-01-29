@@ -12,6 +12,15 @@ export class Category {
   @Column({ type: 'varchar', nullable: true })
   name: string | null;
 
+  @Column({ type: 'boolean', default: false, name: 'is_leaf' })
+  isLeaf: boolean;
+
+  @Column({ type: 'varchar', length: 20, default: 'active' })
+  status: string;
+
+  @Column({ type: 'int', default: 0, name: 'question_count' })
+  questionCount: number;
+
   @ManyToOne(() => Category, (category) => category.children)
   @JoinColumn({ name: 'parent_id' })
   parent: Category | null;

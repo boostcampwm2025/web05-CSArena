@@ -123,6 +123,7 @@ export class QuizSeedService implements OnModuleInit {
         questionType: seedQuestion.questionType,
         content: seedQuestion.content,
         correctAnswer: seedQuestion.correctAnswer,
+        explanation: seedQuestion.explanation,
         difficulty: seedQuestion.difficulty,
         isActive: true,
         usageCount: 0,
