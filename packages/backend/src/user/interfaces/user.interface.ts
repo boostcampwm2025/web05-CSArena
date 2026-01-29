@@ -1,5 +1,6 @@
 export interface UserInfo {
   nickname: string;
+  profileImage: string | null;
   tier: string;
   tierPoint: number;
   exp_point: number;

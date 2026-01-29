@@ -1,5 +1,6 @@
 export type UserInfo = {
   nickname: string;
+  profileImage: string | null;
   tier: string;
   tierPoint: number;
   expPoint: number;
@@ -12,7 +13,13 @@ export type MatchDequeueReq = { sessionId: string };
 export type MatchDequeueRes = { ok: true } | { ok: false; error: string };
 
 export type MatchFound = {
-  opponent: { nickname: string; tier: string; tierPoint: number; expPoint: number };
+  opponent: {
+    nickname: string;
+    profileImage: string | null;
+    tier: string;
+    tierPoint: number;
+    expPoint: number;
+  };
 };
 
 export type RoundReady = {

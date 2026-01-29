@@ -1,6 +1,7 @@
 export type UserData = {
   userId: string;
   nickname: string;
+  profileImage: string | null;
   tier: string;
   tierPoint: number;
   level: number;
@@ -58,7 +59,7 @@ export type Category = {
 // MyPage Types - Based on API Specification
 export type UserProfile = {
   nickname: string;
-  profileImage: string;
+  profileImage: string | null;
   email: string;
   createdAt: string;
 };
@@ -110,7 +111,7 @@ export type TierHistoryResponse = {
 
 export type Opponent = {
   nickname: string;
-  profileImage: string;
+  profileImage: string | null;
 };
 
 export type MultiMatch = {
