@@ -964,9 +964,17 @@ describe('QuizService', () => {
       expect(score).toBe(30);
     });
 
-    it('오답인 경우 0점을 반환해야 함', () => {
-      const score = service.calculateGameScore(8, 3, false);
+    it('AI 점수가 0인 경우 게임 점수도 0점을 반환해야 함', () => {
+      // validateScore를 거쳐 0점이 된 경우 (오답 또는 서술형 낙제)
+      const score = service.calculateGameScore(0, 3, false);
       expect(score).toBe(0);
+    });
+
+    it('서술형 부분 점수(isCorrect=false, aiScore>0)도 게임 점수를 계산해야 함', () => {
+      // 서술형 부분 점수: AI 5점, isCorrect=false
+      // Hard 만점 30점 -> 30 * 0.5 = 15점
+      const score = service.calculateGameScore(5, 5, false);
+      expect(score).toBe(15);
     });
 
     it('난이도가 null인 경우 Medium으로 간주하여 계산해야 함', () => {
