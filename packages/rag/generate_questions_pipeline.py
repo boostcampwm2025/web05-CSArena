@@ -18,7 +18,6 @@ from token_calculator import TokenUsage
 # 품질 기준
 FAITHFULNESS_THRESHOLD = 0.9
 ANSWER_RELEVANCY_THRESHOLD = 0.7
-TARGET_QUESTIONS = 10
 MAX_ROUNDS = 10
 
 
@@ -114,7 +113,7 @@ def run_pipeline():
     logger = Logger(str(log_file))
     cost = CostTracker()
 
-    logger.log(f"파이프라인 시작 (목표: {TARGET_QUESTIONS}개)")
+    logger.log(f"파이프라인 시작 (목표: {config.TARGET_QUESTIONS}개)")
 
     # 기존 결과 로드
     all_passed = []
@@ -126,15 +125,15 @@ def run_pipeline():
         if all_passed:
             logger.log(f"기존 결과 로드: {len(all_passed)}개")
 
-    if len(all_passed) >= TARGET_QUESTIONS:
-        logger.log(f"이미 목표 달성 ({len(all_passed)}/{TARGET_QUESTIONS})")
+    if len(all_passed) >= config.TARGET_QUESTIONS:
+        logger.log(f"이미 목표 달성 ({len(all_passed)}/{config.TARGET_QUESTIONS})")
         return
 
     # 메인 루프
     tried_categories = set()
     round_num = 1
 
-    while len(all_passed) < TARGET_QUESTIONS and round_num <= MAX_ROUNDS:
+    while len(all_passed) < config.TARGET_QUESTIONS and round_num <= MAX_ROUNDS:
         # 1. 카테고리 선택
         try:
             category = get_leaf_category_with_least_questions()
@@ -212,7 +211,7 @@ def run_pipeline():
         all_passed.extend(passed)
         all_rejected.extend(rejected)
 
-        logger.log(f"누적: {len(all_passed)}/{TARGET_QUESTIONS}", indent=1)
+        logger.log(f"누적: {len(all_passed)}/{config.TARGET_QUESTIONS}", indent=1)
 
         # 7. 중간 저장
         with open(passed_file, 'w', encoding='utf-8') as f:
@@ -220,7 +219,7 @@ def run_pipeline():
         with open(rejected_file, 'w', encoding='utf-8') as f:
             json.dump(all_rejected, f, ensure_ascii=False, indent=2)
 
-        if len(all_passed) >= TARGET_QUESTIONS:
+        if len(all_passed) >= config.TARGET_QUESTIONS:
             break
 
         round_num += 1

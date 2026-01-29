@@ -28,6 +28,7 @@ class Config:
     TEMPERATURE: float = 0.3
     TOP_K_CHUNKS: int = 5
     QUESTIONS_PER_TOPIC: int = 10
+    TARGET_QUESTIONS: int = int(os.getenv("TARGET_QUESTIONS", "10"))
 
     @classmethod
     def get_db_url(cls) -> str:
