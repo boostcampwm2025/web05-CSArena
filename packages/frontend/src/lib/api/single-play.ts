@@ -23,7 +23,7 @@ export function fetchQuestion(
   });
 }
 
-export function startSession(accessToken: string | null, signal?: AbortSignal) {
+export function startSession(accessToken: string | undefined, signal?: AbortSignal) {
   return request<StartSessionRes>('/api/singleplay/start', accessToken, {
     method: 'POST',
     signal,
