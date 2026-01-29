@@ -2,6 +2,7 @@ import { useUser } from '@/feature/auth/useUser';
 import { useMatch } from '@/feature/matching/useMatch';
 import { useRoundPhase, useRoundScore, useRoundTick } from '@/feature/matching/useRound';
 import TierBadge from '@/shared/TierBadge';
+import ProfileAvatar from '@/shared/ProfileAvatar';
 
 export default function TopBar() {
   const { userData } = useUser();
@@ -15,9 +16,12 @@ export default function TopBar() {
       <div className="item-center flex w-full justify-between gap-4 px-8 py-3">
         {/* Player 1 */}
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg border-2 border-white bg-gradient-to-br from-cyan-400 to-purple-500">
-            <i className="ri-user-star-line text-xl text-white" />
-          </div>
+          <ProfileAvatar
+            profileImage={userData?.profileImage}
+            nickname={userData?.nickname}
+            size="sm"
+            borderStyle="white"
+          />
           <div className="flex flex-col">
             <div
               className="text-sm font-bold text-cyan-300"
@@ -80,9 +84,12 @@ export default function TopBar() {
               <TierBadge tier={opponentInfo?.tier ?? 'bronze'} className="text-xs" />
             </div>
           </div>
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg border-2 border-white bg-gradient-to-br from-pink-400 to-rose-500">
-            <i className="ri-user-star-line text-xl text-white" />
-          </div>
+          <ProfileAvatar
+            profileImage={opponentInfo?.profileImage}
+            nickname={opponentInfo?.nickname}
+            size="sm"
+            borderStyle="white"
+          />
         </div>
       </div>
     </div>

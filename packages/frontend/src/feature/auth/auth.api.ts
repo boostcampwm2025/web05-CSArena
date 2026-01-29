@@ -1,16 +1,28 @@
 import { request } from '@/lib/api/request';
 
 type UserData = {
-  profile: { nickname: string };
+  profile: { nickname: string; profileImage: string | null };
   rank: { tier: string; tierPoint: number };
   levelInfo: { level: number; needExpPoint: number; remainedExpPoint: number };
 };
 
-export function login() {
+type OAuthUserData = {
+  userId: string;
+  nickname: string;
+  userProfile: string | null;
+  tier: string;
+  tierPoint: number;
+  level: number;
+  needExpPoint: number;
+  remainedExpPoint: number;
+  isSentFeedback: boolean;
+};
+
+function login() {
   window.location.replace(`/api/auth/github`);
 }
 
-export async function logout(signal: AbortSignal) {
+async function logout(signal: AbortSignal) {
   try {
     await request('/api/auth/logout', undefined, { credentials: 'include', signal });
   } catch (e) {
@@ -22,7 +34,9 @@ export async function logout(signal: AbortSignal) {
   }
 }
 
-export function handleOAuthCallback() {
+function handleOAuthCallback():
+  | { ok: false; err: string }
+  | { ok: true; accessToken: string; userData: OAuthUserData } {
   const hash = window.location.hash;
 
   if (!hash || hash.length <= 1) {
@@ -46,7 +60,7 @@ export function handleOAuthCallback() {
   return { ok: true, accessToken: token, userData: JSON.parse(decodeURIComponent(userRaw)) };
 }
 
-export async function refreshAccessToken(signal: AbortSignal) {
+async function refreshAccessToken(signal: AbortSignal) {
   try {
     const data = await request<{ accessToken: string }>('/api/auth/refresh', undefined, {
       credentials: 'include',
@@ -63,7 +77,7 @@ export async function refreshAccessToken(signal: AbortSignal) {
   }
 }
 
-export async function fetchUserData(accessToken: string, signal: AbortSignal) {
+async function fetchUserData(accessToken: string, signal: AbortSignal) {
   try {
     const data = await request<UserData>('/api/users/me', accessToken, {
       credentials: 'include',
@@ -79,3 +93,5 @@ export async function fetchUserData(accessToken: string, signal: AbortSignal) {
     // TODO: 에러 모달 출력
   }
 }
+
+export { login, logout, handleOAuthCallback, refreshAccessToken, fetchUserData };

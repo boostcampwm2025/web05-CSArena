@@ -7,7 +7,13 @@ import { getSocket } from '@/lib/socket';
 import { useUser } from '@/feature/auth/useUser';
 
 type MatchState = 'matching' | 'inGame' | 'match-end';
-type OpponentInfo = { nickname: string; tier: string; tierPoint: number; expPoint: number } | null;
+type OpponentInfo = {
+  nickname: string;
+  profileImage: string | null;
+  tier: string;
+  tierPoint: number;
+  expPoint: number;
+} | null;
 
 type QuestionContent =
   | { type: 'multiple'; question: string; option: string[] }

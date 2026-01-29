@@ -3,6 +3,7 @@ import { useMatch } from '@/feature/matching/useMatch';
 import { useMatchResult } from '../hooks/useMatchResult';
 import Feedback from './match-result/Feedback';
 import TierBadge from '@/shared/TierBadge';
+import ProfileAvatar from '@/shared/ProfileAvatar';
 
 export default function MatchResult() {
   const { userData } = useUser();
@@ -61,9 +62,12 @@ export default function MatchResult() {
             <div className="flex flex-col items-stretch justify-center gap-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-xl border-2 border-white bg-gradient-to-br from-cyan-400 to-purple-500">
-                    <i className="ri-user-star-line text-4xl text-white" />
-                  </div>
+                  <ProfileAvatar
+                    profileImage={userData?.profileImage}
+                    nickname={userData?.nickname}
+                    size="lg"
+                    borderStyle="white"
+                  />
                   <div className="flex flex-col text-left">
                     <div
                       className="text-lg font-bold text-cyan-300"
@@ -116,9 +120,12 @@ export default function MatchResult() {
             <div className="flex flex-col items-stretch justify-center gap-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-xl border-2 border-white bg-gradient-to-br from-pink-400 to-rose-500">
-                    <i className="ri-user-star-line text-4xl text-white" />
-                  </div>
+                  <ProfileAvatar
+                    profileImage={opponentInfo?.profileImage}
+                    nickname={opponentInfo?.nickname}
+                    size="lg"
+                    borderStyle="white"
+                  />
                   <div className="flex flex-col text-left">
                     <div
                       className="text-lg font-bold text-pink-300"

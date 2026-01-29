@@ -1,4 +1,5 @@
 import { UserLevel, UserProfile, UserRank } from '@/shared/type';
+import ProfileAvatar from '@/shared/ProfileAvatar';
 
 type ProfileSectionProps = {
   profile: UserProfile;
@@ -17,11 +18,7 @@ export function ProfileSection({ profile, rank, level }: ProfileSectionProps) {
     <div className="flex h-full items-center gap-4 border-2 border-cyan-400 bg-gradient-to-r from-slate-800/90 to-slate-900/90 p-3">
       {/* User Info */}
       <div className="flex gap-3">
-        <img
-          src={profile.profileImage}
-          alt={profile.nickname}
-          className="h-14 w-14 flex-shrink-0 rounded-lg border-2 border-cyan-400 object-cover"
-        />
+        <ProfileAvatar profileImage={profile.profileImage} nickname={profile.nickname} size="md" />
         <div className="flex flex-col justify-center gap-1">
           <div className="flex items-baseline gap-2">
             <h2 className="text-xl font-bold text-cyan-300" style={{ fontFamily: 'Orbitron' }}>

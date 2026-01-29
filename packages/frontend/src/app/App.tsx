@@ -35,7 +35,11 @@ export default function App() {
         const { accessToken, userData } = data;
 
         setAccessToken(accessToken);
-        setUserData(userData as UserData);
+        const mappedUserData: UserData = {
+          ...userData,
+          profileImage: userData.userProfile,
+        };
+        setUserData(mappedUserData);
 
         window.history.replaceState(null, '', '/');
 
@@ -61,6 +65,7 @@ export default function App() {
             return {
               ...prev,
               nickname: userData.profile.nickname,
+              profileImage: userData.profile.profileImage,
               tier: userData.rank.tier,
               level: userData.levelInfo.level,
               needExpPoint: userData.levelInfo.needExpPoint,

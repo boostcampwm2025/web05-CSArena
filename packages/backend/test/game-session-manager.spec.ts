@@ -7,6 +7,7 @@ describe('GameSessionManager - Game Session Management', () => {
 
   const mockUserInfo1: UserInfo = {
     nickname: 'Player1',
+    profileImage: null,
     tier: 'gold',
     tierPoint: 1500,
     exp_point: 1500,
@@ -14,6 +15,7 @@ describe('GameSessionManager - Game Session Management', () => {
 
   const mockUserInfo2: UserInfo = {
     nickname: 'Player2',
+    profileImage: null,
     tier: 'silver',
     tierPoint: 1200,
     exp_point: 1200,

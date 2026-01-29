@@ -1,7 +1,7 @@
 import { useHome } from './hooks/useHome';
-
 import LoginModal from './components/LoginModal';
 import TierBadge from '@/shared/TierBadge';
+import ProfileAvatar from '@/shared/ProfileAvatar';
 
 export default function Home() {
   const {
@@ -63,9 +63,12 @@ export default function Home() {
             <div className="flex flex-col items-stretch gap-6 border-4 border-cyan-400 bg-gradient-to-r from-slate-800/90 to-slate-900/90 p-4">
               {/* User Info */}
               <div className="flex gap-4">
-                <div className="flex h-16 w-16 items-center justify-center rounded-xl border-4 border-white bg-gradient-to-br from-cyan-400 to-purple-500">
-                  <i className="ri-user-star-line text-4xl text-white" />
-                </div>
+                <ProfileAvatar
+                  profileImage={userData.profileImage}
+                  nickname={userData.nickname}
+                  size="lg"
+                  borderStyle="white"
+                />
                 <div className="flex flex-col justify-between p-1">
                   <h2
                     className="text-2xl font-bold text-cyan-300"

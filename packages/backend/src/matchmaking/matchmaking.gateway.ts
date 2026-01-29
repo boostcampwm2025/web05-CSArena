@@ -84,6 +84,7 @@ export class MatchmakingGateway
     const tierPoint = fullUser?.statistics?.tierPoint ?? DEFAULT_ELO_RATING;
     const userInfo: UserInfo = {
       nickname: authUser.nickname,
+      profileImage: fullUser?.userProfile ?? null,
       tier: fullUser ? calculateTier(tierPoint) : 'bronze',
       tierPoint,
       exp_point: fullUser?.statistics?.expPoint ?? 0,
