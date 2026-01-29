@@ -52,9 +52,6 @@ export default function MatchResult() {
               </>
             )}
           </div>
-          <div className="text-2xl font-bold text-white" style={{ fontFamily: 'Orbitron' }}>
-            {matchResult.myWinCount} - {matchResult.opponentWinCount}
-          </div>
         </div>
 
         {/* Players Summary */}
