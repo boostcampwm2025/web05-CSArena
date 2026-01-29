@@ -46,13 +46,17 @@ export function usePreparing() {
       }
     };
 
+    // preparing phase에 진입할 때 이전 세션 정보 초기화
+    setMatchId(null);
+    setCurQuestion(null);
+
     void getCategories();
 
     return () => {
       controller.abort();
       questionControllerRef.current?.abort();
     };
-  }, [accessToken, setSelectedCategoryIds]);
+  }, [accessToken, setSelectedCategoryIds, setMatchId, setCurQuestion]);
 
   const onClickCategoryBtn = useCallback((categoryId: number) => {
     setCategories((prev) => {
@@ -105,7 +109,6 @@ export function usePreparing() {
       setMatchId(null);
 
       // TODO: 에러 발생 시 띄울 공통 모달 구현 및 에러 출력
-      console.error('싱글플레이 시작 중 오류 발생:', e);
     } finally {
       setIsLoadingQuestions(false);
     }

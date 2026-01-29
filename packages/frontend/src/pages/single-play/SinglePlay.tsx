@@ -1,4 +1,4 @@
-import { QuestionProvider, usePhase } from '@/feature/single-play/useRound';
+import { usePhase } from '@/feature/single-play/useRound';
 
 import TopBar from './components/Topbar';
 import Preparing from './components/Preparing';
@@ -29,11 +29,9 @@ export default function SinglePlay() {
       </div>
 
       <div className="relative z-10 min-h-0 flex-1">
-        <QuestionProvider>
-          {phase.kind === 'preparing' && <Preparing />}
-          {phase.kind === 'playing' && <Playing />}
-          {phase.kind === 'result' && <RoundResult />}
-        </QuestionProvider>
+        {phase.kind === 'preparing' && <Preparing />}
+        {phase.kind === 'playing' && <Playing />}
+        {phase.kind === 'result' && <RoundResult />}
       </div>
     </div>
   );

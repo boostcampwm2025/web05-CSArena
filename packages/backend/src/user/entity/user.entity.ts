@@ -13,7 +13,7 @@ import { UserProblemBank } from '../../problem-bank/entity';
 
 @Entity('users')
 export class User {
-  @PrimaryGeneratedColumn('increment', { type: 'bigint' })
+  @PrimaryGeneratedColumn('increment', { type: 'int4' })
   id: number;
 
   @Column({ type: 'varchar', nullable: true })

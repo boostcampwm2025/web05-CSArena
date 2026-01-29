@@ -29,21 +29,18 @@ export function SinglePlayProvider({ children }: { children: React.ReactNode }) 
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([]);
   const [phase, setPhase] = useState<SinglePlayPhase>({ kind: 'preparing' });
   const [matchId, setMatchId] = useState<number | null>(null);
+  const [curQuestion, setCurQuestion] = useState<Question | null>(null);
 
   return (
     <CategoryCtx.Provider value={{ selectedCategoryIds, setSelectedCategoryIds }}>
       <PhaseCtx.Provider value={{ phase, setPhase }}>
-        <MatchCtx.Provider value={{ matchId, setMatchId }}>{children}</MatchCtx.Provider>
+        <MatchCtx.Provider value={{ matchId, setMatchId }}>
+          <QuestionCtx.Provider value={{ curQuestion, setCurQuestion }}>
+            {children}
+          </QuestionCtx.Provider>
+        </MatchCtx.Provider>
       </PhaseCtx.Provider>
     </CategoryCtx.Provider>
-  );
-}
-
-export function QuestionProvider({ children }: { children: React.ReactNode }) {
-  const [curQuestion, setCurQuestion] = useState<Question | null>(null);
-
-  return (
-    <QuestionCtx.Provider value={{ curQuestion, setCurQuestion }}>{children}</QuestionCtx.Provider>
   );
 }
 
