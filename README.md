@@ -257,7 +257,7 @@ pnpm dev
 
 |                       [박수완](https://github.com/PSW99)                       |                         [박영준](https://github.com/NAKTA-Y)                         |                          [황재호](https://github.com/woghrk12)                          |                         [김민우](https://github.com/MINU234)                         |                       [최재영](https://github.com/Enble)                       |
 |:---------------------------------------------------------------------------:|:---------------------------------------------------------------------------------:|:------------------------------------------------------------------------------------:|:---------------------------------------------------------------------------------:|:---------------------------------------------------------------------------:|
-| [![PSW99](https://github.com/PSW99.png?size=150)](https://github.com/PSW99) | [![NAKTA-Y](https://github.com/NAKTA-Y.png?size=150)](https://github.com/NAKTA-Y) | [![woghrk12](https://github.com/woghrk12.png?size=150)](https://github.com/woghrk12) | [![MINU234](https://github.com/MINU234.png?size=150)](https://github.com/MINU234) | [![Enble](https://github.com/Enble.png?size=150)](https://github.com/Enble) |
+| [![PSW99](https://github.com/PSW99.png?size=100)](https://github.com/PSW99) | [![NAKTA-Y](https://github.com/NAKTA-Y.png?size=100)](https://github.com/NAKTA-Y) | [![woghrk12](https://github.com/woghrk12.png?size=100)](https://github.com/woghrk12) | [![MINU234](https://github.com/MINU234.png?size=100)](https://github.com/MINU234) | [![Enble](https://github.com/Enble.png?size=100)](https://github.com/Enble) |
 
 </div>
 
