@@ -255,10 +255,9 @@ pnpm dev
 
 <div align="center">
 
-|  |  |  |  |  |
-|:---:|:---:|:---:|:---:|:---:|
-| <!-- 프로필 이미지 --> | <!-- 프로필 이미지 --> | <!-- 프로필 이미지 --> | <!-- 프로필 이미지 --> | <!-- 프로필 이미지 --> |
-| [박수완](<!-- GitHub URL -->) | [박영준](<!-- GitHub URL -->) | [황재호](<!-- GitHub URL -->) | [김민우](<!-- GitHub URL -->) | [최재영](<!-- GitHub URL -->) |
+|                       [박수완](https://github.com/PSW99)                       |                         [박영준](https://github.com/NAKTA-Y)                         |                          [황재호](https://github.com/woghrk12)                          |                         [김민우](https://github.com/MINU234)                         |                       [최재영](https://github.com/Enble)                       |
+|:---------------------------------------------------------------------------:|:---------------------------------------------------------------------------------:|:------------------------------------------------------------------------------------:|:---------------------------------------------------------------------------------:|:---------------------------------------------------------------------------:|
+| [![PSW99](https://github.com/PSW99.png?size=150)](https://github.com/PSW99) | [![NAKTA-Y](https://github.com/NAKTA-Y.png?size=150)](https://github.com/NAKTA-Y) | [![woghrk12](https://github.com/woghrk12.png?size=150)](https://github.com/woghrk12) | [![MINU234](https://github.com/MINU234.png?size=150)](https://github.com/MINU234) | [![Enble](https://github.com/Enble.png?size=150)](https://github.com/Enble) |
 
 </div>
 
