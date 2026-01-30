@@ -82,7 +82,16 @@ export class SinglePlayService {
         throw new NotFoundException('해당 카테고리에 문제가 없습니다.');
       }
 
-      return questions[0];
+      const question = questions[0];
+
+      // 문제 사용 횟수 증가 (비동기, 에러 무시)
+      this.quizService.incrementUsageCount(question.id).catch((err: Error) => {
+        this.logger.warn(
+          `Failed to increment usage count for question ${question.id}: ${err.message}`,
+        );
+      });
+
+      return question;
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw error;

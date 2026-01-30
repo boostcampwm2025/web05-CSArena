@@ -84,6 +84,13 @@ export class RoundProgressionService {
 
       this.sessionManager.setQuestion(roomId, question);
 
+      // 문제 사용 횟수 증가 (비동기, 에러 무시)
+      this.quizService.incrementUsageCount(question.id).catch((err: Error) => {
+        this.logger.warn(
+          `Failed to increment usage count for question ${question.id}: ${err.message}`,
+        );
+      });
+
       // 난이도 매핑 (DB의 숫자 난이도 -> 문자열)
       const difficultyNum = question.difficulty || 3;
       let difficulty: Difficulty;

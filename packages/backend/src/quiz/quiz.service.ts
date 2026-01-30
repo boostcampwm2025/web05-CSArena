@@ -40,7 +40,6 @@ export class QuizService {
    * - 사용자가 선택한 대분류 카테고리의 하위 카테고리에서 균등하게 10문제 조회
    * - 카테고리별 균등 분배 (나머지는 앞 카테고리에 추가)
    * - 사용 빈도: usageCount 낮은 것 우선
-   * - 품질 우선: qualityScore 높은 것 우선
    * @param parentCategoryIds 선택된 대분류 카테고리 ID 배열 (예: DB, 네트워크)
    * @param totalCount 총 문제 개수 (기본값: 10)
    * @throws {InternalServerErrorException} DB에 충분한 질문이 없거나 변환 중 오류 발생 시
@@ -115,12 +114,7 @@ export class QuizService {
       .where('q.isActive = :isActive', { isActive: true })
       .andWhere('cq.categoryId IN (:...childIds)', { childIds });
 
-    return await query
-      .orderBy('q.usageCount', 'ASC')
-      .addOrderBy('q.qualityScore', 'DESC')
-      .addOrderBy('RANDOM()')
-      .limit(limit)
-      .getMany();
+    return await query.orderBy('q.usageCount', 'ASC').addOrderBy('RANDOM()').limit(limit).getMany();
   }
 
   /**
@@ -157,7 +151,6 @@ export class QuizService {
    * - 난이도 균형: easy 2개, medium 2개, hard 1개 (2:2:1)
    * - 타입 다양성: multiple 2개, short 2개, essay 1개
    * - 사용 빈도: usageCount 낮은 것 우선
-   * - 품질 우선: qualityScore 높은 것 우선
    * @throws {InternalServerErrorException} DB에 충분한 질문이 없을 시
    */
   async getQuestionsForGame(): Promise<QuestionEntity[]> {
@@ -191,7 +184,6 @@ export class QuizService {
         .where('q.isActive = :isActive', { isActive: true })
         .andWhere('q.id NOT IN (:...ids)', { ids: existingIds.length > 0 ? existingIds : [0] })
         .orderBy('q.usageCount', 'ASC')
-        .addOrderBy('q.qualityScore', 'DESC')
         .addOrderBy('RANDOM()')
         .limit(needed)
         .getMany();
@@ -225,7 +217,6 @@ export class QuizService {
    * - 난이도 균형: easy 2개, medium 2개, hard 1개 (2:2:1)
    * - 타입 다양성: multiple 2개, short 2개, essay 1개
    * - 사용 빈도: usageCount 낮은 것 우선
-   * - 품질 우선: qualityScore 높은 것 우선
    * @throws {InternalServerErrorException} DB에 충분한 질문이 없거나 변환 중 오류 발생 시
    */
   async generateQuestion(): Promise<Question[]> {
@@ -244,8 +235,7 @@ export class QuizService {
   /**
    * 난이도, 타입 필터로 질문 조회
    * - usageCount가 낮은 것 우선 (중복 노출 방지)
-   * - qualityScore가 높은 것 우선 (품질 우선)
-   * - 카테고리 분산은 RANDOM()으로 자연스럽게 처리
+   * - 동일 usageCount 내에서 RANDOM()으로 분산
    */
   private async getQuestionsByFilters(
     minDifficulty: number,
@@ -262,17 +252,17 @@ export class QuizService {
       .andWhere('q.difficulty BETWEEN :min AND :max', { min: minDifficulty, max: maxDifficulty })
       .andWhere('q.questionType = :type', { type });
 
-    return await query
-      .orderBy('q.usageCount', 'ASC') // 사용 빈도 낮은 것 우선
-      .addOrderBy('q.qualityScore', 'DESC') // 품질 높은 것 우선
-      .addOrderBy('RANDOM()') // 동일 조건 내에서 랜덤
-      .limit(count)
-      .getMany();
+    return await query.orderBy('q.usageCount', 'ASC').addOrderBy('RANDOM()').limit(count).getMany();
   }
 
   /**
-   * 유저들이 이미 푼 문제 ID 목록 조회
+   * 문제 사용 횟수 증가
+   * - 문제 출제 시 호출하여 usageCount 증가
+   * @param questionId 문제 ID
    */
+  async incrementUsageCount(questionId: number): Promise<void> {
+    await this.questionRepository.increment({ id: questionId }, 'usageCount', 1);
+  }
 
   /**
    * QuestionEntity를 quiz.types.ts의 Question 타입으로 변환
