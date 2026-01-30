@@ -16,8 +16,6 @@
 
 </div>
 
----
-
 ## 💫 Background & Problem
 
 > [!IMPORTANT]
@@ -32,8 +30,6 @@ CS 이론 학습은 개발자에게 필수이지만, 대부분의 사람들은 �
 **2. 신뢰할 수 없는 학습 자료**
 
 AI 기반 학습 도구가 늘어나고 있지만, 환각(Hallucination) 현상으로 인해 **부정확한 정보를 학습하게 될 위험**이 있습니다. CS 면접 대비에서 부정확한 지식은 치명적입니다.
-
----
 
 ## 🎯 Core Solution & Values
 
@@ -52,8 +48,6 @@ AI 기반 학습 도구가 늘어나고 있지만, 환각(Hallucination) 현상�
 | **🎮 학습 지속성** | 1:1 대결 구조와 티어/리더보드를 통해 경쟁심과 성취감을 자극하여 자발적인 반복 학습을 유도합니다. |
 | **📚 학습 신뢰도** | RAG(Retrieval-Augmented Generation) 기반으로 검증된 문서에서 문제를 출제하고, 채점 근거를 함께 제공합니다. |
 | **⏱️ 실전 면접 대비** | 제한 시간 내 답변하는 환경을 통해 실제 기술 면접과 유사한 압박감 속에서 지식을 꺼내 쓰는 훈련을 합니다. |
-
----
 
 ## ✨ 주요 기능 (Key Features)
 
@@ -81,8 +75,6 @@ AI 기반 학습 도구가 늘어나고 있지만, 환각(Hallucination) 현상�
 - 카테고리, 오답 여부, 북마크로 필터링
 - 내 답안, 모범 답안, 채점 근거 및 피드백 확인
 
----
-
 ## 🔧 기술적 특징 (Technical Highlights)
 
 ### 1. RAG 기반 문제 출제 및 채점
@@ -108,8 +100,6 @@ AI 기반 학습 도구가 늘어나고 있지만, 환각(Hallucination) 현상�
 - 실시간 점수 업데이트 및 결과 동기화
 - 연결 끊김 시 재연결 처리
 
----
-
 ## 🛠 기술 스택 (Tech Stack)
 
 | Category | Technology |
@@ -121,8 +111,6 @@ AI 기반 학습 도구가 늘어나고 있지만, 환각(Hallucination) 현상�
 | **Infra & DevOps** | ![NCP](https://img.shields.io/badge/NCP-03C75A?logo=naver&logoColor=white) ![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white) ![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?logo=github-actions&logoColor=white) |
 | **Auth** | ![Passport](https://img.shields.io/badge/Passport-34E27A?logo=passport&logoColor=white) ![JWT](https://img.shields.io/badge/JWT-000000?logo=jsonwebtokens&logoColor=white) ![GitHub OAuth](https://img.shields.io/badge/GitHub_OAuth-181717?logo=github&logoColor=white) |
 | **Monorepo** | ![pnpm](https://img.shields.io/badge/pnpm-F69220?logo=pnpm&logoColor=white) |
-
----
 
 ## 🏗️ 인프라 아키텍처 (Architecture)
 
@@ -158,8 +146,6 @@ web05-boostcamp/
 ├── docker-compose.yml      # 개발 환경
 └── docker-compose-prod.yml # 프로덕션 환경
 ```
-
----
 
 ## 🚀 Quick Start
 
@@ -217,8 +203,6 @@ pnpm dev
 | [박수완](<!-- GitHub URL -->) | [박영준](<!-- GitHub URL -->) | [황재호](<!-- GitHub URL -->) | [김민우](<!-- GitHub URL -->) | [최재영](<!-- GitHub URL -->) |
 
 </div>
-
----
 
 <div align="center">
 
