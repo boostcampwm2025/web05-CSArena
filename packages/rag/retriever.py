@@ -178,7 +178,8 @@ def retrieve_chunks_with_reranker(
         {"id": chunk.id, "content": chunk.content}
         for chunk in initial_chunks
     ]
-    reranker_result = rerank_chunks(hyde_query, chunks_for_rerank)
+    # Reranker에는 HyDE 쿼리 대신 카테고리 이름(주제)을 직접 사용하여 관련성 판단
+    reranker_result = rerank_chunks(category.name, chunks_for_rerank)
 
     # 5. 인용된 청크만 필터링
     cited_ids = set(reranker_result.cited_doc_ids)
