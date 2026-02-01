@@ -1,6 +1,5 @@
 <div align="center">
-  <!-- 배너 이미지 추가 필요 -->
-  <!-- <img width="1000" alt="banner" src="배너_이미지_URL" /> -->
+  <img width="1392" height="768" alt="Gemini Generated Image from Pixelcut" src="https://github.com/user-attachments/assets/6e46624b-d571-4ce3-88df-9cd4336113a3" />
 
 # CS 아레나
 
