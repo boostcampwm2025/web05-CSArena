@@ -36,7 +36,11 @@ describe('GameSessionManager - Game Session Management', () => {
   } as any;
 
   beforeEach(() => {
-    sessionManager = new GameSessionManager();
+    const mockMetricsService = {
+      incrementActiveGames: jest.fn(),
+      decrementActiveGames: jest.fn(),
+    } as any;
+    sessionManager = new GameSessionManager(mockMetricsService);
   });
 
   describe('createGameSession', () => {
