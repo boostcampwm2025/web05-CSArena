@@ -10,12 +10,6 @@ import { catchError, tap } from 'rxjs/operators';
 import { Request, Response } from 'express';
 import { MetricsService } from './metrics.service';
 
-interface RequestWithRoute extends Request {
-  route?: {
-    path: string;
-  };
-}
-
 @Injectable()
 export class HttpMetricsInterceptor implements NestInterceptor {
   constructor(private readonly metricsService: MetricsService) {}
@@ -25,7 +19,7 @@ export class HttpMetricsInterceptor implements NestInterceptor {
       return next.handle();
     }
 
-    const request = context.switchToHttp().getRequest<RequestWithRoute>();
+    const request = context.switchToHttp().getRequest<Request>();
     const response = context.switchToHttp().getResponse<Response>();
 
     // /api/metrics, /api/health 엔드포인트는 제외
@@ -38,9 +32,10 @@ export class HttpMetricsInterceptor implements NestInterceptor {
     return next.handle().pipe(
       tap(() => {
         const duration = (Date.now() - startTime) / 1000;
+        const routePath = (request.route as { path: string } | undefined)?.path;
         this.metricsService.recordHttpRequest(
           request.method,
-          request.route?.path ?? request.path,
+          routePath ?? request.path,
           response.statusCode,
           duration,
         );
@@ -48,9 +43,10 @@ export class HttpMetricsInterceptor implements NestInterceptor {
       catchError((error: unknown) => {
         const duration = (Date.now() - startTime) / 1000;
         const statusCode = error instanceof HttpException ? error.getStatus() : 500;
+        const routePath = (request.route as { path: string } | undefined)?.path;
         this.metricsService.recordHttpRequest(
           request.method,
-          request.route?.path ?? request.path,
+          routePath ?? request.path,
           statusCode,
           duration,
         );
