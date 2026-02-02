@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
+import { HttpException, Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import { ClovaApiResponse, ClovaRequestDto } from './clova.type';
@@ -64,9 +64,12 @@ export class ClovaClientService {
         return content as unknown as T;
       }
     } catch (error) {
-      this.logger.error('Clova API 호출에 실패했습니다.', error);
+      if (error instanceof HttpException) {
+        throw error;
+      }
 
-      throw error;
+      this.logger.error('Clova API 호출에 실패했습니다.', error);
+      throw new InternalServerErrorException('AI 서비스 호출 중 오류가 발생했습니다.');
     }
   }
 }
