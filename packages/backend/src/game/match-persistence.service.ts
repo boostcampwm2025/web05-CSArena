@@ -337,11 +337,11 @@ export class MatchPersistenceService {
     });
 
     if (!winnerStats) {
-      throw new Error(`승자의 UserStatistics를 찾을 수 없습니다. userId: ${winnerId}`);
+      throw new NonRetryableError(`승자의 UserStatistics를 찾을 수 없습니다. userId: ${winnerId}`);
     }
 
     if (!loserStats) {
-      throw new Error(`패자의 UserStatistics를 찾을 수 없습니다. userId: ${loserId}`);
+      throw new NonRetryableError(`패자의 UserStatistics를 찾을 수 없습니다. userId: ${loserId}`);
     }
 
     const winnerElo = winnerStats.tierPoint ?? 1000;
@@ -420,7 +420,7 @@ export class MatchPersistenceService {
     });
 
     if (!tier) {
-      throw new Error(
+      throw new NonRetryableError(
         `티어 '${tierName}'을(를) 찾을 수 없습니다. ELO: ${newElo}, userId: ${userId}`,
       );
     }
