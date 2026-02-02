@@ -1,5 +1,6 @@
 import { UserLevel, UserProfile, UserRank } from '@/shared/type';
 import ProfileAvatar from '@/shared/ProfileAvatar';
+import TierBadge from '@/shared/TierBadge';
 
 type ProfileSectionProps = {
   profile: UserProfile;
@@ -29,10 +30,7 @@ export function ProfileSection({ profile, rank, level }: ProfileSectionProps) {
             </span>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-sm font-bold text-amber-400" style={{ fontFamily: 'Orbitron' }}>
-              <i className="ri-vip-crown-line mr-1" />
-              {rank.tier}
-            </span>
+            <TierBadge tier={rank.tier} className="text-sm" />
             <span className="text-sm font-bold text-yellow-300" style={{ fontFamily: 'Orbitron' }}>
               ⭐ {rank.tierPoint.toLocaleString()}
             </span>
