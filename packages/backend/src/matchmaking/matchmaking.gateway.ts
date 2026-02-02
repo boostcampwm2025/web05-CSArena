@@ -65,7 +65,7 @@ export class MatchmakingGateway
     const token = client.handshake.auth?.token as string;
 
     if (!token) {
-      client.emit('error', { message: 'Authentication required' });
+      client.emit('error', { message: '인증이 필요합니다.' });
       client.disconnect();
 
       return;
@@ -74,7 +74,7 @@ export class MatchmakingGateway
     const authUser = this.authService.validateToken(token);
 
     if (!authUser) {
-      client.emit('error', { message: 'Invalid token' });
+      client.emit('error', { message: '유효하지 않은 토큰입니다.' });
       client.disconnect();
 
       return;
@@ -111,7 +111,7 @@ export class MatchmakingGateway
       const userInfo = authSocket.data.userInfo;
 
       if (!user) {
-        return { ok: false, error: 'Not authenticated' };
+        return { ok: false, error: '인증되지 않은 사용자입니다.' };
       }
 
       const existingSession = this.sessionManager.getQueueSessionBySocketId(client.id);
@@ -138,7 +138,10 @@ export class MatchmakingGateway
 
       return { ok: true, sessionId };
     } catch (error) {
-      return { ok: false, error: error instanceof Error ? error.message : 'Unknown error' };
+      return {
+        ok: false,
+        error: error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.',
+      };
     }
   }
 
@@ -151,11 +154,11 @@ export class MatchmakingGateway
       const session = this.sessionManager.getQueueSession(data.sessionId);
 
       if (!session) {
-        return { ok: false, error: 'Session not found' };
+        return { ok: false, error: '세션을 찾을 수 없습니다.' };
       }
 
       if (session.socketId !== client.id) {
-        return { ok: false, error: 'Invalid session' };
+        return { ok: false, error: '유효하지 않은 세션입니다.' };
       }
 
       this.matchmakingService.removeFromQueue(session.userId);
@@ -163,7 +166,10 @@ export class MatchmakingGateway
 
       return { ok: true };
     } catch (error) {
-      return { ok: false, error: error instanceof Error ? error.message : 'Unknown error' };
+      return {
+        ok: false,
+        error: error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.',
+      };
     }
   }
 
@@ -214,27 +220,36 @@ export class MatchmakingGateway
     this.sessionManager.addToRoom(match.roomId, match.player2);
 
     setImmediate(() => {
-      this.server.in([player1Session.socketId, player2Session.socketId]).socketsJoin(match.roomId);
+      try {
+        this.server
+          .in([player1Session.socketId, player2Session.socketId])
+          .socketsJoin(match.roomId);
 
-      this.server.to(player1Session.socketId).emit('match:found', {
-        opponent: player2Session.userInfo,
-      });
+        this.server.to(player1Session.socketId).emit('match:found', {
+          opponent: player2Session.userInfo,
+        });
 
-      this.server.to(player2Session.socketId).emit('match:found', {
-        opponent: player1Session.userInfo,
-      });
+        this.server.to(player2Session.socketId).emit('match:found', {
+          opponent: player1Session.userInfo,
+        });
 
-      this.gameSessionManager.createGameSession(
-        match.roomId,
-        player1Session.userId,
-        player1Session.socketId,
-        player1Session.userInfo,
-        player2Session.userId,
-        player2Session.socketId,
-        player2Session.userInfo,
-      );
+        this.gameSessionManager.createGameSession(
+          match.roomId,
+          player1Session.userId,
+          player1Session.socketId,
+          player1Session.userInfo,
+          player2Session.userId,
+          player2Session.socketId,
+          player2Session.userInfo,
+        );
 
-      this.roundProgression.startRoundSequence(match.roomId);
+        this.roundProgression.startRoundSequence(match.roomId);
+      } catch (error) {
+        this.logger.error(
+          `매치 처리 중 오류가 발생했습니다: ${match.roomId}`,
+          error instanceof Error ? error.stack : error,
+        );
+      }
     });
   }
 }

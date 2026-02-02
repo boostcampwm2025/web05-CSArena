@@ -128,12 +128,12 @@ export class AuthService {
       });
 
       if (!user) {
-        throw new UnauthorizedException('User not found');
+        throw new UnauthorizedException('사용자를 찾을 수 없습니다.');
       }
 
       return this.generateTokens(user);
     } catch {
-      throw new UnauthorizedException('Invalid refresh token');
+      throw new UnauthorizedException('유효하지 않은 리프레시 토큰입니다.');
     }
   }
 

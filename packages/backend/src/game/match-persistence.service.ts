@@ -306,7 +306,7 @@ export class MatchPersistenceService {
     const parsed = parseInt(userId, 10);
 
     if (isNaN(parsed)) {
-      throw new NonRetryableError(`Invalid userId: ${userId}`);
+      throw new NonRetryableError(`유효하지 않은 사용자 ID입니다: ${userId}`);
     }
 
     return parsed;
@@ -343,13 +343,11 @@ export class MatchPersistenceService {
     });
 
     if (!winnerStats) {
-      throw new Error(
-        `UserStatistics not found for winner userId: ${winnerId}. Cannot update ELO.`,
-      );
+      throw new Error(`승자의 UserStatistics를 찾을 수 없습니다. userId: ${winnerId}`);
     }
 
     if (!loserStats) {
-      throw new Error(`UserStatistics not found for loser userId: ${loserId}. Cannot update ELO.`);
+      throw new Error(`패자의 UserStatistics를 찾을 수 없습니다. userId: ${loserId}`);
     }
 
     const winnerElo = winnerStats.tierPoint ?? 1000;
@@ -429,7 +427,7 @@ export class MatchPersistenceService {
 
     if (!tier) {
       throw new Error(
-        `Tier '${tierName}' not found for ELO ${newElo}. Cannot record tier history for user ${userId}.`,
+        `티어 '${tierName}'을(를) 찾을 수 없습니다. ELO: ${newElo}, userId: ${userId}`,
       );
     }
 

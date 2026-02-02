@@ -34,7 +34,7 @@ export class AuthController {
     }
 
     if (!name) {
-      return res.status(400).json({ message: 'name query parameter is required' });
+      return res.status(400).json({ message: 'name 파라미터가 필요합니다.' });
     }
 
     const { accessToken, refreshToken, user } = await this.authService.loginWithDevUser(name);
@@ -109,7 +109,7 @@ export class AuthController {
     const refreshToken = cookies?.refreshToken;
 
     if (!refreshToken) {
-      return res.status(401).json({ message: 'No refresh token' });
+      return res.status(401).json({ message: '리프레시 토큰이 없습니다.' });
     }
 
     try {
@@ -128,7 +128,7 @@ export class AuthController {
     } catch {
       res.clearCookie('refreshToken');
 
-      return res.status(401).json({ message: 'Invalid refresh token' });
+      return res.status(401).json({ message: '유효하지 않은 리프레시 토큰입니다.' });
     }
   }
 
@@ -142,13 +142,13 @@ export class AuthController {
     description: '로그아웃 성공',
     schema: {
       properties: {
-        message: { type: 'string', example: 'Logged out successfully' },
+        message: { type: 'string', example: '로그아웃되었습니다.' },
       },
     },
   })
   logout(@Res() res: Response) {
     res.clearCookie('refreshToken');
 
-    return res.json({ message: 'Logged out successfully' });
+    return res.json({ message: '로그아웃되었습니다.' });
   }
 }

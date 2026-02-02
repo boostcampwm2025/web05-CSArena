@@ -83,7 +83,7 @@ describe('GameSessionManager - Game Session Management', () => {
           'socket4',
           mockUserInfo2,
         );
-      }).toThrow('Game session already exists: room-1');
+      }).toThrow('이미 존재하는 게임 세션입니다: room-1');
     });
 
     it('커스텀 totalRounds를 설정할 수 있어야 함', () => {
@@ -199,13 +199,13 @@ describe('GameSessionManager - Game Session Management', () => {
 
       expect(() => {
         sessionManager.startNextRound('room-1'); // Round 4 (초과)
-      }).toThrow('All rounds completed: room-1');
+      }).toThrow('모든 라운드가 완료되었습니다: room-1');
     });
 
     it('존재하지 않는 세션에서 라운드 시작 시 에러를 발생시켜야 함', () => {
       expect(() => {
         sessionManager.startNextRound('non-existent');
-      }).toThrow('Game session not found: non-existent');
+      }).toThrow('게임 세션을 찾을 수 없습니다: non-existent');
     });
   });
 
@@ -240,7 +240,7 @@ describe('GameSessionManager - Game Session Management', () => {
 
       expect(() => {
         sessionManager.setQuestion('room-1', mockQuestion);
-      }).toThrow('Question already set for round 1');
+      }).toThrow('이미 문제가 설정된 라운드입니다: 1');
     });
   });
 
@@ -279,13 +279,13 @@ describe('GameSessionManager - Game Session Management', () => {
 
       expect(() => {
         sessionManager.submitAnswer('room-1', 'user1', 'C');
-      }).toThrow('Already submitted: user1');
+      }).toThrow('이미 답안을 제출했습니다: user1');
     });
 
     it('세션에 포함되지 않은 플레이어의 제출 시 에러를 발생시켜야 함', () => {
       expect(() => {
         sessionManager.submitAnswer('room-1', 'user3', 'B');
-      }).toThrow('Player not in session: user3');
+      }).toThrow('세션에 포함되지 않은 플레이어입니다: user3');
     });
 
     it('라운드가 진행 중이 아닐 때 제출 시 에러를 발생시켜야 함', () => {
@@ -303,7 +303,7 @@ describe('GameSessionManager - Game Session Management', () => {
 
       expect(() => {
         sessionManager.submitAnswer('room-2', 'user1', 'B');
-      }).toThrow('Round not in progress: 1');
+      }).toThrow('라운드가 진행 중이 아닙니다: 1');
     });
   });
 
@@ -374,7 +374,7 @@ describe('GameSessionManager - Game Session Management', () => {
 
       expect(() => {
         sessionManager.getGradingInput('room-1');
-      }).toThrow('Not all players submitted: room-1');
+      }).toThrow('모든 플레이어가 제출하지 않았습니다: room-1');
     });
 
     it('문제가 설정되지 않았을 때 에러를 발생시켜야 함', () => {
@@ -392,7 +392,7 @@ describe('GameSessionManager - Game Session Management', () => {
 
       expect(() => {
         sessionManager.getGradingInput('room-2');
-      }).toThrow('Not all players submitted: room-2');
+      }).toThrow('모든 플레이어가 제출하지 않았습니다: room-2');
     });
   });
 
@@ -535,7 +535,7 @@ describe('GameSessionManager - Game Session Management', () => {
     it('존재하지 않는 세션 조회 시 에러를 발생시켜야 함', () => {
       expect(() => {
         sessionManager.isGameFinished('non-existent');
-      }).toThrow('Game session not found: non-existent');
+      }).toThrow('게임 세션을 찾을 수 없습니다: non-existent');
     });
   });
 
