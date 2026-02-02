@@ -152,46 +152,36 @@ export class QuizService {
    * - 타입 다양성: multiple 2개, short 2개, essay 1개
    * - 사용 빈도: usageCount 낮은 것 우선
    * @throws {InternalServerErrorException} DB에 충분한 질문이 없을 시
+   *
+   * [성능 개선] 5개의 개별 쿼리 → 1개의 통합 쿼리로 최적화
+   * - Before: 5번의 DB 왕복 (각 난이도/타입 조합별 쿼리)
+   * - After: 1번의 DB 왕복 후 메모리에서 분류
    */
   async getQuestionsForGame(): Promise<QuestionEntity[]> {
-    const questions: QuestionEntity[] = [];
+    // [최적화] 단일 쿼리로 모든 후보 문제를 조회
+    const allCandidates = await this.fetchAllGameQuestionCandidates();
 
-    // 1. Easy 난이도 (1-2) 2개: multiple 1개, short 1개
-    const easyMultiple = await this.getQuestionsByFilters(1, 2, 'multiple', 1);
-    const easyShort = await this.getQuestionsByFilters(1, 2, 'short', 1);
+    // 메모리에서 조건별 분류 및 선택
+    const questions = this.selectBalancedQuestions(allCandidates);
 
-    // 2. Medium 난이도 (3) 2개: multiple 1개, short 1개
-    const mediumMultiple = await this.getQuestionsByFilters(3, 3, 'multiple', 1);
-    const mediumShort = await this.getQuestionsByFilters(3, 3, 'short', 1);
-
-    // 3. Hard 난이도 (4-5) 1개: essay
-    const hardEssay = await this.getQuestionsByFilters(4, 5, 'essay', 1);
-
-    // 4. 수집된 질문 통합
-    questions.push(...easyMultiple, ...easyShort, ...mediumMultiple, ...mediumShort, ...hardEssay);
-
-    // 5. 부족한 경우 Fallback: 조건 완화하여 추가 조회
+    // 부족한 경우 Fallback
     if (questions.length < QUIZ_CONSTANTS.REQUIRED_QUESTION_COUNT) {
       this.logger.warn(
         `Insufficient questions with strict filters (${questions.length}/${QUIZ_CONSTANTS.REQUIRED_QUESTION_COUNT}). Applying fallback...`,
       );
 
       const needed = QUIZ_CONSTANTS.REQUIRED_QUESTION_COUNT - questions.length;
-      const existingIds = questions.map((q) => q.id);
+      const existingIds = new Set(questions.map((q) => q.id));
 
-      const fallbackQuestions = await this.questionRepository
-        .createQueryBuilder('q')
-        .where('q.isActive = :isActive', { isActive: true })
-        .andWhere('q.id NOT IN (:...ids)', { ids: existingIds.length > 0 ? existingIds : [0] })
-        .orderBy('q.usageCount', 'ASC')
-        .addOrderBy('RANDOM()')
-        .limit(needed)
-        .getMany();
+      // Fallback: 이미 선택되지 않은 문제 중에서 추가 선택
+      const fallbackQuestions = allCandidates
+        .filter((q) => !existingIds.has(q.id))
+        .slice(0, needed);
 
       questions.push(...fallbackQuestions);
     }
 
-    // 6. 질문 개수 최종 검증
+    // 질문 개수 최종 검증
     if (questions.length < QUIZ_CONSTANTS.REQUIRED_QUESTION_COUNT) {
       this.logger.error(
         QUIZ_LOG_MESSAGES.INSUFFICIENT_QUESTIONS(
@@ -209,6 +199,68 @@ export class QuizService {
     }
 
     return questions;
+  }
+
+  /**
+   * [최적화] 게임 문제 후보를 단일 쿼리로 조회
+   * - 5개의 개별 쿼리를 1개로 통합
+   * - usageCount 오름차순 + RANDOM()으로 정렬
+   */
+  private async fetchAllGameQuestionCandidates(): Promise<QuestionEntity[]> {
+    return await this.questionRepository
+      .createQueryBuilder('q')
+      .leftJoinAndSelect('q.categoryQuestions', 'cq')
+      .leftJoinAndSelect('cq.category', 'c')
+      .leftJoinAndSelect('c.parent', 'parent')
+      .where('q.isActive = :isActive', { isActive: true })
+      .andWhere(
+        `(
+          (q.difficulty BETWEEN 1 AND 2 AND q.questionType IN ('multiple', 'short'))
+          OR (q.difficulty = 3 AND q.questionType IN ('multiple', 'short'))
+          OR (q.difficulty BETWEEN 4 AND 5 AND q.questionType = 'essay')
+        )`,
+      )
+      .orderBy('q.usageCount', 'ASC')
+      .addOrderBy('RANDOM()')
+      .getMany();
+  }
+
+  /**
+   * [최적화] 메모리에서 균형있게 문제 선택
+   * - Easy (1-2): multiple 1개, short 1개
+   * - Medium (3): multiple 1개, short 1개
+   * - Hard (4-5): essay 1개
+   */
+  private selectBalancedQuestions(candidates: QuestionEntity[]): QuestionEntity[] {
+    const selected: QuestionEntity[] = [];
+    const usedIds = new Set<number>();
+
+    // 선택 조건 정의
+    const criteria = [
+      { minDiff: 1, maxDiff: 2, type: 'multiple', count: 1 },
+      { minDiff: 1, maxDiff: 2, type: 'short', count: 1 },
+      { minDiff: 3, maxDiff: 3, type: 'multiple', count: 1 },
+      { minDiff: 3, maxDiff: 3, type: 'short', count: 1 },
+      { minDiff: 4, maxDiff: 5, type: 'essay', count: 1 },
+    ];
+
+    for (const crit of criteria) {
+      const matching = candidates.filter(
+        (q) =>
+          !usedIds.has(q.id) &&
+          q.difficulty !== null &&
+          q.difficulty >= crit.minDiff &&
+          q.difficulty <= crit.maxDiff &&
+          q.questionType === crit.type,
+      );
+
+      for (let i = 0; i < crit.count && i < matching.length; i++) {
+        selected.push(matching[i]);
+        usedIds.add(matching[i].id);
+      }
+    }
+
+    return selected;
   }
 
   /**
