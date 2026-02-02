@@ -94,7 +94,7 @@ export type FetchProblemBankRes =
       ok: true;
       items: {
         question: Question;
-        submissionResult: SubmissionResult;
+        mySubmission: MySubmission;
         solution: Solution;
         isBookMarked: boolean;
       }[];
