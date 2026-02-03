@@ -388,7 +388,7 @@ describe('ProblemBankService', () => {
         NotFoundException,
       );
       await expect(service.updateBookmark(userId, problemBankId, dto)).rejects.toThrow(
-        'Problem bank entry not found',
+        '문제 은행 항목을 찾을 수 없습니다.',
       );
     });
 

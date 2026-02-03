@@ -126,7 +126,7 @@ export class ProblemBankService {
     });
 
     if (!problemBank) {
-      throw new NotFoundException('Problem bank entry not found');
+      throw new NotFoundException('문제 은행 항목을 찾을 수 없습니다.');
     }
 
     problemBank.isBookmarked = dto.isBookmarked;

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { HttpException, Injectable, Logger } from '@nestjs/common';
 import { DataSource, EntityManager } from 'typeorm';
 import { GameSessionManager } from './game-session-manager';
 import { QuizService } from '../quiz/quiz.service';
@@ -9,6 +9,7 @@ import { UserStatistics } from '../user/entity';
 import { Tier, UserTierHistory } from '../tier/entity';
 import { calculateMatchEloUpdate } from '../common/utils/elo.util';
 import { calculateTier } from '../common/utils/tier.util';
+import { parseUserId } from '../common/utils/parse-user-id.util';
 
 class NonRetryableError extends Error {
   constructor(message: string) {
@@ -67,7 +68,10 @@ export class MatchPersistenceService {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         const errorStack = error instanceof Error ? error.stack : undefined;
 
-        if (error instanceof Error && error.name === 'NonRetryableError') {
+        if (
+          error instanceof HttpException ||
+          (error instanceof Error && error.name === 'NonRetryableError')
+        ) {
           this.logger.error(
             `매치 저장 실패 (재시도 불가) - room: ${roomId}`,
             JSON.stringify({ roomId, finalResult, error: errorMessage }),
@@ -117,9 +121,9 @@ export class MatchPersistenceService {
       .insert()
       .into(Match)
       .values({
-        player1Id: this.parseUserId(session.player1Id),
-        player2Id: this.parseUserId(session.player2Id),
-        winnerId: finalResult.winnerId ? this.parseUserId(finalResult.winnerId) : null,
+        player1Id: parseUserId(session.player1Id),
+        player2Id: parseUserId(session.player2Id),
+        winnerId: finalResult.winnerId ? parseUserId(finalResult.winnerId) : null,
         matchType: 'multi',
       })
       .returning('id')
@@ -219,7 +223,7 @@ export class MatchPersistenceService {
         }
 
         answersData.push({
-          userId: this.parseUserId(playerId),
+          userId: parseUserId(playerId),
           roundId,
           userAnswer: submission.answer || '',
           score: grade.score,
@@ -285,7 +289,7 @@ export class MatchPersistenceService {
         }
 
         problemBanksData.push({
-          userId: this.parseUserId(playerId),
+          userId: parseUserId(playerId),
           questionId: roundData.questionId,
           matchId,
           userAnswer: submission.answer || '',
@@ -300,16 +304,6 @@ export class MatchPersistenceService {
     }
 
     return problemBanksData;
-  }
-
-  private parseUserId(userId: string): number {
-    const parsed = parseInt(userId, 10);
-
-    if (isNaN(parsed)) {
-      throw new NonRetryableError(`Invalid userId: ${userId}`);
-    }
-
-    return parsed;
   }
 
   /**
@@ -327,11 +321,11 @@ export class MatchPersistenceService {
     session: GameSession,
     finalResult: FinalResult,
   ): Promise<{ player1Change: number; player2Change: number }> {
-    const winnerId = this.parseUserId(finalResult.winnerId);
+    const winnerId = parseUserId(finalResult.winnerId);
     const loserId =
-      this.parseUserId(session.player1Id) === winnerId
-        ? this.parseUserId(session.player2Id)
-        : this.parseUserId(session.player1Id);
+      parseUserId(session.player1Id) === winnerId
+        ? parseUserId(session.player2Id)
+        : parseUserId(session.player1Id);
 
     // 현재 통계 조회
     const winnerStats = await manager.findOne(UserStatistics, {
@@ -343,13 +337,11 @@ export class MatchPersistenceService {
     });
 
     if (!winnerStats) {
-      throw new Error(
-        `UserStatistics not found for winner userId: ${winnerId}. Cannot update ELO.`,
-      );
+      throw new NonRetryableError(`승자의 UserStatistics를 찾을 수 없습니다. userId: ${winnerId}`);
     }
 
     if (!loserStats) {
-      throw new Error(`UserStatistics not found for loser userId: ${loserId}. Cannot update ELO.`);
+      throw new NonRetryableError(`패자의 UserStatistics를 찾을 수 없습니다. userId: ${loserId}`);
     }
 
     const winnerElo = winnerStats.tierPoint ?? 1000;
@@ -396,8 +388,8 @@ export class MatchPersistenceService {
     await this.recordTierHistory(manager, loserId, matchId, loserChange, loserNewRating);
 
     // player1과 player2의 변화량 반환
-    const player1Id = this.parseUserId(session.player1Id);
-    const player2Id = this.parseUserId(session.player2Id);
+    const player1Id = parseUserId(session.player1Id);
+    const player2Id = parseUserId(session.player2Id);
 
     return {
       player1Change: player1Id === winnerId ? winnerChange : loserChange,
@@ -428,8 +420,8 @@ export class MatchPersistenceService {
     });
 
     if (!tier) {
-      throw new Error(
-        `Tier '${tierName}' not found for ELO ${newElo}. Cannot record tier history for user ${userId}.`,
+      throw new NonRetryableError(
+        `티어 '${tierName}'을(를) 찾을 수 없습니다. ELO: ${newElo}, userId: ${userId}`,
       );
     }
 

@@ -42,30 +42,30 @@ export class GameGateway implements OnGatewayDisconnect, OnGatewayInit {
     const userId = this.sessionManager.getUserIdBySocketId(client.id);
 
     if (!userId) {
-      return { ok: false, error: 'User not found' };
+      return { ok: false, error: '사용자를 찾을 수 없습니다.' };
     }
 
     const roomId = this.sessionManager.getRoomBySocketId(client.id);
 
     if (!roomId) {
-      return { ok: false, error: 'Room not found' };
+      return { ok: false, error: '방을 찾을 수 없습니다.' };
     }
 
     try {
       const gameSession = this.sessionManager.getGameSession(roomId);
 
       if (!gameSession) {
-        return { ok: false, error: 'Game session not found' };
+        return { ok: false, error: '게임 세션을 찾을 수 없습니다.' };
       }
 
       // 현재 phase가 question인지 확인
       if (gameSession.currentPhase !== 'question') {
-        return { ok: false, error: 'Cannot submit answer outside question phase' };
+        return { ok: false, error: '문제 풀이 단계에서만 답안을 제출할 수 있습니다.' };
       }
 
       // 이미 제출했는지 확인
       if (this.sessionManager.hasPlayerSubmitted(roomId, userId)) {
-        return { ok: false, error: 'Answer already submitted' };
+        return { ok: false, error: '이미 답안을 제출했습니다.' };
       }
 
       // 상대 플레이어 ID와 소켓 ID 확인
@@ -96,7 +96,10 @@ export class GameGateway implements OnGatewayDisconnect, OnGatewayInit {
 
       return response;
     } catch (error) {
-      return { ok: false, error: error instanceof Error ? error.message : 'Unknown error' };
+      return {
+        ok: false,
+        error: error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.',
+      };
     }
   }
 

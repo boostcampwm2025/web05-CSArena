@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository, IsNull, DataSource } from 'typeorm';
-import { NotFoundException, InternalServerErrorException } from '@nestjs/common';
+import { NotFoundException, InternalServerErrorException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { SinglePlayService } from '../src/single-play/single-play.service';
 import { QuizService } from '../src/quiz/quiz.service';
 import { Category, Question as QuestionEntity } from '../src/quiz/entity';
@@ -295,7 +295,7 @@ describe('SinglePlayService', () => {
       );
     });
 
-    it('다른 사용자의 matchId면 NotFoundException을 던져야 함', async () => {
+    it('다른 사용자의 matchId면 ForbiddenException을 던져야 함', async () => {
       const userId = '1';
       const matchId = 123;
       const questionId = 1;
@@ -327,14 +327,14 @@ describe('SinglePlayService', () => {
       mockManager.findOne.mockResolvedValue({ id: matchId, player1Id: 2, matchType: 'single' });
 
       await expect(service.submitAnswer(userId, matchId, questionId, answer)).rejects.toThrow(
-        NotFoundException,
+        ForbiddenException,
       );
       await expect(service.submitAnswer(userId, matchId, questionId, answer)).rejects.toThrow(
         '본인의 세션이 아닙니다.',
       );
     });
 
-    it('싱글플레이가 아닌 matchType이면 NotFoundException을 던져야 함', async () => {
+    it('싱글플레이가 아닌 matchType이면 BadRequestException을 던져야 함', async () => {
       const userId = '1';
       const matchId = 123;
       const questionId = 1;
@@ -366,7 +366,7 @@ describe('SinglePlayService', () => {
       mockManager.findOne.mockResolvedValue({ id: matchId, player1Id: 1, matchType: 'multi' });
 
       await expect(service.submitAnswer(userId, matchId, questionId, answer)).rejects.toThrow(
-        NotFoundException,
+        BadRequestException,
       );
       await expect(service.submitAnswer(userId, matchId, questionId, answer)).rejects.toThrow(
         '싱글플레이 세션이 아닙니다.',

@@ -72,7 +72,7 @@ export class GameSessionManager {
     totalRounds: number = 5,
   ): GameSession {
     if (this.gameSessions.has(roomId)) {
-      throw new Error(`Game session already exists: ${roomId}`);
+      throw new Error(`이미 존재하는 게임 세션입니다: ${roomId}`);
     }
 
     const session: GameSession = {
@@ -110,7 +110,7 @@ export class GameSessionManager {
     const nextRoundNumber = session.currentRound + 1;
 
     if (nextRoundNumber > session.totalRounds) {
-      throw new Error(`All rounds completed: ${roomId}`);
+      throw new Error(`모든 라운드가 완료되었습니다: ${roomId}`);
     }
 
     const roundData: RoundData = {
@@ -136,7 +136,7 @@ export class GameSessionManager {
     const round = this.getCurrentRoundOrThrow(session);
 
     if (round.question !== null) {
-      throw new Error(`Question already set for round ${round.roundNumber}`);
+      throw new Error(`이미 문제가 설정된 라운드입니다: ${round.roundNumber}`);
     }
 
     round.question = question;
@@ -156,15 +156,15 @@ export class GameSessionManager {
     const round = this.getCurrentRoundOrThrow(session);
 
     if (playerId !== session.player1Id && playerId !== session.player2Id) {
-      throw new Error(`Player not in session: ${playerId}`);
+      throw new Error(`세션에 포함되지 않은 플레이어입니다: ${playerId}`);
     }
 
     if (round.status !== 'in_progress') {
-      throw new Error(`Round not in progress: ${round.roundNumber}`);
+      throw new Error(`라운드가 진행 중이 아닙니다: ${round.roundNumber}`);
     }
 
     if (round.submissions[playerId] !== null) {
-      throw new Error(`Already submitted: ${playerId}`);
+      throw new Error(`이미 답안을 제출했습니다: ${playerId}`);
     }
 
     const submission: Submission = {
@@ -192,11 +192,11 @@ export class GameSessionManager {
     const round = this.getCurrentRoundOrThrow(session);
 
     if (!this.isAllSubmitted(roomId)) {
-      throw new Error(`Not all players submitted: ${roomId}`);
+      throw new Error(`모든 플레이어가 제출하지 않았습니다: ${roomId}`);
     }
 
     if (round.question === null) {
-      throw new Error(`Question not set: ${roomId}`);
+      throw new Error(`문제가 설정되지 않았습니다: ${roomId}`);
     }
 
     return {
@@ -237,7 +237,7 @@ export class GameSessionManager {
     const session = this.gameSessions.get(roomId);
 
     if (!session) {
-      throw new Error(`Game session not found: ${roomId}`);
+      throw new Error(`게임 세션을 찾을 수 없습니다: ${roomId}`);
     }
 
     return session;
@@ -247,7 +247,7 @@ export class GameSessionManager {
     const round = session.rounds.get(session.currentRound);
 
     if (!round) {
-      throw new Error(`Round not found: ${session.currentRound}`);
+      throw new Error(`라운드를 찾을 수 없습니다: ${session.currentRound}`);
     }
 
     return round;
@@ -262,7 +262,7 @@ export class GameSessionManager {
     } else if (playerId === session.player2Id) {
       session.player2Score += score;
     } else {
-      throw new Error(`Player not in session: ${playerId}`);
+      throw new Error(`세션에 포함되지 않은 플레이어입니다: ${playerId}`);
     }
   }
 

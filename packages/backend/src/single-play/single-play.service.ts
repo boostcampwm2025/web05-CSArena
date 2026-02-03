@@ -1,4 +1,7 @@
 import {
+  BadRequestException,
+  ForbiddenException,
+  HttpException,
   Injectable,
   InternalServerErrorException,
   Logger,
@@ -13,6 +16,7 @@ import { mapDifficulty, SCORE_MAP } from '../quiz/quiz.constants';
 import { Match } from '../match/entity';
 import { UserProblemBank } from '../problem-bank/entity';
 import { calcLevel } from '../common/utils/level.util';
+import { parseUserId } from '../common/utils/parse-user-id.util';
 
 @Injectable()
 export class SinglePlayService {
@@ -33,7 +37,7 @@ export class SinglePlayService {
   async startSession(userId: string): Promise<number> {
     try {
       const match = await this.connection.manager.save(Match, {
-        player1Id: this.parseUserId(userId),
+        player1Id: parseUserId(userId),
         player2Id: null,
         winnerId: null,
         matchType: 'single',
@@ -43,6 +47,10 @@ export class SinglePlayService {
 
       return match.id;
     } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
       this.logger.error(`Failed to start session: ${(error as Error).message}`);
       throw new InternalServerErrorException('세션 시작 중 오류가 발생했습니다.');
     }
@@ -64,6 +72,10 @@ export class SinglePlayService {
         name: cat.name,
       }));
     } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
       this.logger.error(`Failed to get categories: ${(error as Error).message}`);
       throw new InternalServerErrorException('카테고리 조회 중 오류가 발생했습니다.');
     }
@@ -93,7 +105,7 @@ export class SinglePlayService {
 
       return question;
     } catch (error) {
-      if (error instanceof NotFoundException) {
+      if (error instanceof HttpException) {
         throw error;
       }
 
@@ -164,7 +176,7 @@ export class SinglePlayService {
         remainedExpPoint,
       };
     } catch (error) {
-      if (error instanceof NotFoundException) {
+      if (error instanceof HttpException) {
         throw error;
       }
 
@@ -239,7 +251,7 @@ export class SinglePlayService {
     finalScore: number,
   ): Promise<number> {
     return await this.connection.transaction(async (manager) => {
-      const uid = this.parseUserId(userId);
+      const uid = parseUserId(userId);
 
       // matchId, 소유자, matchType 검증
       const match = await manager.findOne(Match, {
@@ -254,11 +266,11 @@ export class SinglePlayService {
       const matchOwnerId = Number(match.player1Id);
 
       if (matchOwnerId !== uid) {
-        throw new NotFoundException('본인의 세션이 아닙니다.');
+        throw new ForbiddenException('본인의 세션이 아닙니다.');
       }
 
       if (match.matchType !== 'single') {
-        throw new NotFoundException('싱글플레이 세션이 아닙니다.');
+        throw new BadRequestException('싱글플레이 세션이 아닙니다.');
       }
 
       const answerStatus = this.quizService.determineAnswerStatus(
@@ -291,15 +303,5 @@ export class SinglePlayService {
 
       return curExp;
     });
-  }
-
-  private parseUserId(userId: string): number {
-    const parsed = parseInt(userId, 10);
-
-    if (isNaN(parsed)) {
-      throw new NotFoundException(`유효하지 않은 userId: ${userId}`);
-    }
-
-    return parsed;
   }
 }

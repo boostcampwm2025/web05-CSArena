@@ -45,7 +45,7 @@ export class RoundProgressionService {
       const session = this.sessionManager.getGameSession(roomId);
 
       if (!session) {
-        throw new Error(`Session not found: ${roomId}`);
+        throw new Error(`세션을 찾을 수 없습니다: ${roomId}`);
       }
 
       // round:ready 이벤트 발송
@@ -244,11 +244,11 @@ export class RoundProgressionService {
       const question = this.sessionManager.getQuestion(roomId);
 
       if (!roundResult) {
-        throw new Error(`Round result not found for room ${roomId}`);
+        throw new Error(`라운드 결과를 찾을 수 없습니다: ${roomId}`);
       }
 
       if (!question) {
-        throw new Error(`Question not found for room ${roomId}`);
+        throw new Error(`문제를 찾을 수 없습니다: ${roomId}`);
       }
 
       // 문제 타입에 따른 리뷰 시간 계산
@@ -398,7 +398,7 @@ export class RoundProgressionService {
     const session = this.sessionManager.getGameSession(roomId);
 
     if (!session) {
-      throw new Error('Session not found');
+      throw new Error('세션을 찾을 수 없습니다');
     }
 
     const { player1Score, player2Score } = this.sessionManager.getScores(roomId);

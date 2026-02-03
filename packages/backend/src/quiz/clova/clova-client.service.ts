@@ -1,9 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-  InternalServerErrorException,
-  Logger,
-} from '@nestjs/common';
+import { HttpException, Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import { ClovaApiResponse, ClovaRequestDto } from './clova.type';
@@ -51,7 +46,7 @@ export class ClovaClientService {
       });
 
       if (!response.ok) {
-        throw new BadRequestException(`NCP AI 호출 실패: ${response.status}`);
+        throw new InternalServerErrorException(`NCP AI 호출 실패: ${response.status}`);
       }
 
       const data = (await response.json()) as ClovaApiResponse;
@@ -64,14 +59,17 @@ export class ClovaClientService {
       try {
         return JSON.parse(content) as T;
       } catch (e) {
-        this.logger.warn('JSON parsing failed, returning string', e);
+        this.logger.warn('JSON 파싱에 실패하여 문자열로 반환합니다.', e);
 
         return content as unknown as T;
       }
     } catch (error) {
-      this.logger.error('Failed to call Clova API', error);
+      if (error instanceof HttpException) {
+        throw error;
+      }
 
-      throw error;
+      this.logger.error('Clova API 호출에 실패했습니다.', error);
+      throw new InternalServerErrorException('AI 서비스 호출 중 오류가 발생했습니다.');
     }
   }
 }

@@ -1,4 +1,10 @@
-import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
@@ -49,7 +55,7 @@ export class QuizService {
     totalCount: number = 10,
   ): Promise<Question[]> {
     if (!parentCategoryIds || parentCategoryIds.length === 0) {
-      throw new InternalServerErrorException('카테고리를 선택해주세요.');
+      throw new BadRequestException('카테고리를 선택해주세요.');
     }
 
     const allQuestions = await this.fetchQuestionsForParentCategories(
@@ -131,7 +137,7 @@ export class QuizService {
     }
 
     if (questions.length === 0) {
-      throw new InternalServerErrorException('선택한 카테고리에 문제가 없습니다.');
+      throw new NotFoundException('선택한 카테고리에 문제가 없습니다.');
     }
 
     const shuffledQuestions = questions.sort(() => Math.random() - 0.5);

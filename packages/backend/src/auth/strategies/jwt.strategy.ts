@@ -31,7 +31,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
 
   validate(payload: JwtPayload): AuthenticatedUser {
     if (!payload.sub) {
-      throw new UnauthorizedException('Invalid token payload');
+      throw new UnauthorizedException('유효하지 않은 토큰 페이로드입니다.');
     }
 
     return {
