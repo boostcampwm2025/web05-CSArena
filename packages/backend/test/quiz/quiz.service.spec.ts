@@ -3,12 +3,27 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { QuizService } from '../../src/quiz/quiz.service';
 import { Question as QuestionEntity, Category } from '../../src/quiz/entity';
 import { ClovaClientService } from '../../src/quiz/clova/clova-client.service';
+import {
+  GradingService,
+  QuestionConverterService,
+  QuestionRepositoryService,
+  ScoreCalculatorService,
+} from '../../src/quiz/services';
+import {
+  EssayStrategy,
+  MultipleChoiceStrategy,
+  ShortAnswerStrategy,
+  QUESTION_TYPE_STRATEGIES,
+} from '../../src/quiz/strategies';
 
 describe('QuizService', () => {
   let service: QuizService;
+  let questionRepositoryService: QuestionRepositoryService;
+  let questionConverterService: QuestionConverterService;
 
   const mockQuestionRepository = {
     createQueryBuilder: jest.fn(),
+    increment: jest.fn(),
   };
 
   const mockCategoryRepository = {
@@ -28,6 +43,25 @@ describe('QuizService', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
+        // Strategies
+        MultipleChoiceStrategy,
+        ShortAnswerStrategy,
+        EssayStrategy,
+        {
+          provide: QUESTION_TYPE_STRATEGIES,
+          useFactory: (
+            multipleChoice: MultipleChoiceStrategy,
+            shortAnswer: ShortAnswerStrategy,
+            essay: EssayStrategy,
+          ) => [multipleChoice, shortAnswer, essay],
+          inject: [MultipleChoiceStrategy, ShortAnswerStrategy, EssayStrategy],
+        },
+        // Services
+        ScoreCalculatorService,
+        QuestionRepositoryService,
+        QuestionConverterService,
+        GradingService,
+        // Facade
         QuizService,
         {
           provide: getRepositoryToken(QuestionEntity),
@@ -45,14 +79,16 @@ describe('QuizService', () => {
     }).compile();
 
     service = module.get<QuizService>(QuizService);
+    questionRepositoryService = module.get<QuestionRepositoryService>(QuestionRepositoryService);
+    questionConverterService = module.get<QuestionConverterService>(QuestionConverterService);
     (service as any).logger = mockLogger;
+    (questionRepositoryService as any).logger = mockLogger;
   });
 
   describe('generateQuestion', () => {
-    it('should return 5 questions from DB with balanced difficulty and type', async () => {
-      // Mock DB data with new structure
-      // [최적화] 단일 쿼리로 모든 후보 문제를 반환
-      const easyMultiple = {
+    // 단일 쿼리로 모든 후보를 조회하고 메모리에서 선택하는 방식
+    const createMockCandidates = () => [
+      {
         id: 1,
         questionType: 'multiple' as const,
         content: { question: 'HTTP와 HTTPS의 차이는?', options: { A: '보안 여부', B: '속도', C: '포트', D: '프로토콜' } },
@@ -67,47 +103,42 @@ describe('QuizService', () => {
             },
           },
         ],
-      };
-
-      const easyShort = {
+      },
+      {
         id: 2,
         questionType: 'short' as const,
         content: '서브쿼리란?',
         correctAnswer: '쿼리 안의 쿼리',
         difficulty: 2,
         isActive: true,
-      };
-
-      const mediumMultiple = {
+      },
+      {
         id: 3,
         questionType: 'multiple' as const,
         content: { question: 'TCP와 UDP의 차이는?', options: { A: '연결형 vs 비연결형', B: '동일함', C: '차이 없음', D: '모름' } },
         correctAnswer: 'A',
         difficulty: 3,
         isActive: true,
-      };
-
-      const mediumShort = {
+      },
+      {
         id: 4,
         questionType: 'short' as const,
         content: 'JOIN이란?',
         correctAnswer: '테이블 결합',
         difficulty: 3,
         isActive: true,
-      };
-
-      const hardEssay = {
+      },
+      {
         id: 5,
         questionType: 'essay' as const,
         content: 'B+tree를 설명하세요',
         correctAnswer: 'B+tree는 균형 잡힌 트리 구조입니다.',
         difficulty: 4,
         isActive: true,
-      };
+      },
+    ];
 
-      // [최적화] 단일 getMany() 호출로 모든 후보 문제 반환
-      const allCandidates = [easyMultiple, easyShort, mediumMultiple, mediumShort, hardEssay];
-
+    it('should return 5 questions from DB with balanced difficulty and type', async () => {
       const mockQueryBuilder = {
         leftJoinAndSelect: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
@@ -115,7 +146,7 @@ describe('QuizService', () => {
         orderBy: jest.fn().mockReturnThis(),
         addOrderBy: jest.fn().mockReturnThis(),
         limit: jest.fn().mockReturnThis(),
-        getMany: jest.fn().mockResolvedValue(allCandidates),
+        getMany: jest.fn().mockResolvedValue(createMockCandidates()),
       };
 
       mockQuestionRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
@@ -123,62 +154,15 @@ describe('QuizService', () => {
       const result = await service.generateQuestion();
 
       expect(result).toHaveLength(5);
-      // 결과에 각 타입이 포함되어 있는지 확인 (순서는 selectBalancedQuestions에 의해 결정됨)
-      const types = result.map(r => r.type);
-      expect(types).toContain('multiple_choice');
-      expect(types).toContain('short_answer');
-      expect(types).toContain('essay');
+      // 균형 선택: easy multiple, easy short, medium multiple, medium short, hard essay
+      expect(result.some(q => q.type === 'multiple_choice' && q.difficulty === 'easy')).toBe(true);
+      expect(result.some(q => q.type === 'short_answer' && q.difficulty === 'easy')).toBe(true);
+      expect(result.some(q => q.type === 'multiple_choice' && q.difficulty === 'medium')).toBe(true);
+      expect(result.some(q => q.type === 'short_answer' && q.difficulty === 'medium')).toBe(true);
+      expect(result.some(q => q.type === 'essay' && q.difficulty === 'hard')).toBe(true);
     });
 
     it('should convert difficulty correctly', async () => {
-      const easyMultiple = {
-        id: 1,
-        difficulty: 1,
-        questionType: 'multiple' as const,
-        content: { question: 'Q1', options: { A: 'A', B: 'B', C: 'C', D: 'D' } },
-        correctAnswer: 'A',
-        isActive: true,
-      };
-
-      const easyShort = {
-        id: 2,
-        difficulty: 2,
-        questionType: 'short' as const,
-        content: 'Q2',
-        correctAnswer: 'Answer2',
-        isActive: true,
-      };
-
-      const mediumMultiple = {
-        id: 3,
-        difficulty: 3,
-        questionType: 'multiple' as const,
-        content: { question: 'Q3', options: { A: 'A', B: 'B', C: 'C', D: 'D' } },
-        correctAnswer: 'B',
-        isActive: true,
-      };
-
-      const mediumShort = {
-        id: 4,
-        difficulty: 3,
-        questionType: 'short' as const,
-        content: 'Q4',
-        correctAnswer: 'Answer4',
-        isActive: true,
-      };
-
-      const hardEssay = {
-        id: 5,
-        difficulty: 5,
-        questionType: 'essay' as const,
-        content: 'Q5',
-        correctAnswer: 'Essay answer',
-        isActive: true,
-      };
-
-      // [최적화] 단일 getMany() 호출로 모든 후보 문제 반환
-      const allCandidates = [easyMultiple, easyShort, mediumMultiple, mediumShort, hardEssay];
-
       const mockQueryBuilder = {
         leftJoinAndSelect: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
@@ -186,72 +170,24 @@ describe('QuizService', () => {
         orderBy: jest.fn().mockReturnThis(),
         addOrderBy: jest.fn().mockReturnThis(),
         limit: jest.fn().mockReturnThis(),
-        getMany: jest.fn().mockResolvedValue(allCandidates),
+        getMany: jest.fn().mockResolvedValue(createMockCandidates()),
       };
 
       mockQuestionRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
 
       const result = await service.generateQuestion();
 
-      // 난이도별 문제 개수 확인
-      const easyCount = result.filter(r => r.difficulty === 'easy').length;
-      const mediumCount = result.filter(r => r.difficulty === 'medium').length;
-      const hardCount = result.filter(r => r.difficulty === 'hard').length;
+      // 난이도별로 정확히 변환되는지 확인
+      const easyQuestions = result.filter(q => q.difficulty === 'easy');
+      const mediumQuestions = result.filter(q => q.difficulty === 'medium');
+      const hardQuestions = result.filter(q => q.difficulty === 'hard');
 
-      expect(easyCount).toBe(2);
-      expect(mediumCount).toBe(2);
-      expect(hardCount).toBe(1);
+      expect(easyQuestions.length).toBe(2);
+      expect(mediumQuestions.length).toBe(2);
+      expect(hardQuestions.length).toBe(1);
     });
 
     it('should handle short answer questions', async () => {
-      const easyMultiple = {
-        id: 1,
-        questionType: 'multiple' as const,
-        content: { question: 'Q1', options: { A: 'A', B: 'B', C: 'C', D: 'D' } },
-        correctAnswer: 'A',
-        difficulty: 1,
-        isActive: true,
-      };
-
-      const easyShort = {
-        id: 2,
-        questionType: 'short' as const,
-        content: '서브쿼리란?',
-        correctAnswer: '쿼리 안의 쿼리',
-        difficulty: 2,
-        isActive: true,
-      };
-
-      const mediumMultiple = {
-        id: 3,
-        questionType: 'multiple' as const,
-        content: { question: 'Q3', options: { A: 'A', B: 'B', C: 'C', D: 'D' } },
-        correctAnswer: 'B',
-        difficulty: 3,
-        isActive: true,
-      };
-
-      const mediumShort = {
-        id: 4,
-        questionType: 'short' as const,
-        content: 'JOIN이란?',
-        correctAnswer: '테이블 결합',
-        difficulty: 3,
-        isActive: true,
-      };
-
-      const hardEssay = {
-        id: 5,
-        questionType: 'essay' as const,
-        content: 'Essay question',
-        correctAnswer: 'Essay answer',
-        difficulty: 5,
-        isActive: true,
-      };
-
-      // [최적화] 단일 getMany() 호출로 모든 후보 문제 반환
-      const allCandidates = [easyMultiple, easyShort, mediumMultiple, mediumShort, hardEssay];
-
       const mockQueryBuilder = {
         leftJoinAndSelect: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
@@ -259,15 +195,14 @@ describe('QuizService', () => {
         orderBy: jest.fn().mockReturnThis(),
         addOrderBy: jest.fn().mockReturnThis(),
         limit: jest.fn().mockReturnThis(),
-        getMany: jest.fn().mockResolvedValue(allCandidates),
+        getMany: jest.fn().mockResolvedValue(createMockCandidates()),
       };
 
       mockQuestionRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
 
       const result = await service.generateQuestion();
 
-      // 단답형 문제가 결과에 포함되어 있는지 확인
-      const shortAnswerQuestion = result.find(r => r.type === 'short_answer');
+      const shortAnswerQuestion = result.find(q => q.type === 'short_answer');
       expect(shortAnswerQuestion).toBeDefined();
       if (shortAnswerQuestion && shortAnswerQuestion.type === 'short_answer') {
         expect(shortAnswerQuestion.answer).toBeDefined();
@@ -276,54 +211,6 @@ describe('QuizService', () => {
     });
 
     it('should handle essay questions', async () => {
-      const easyMultiple = {
-        id: 1,
-        questionType: 'multiple' as const,
-        content: { question: 'Q1', options: { A: 'A', B: 'B', C: 'C', D: 'D' } },
-        correctAnswer: 'A',
-        difficulty: 1,
-        isActive: true,
-      };
-
-      const easyShort = {
-        id: 2,
-        questionType: 'short' as const,
-        content: 'Q2',
-        correctAnswer: 'Answer',
-        difficulty: 2,
-        isActive: true,
-      };
-
-      const mediumMultiple = {
-        id: 3,
-        questionType: 'multiple' as const,
-        content: { question: 'Q3', options: { A: 'A', B: 'B', C: 'C', D: 'D' } },
-        correctAnswer: 'B',
-        difficulty: 3,
-        isActive: true,
-      };
-
-      const mediumShort = {
-        id: 4,
-        questionType: 'short' as const,
-        content: 'Q4',
-        correctAnswer: 'Answer',
-        difficulty: 3,
-        isActive: true,
-      };
-
-      const hardEssay = {
-        id: 5,
-        questionType: 'essay' as const,
-        content: 'B+tree를 설명하세요',
-        correctAnswer: 'B+tree는 균형 잡힌 트리 구조입니다.',
-        difficulty: 5,
-        isActive: true,
-      };
-
-      // [최적화] 단일 getMany() 호출로 모든 후보 문제 반환
-      const allCandidates = [easyMultiple, easyShort, mediumMultiple, mediumShort, hardEssay];
-
       const mockQueryBuilder = {
         leftJoinAndSelect: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
@@ -331,15 +218,14 @@ describe('QuizService', () => {
         orderBy: jest.fn().mockReturnThis(),
         addOrderBy: jest.fn().mockReturnThis(),
         limit: jest.fn().mockReturnThis(),
-        getMany: jest.fn().mockResolvedValue(allCandidates),
+        getMany: jest.fn().mockResolvedValue(createMockCandidates()),
       };
 
       mockQuestionRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
 
       const result = await service.generateQuestion();
 
-      // 서술형 문제가 결과에 포함되어 있는지 확인
-      const essayQuestion = result.find(r => r.type === 'essay');
+      const essayQuestion = result.find(q => q.type === 'essay');
       expect(essayQuestion).toBeDefined();
       if (essayQuestion && essayQuestion.type === 'essay') {
         expect(essayQuestion.sampleAnswer).toBe('B+tree는 균형 잡힌 트리 구조입니다.');
@@ -348,32 +234,35 @@ describe('QuizService', () => {
     });
 
     it('should handle null difficulty as medium', async () => {
-      // selectBalancedQuestions에서 difficulty가 null인 문제는 필터링되므로
-      // convertToQuizType 테스트를 위해 직접 호출
-      const nullDifficultyQuestion = {
-        id: 1,
-        questionType: 'multiple' as const,
-        content: { question: 'Q1', options: { A: 'A', B: 'B', C: 'C', D: 'D' } },
-        correctAnswer: 'A',
-        difficulty: null,
-        isActive: true,
-      };
+      // null difficulty를 가진 문제가 포함된 후보
+      const candidatesWithNull = [
+        {
+          id: 1,
+          questionType: 'multiple' as const,
+          content: { question: 'Q1', options: { A: 'A', B: 'B', C: 'C', D: 'D' } },
+          correctAnswer: 'A',
+          difficulty: null, // null -> medium으로 변환됨
+          isActive: true,
+        },
+      ];
 
-      const result = service.convertToQuizType(nullDifficultyQuestion as any);
-
-      expect(result.difficulty).toBe('medium');
+      // convertToQuizType을 직접 테스트
+      const converted = questionConverterService.convertToQuizType(candidatesWithNull[0] as any);
+      expect(converted.difficulty).toBe('medium');
     });
 
     it('should throw error when less than 5 questions available', async () => {
-      // [최적화] 단일 쿼리에서 문제가 부족한 경우
-      const fallbackQuestion = {
-        id: 1,
-        questionType: 'multiple' as const,
-        content: { question: 'Q1', options: { A: 'A', B: 'B', C: 'C', D: 'D' } },
-        correctAnswer: 'A',
-        difficulty: 1,
-        isActive: true,
-      };
+      // 단일 쿼리에서 부족한 후보만 반환
+      const insufficientCandidates = [
+        {
+          id: 1,
+          questionType: 'multiple' as const,
+          content: { question: 'Q1', options: { A: 'A', B: 'B', C: 'C', D: 'D' } },
+          correctAnswer: 'A',
+          difficulty: 1,
+          isActive: true,
+        },
+      ];
 
       const mockQueryBuilder = {
         leftJoinAndSelect: jest.fn().mockReturnThis(),
@@ -382,8 +271,7 @@ describe('QuizService', () => {
         orderBy: jest.fn().mockReturnThis(),
         addOrderBy: jest.fn().mockReturnThis(),
         limit: jest.fn().mockReturnThis(),
-        // 단일 쿼리에서 1개의 문제만 반환 (5개 미만)
-        getMany: jest.fn().mockResolvedValue([fallbackQuestion]),
+        getMany: jest.fn().mockResolvedValue(insufficientCandidates),
       };
 
       mockQuestionRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
@@ -394,53 +282,49 @@ describe('QuizService', () => {
     });
 
     it('should throw error when JSON parsing fails for multiple choice', async () => {
-      const invalidMultiple = {
-        id: 1,
-        questionType: 'multiple' as const,
-        content: 'Invalid content - should be object', // Invalid: string instead of object
-        correctAnswer: 'A',
-        difficulty: 1,
-        isActive: true,
-      };
-
-      const easyShort = {
-        id: 2,
-        questionType: 'short' as const,
-        content: 'Q2',
-        correctAnswer: 'Answer',
-        difficulty: 2,
-        isActive: true,
-      };
-
-      const mediumMultiple = {
-        id: 3,
-        questionType: 'multiple' as const,
-        content: { question: 'Q3', options: { A: 'A', B: 'B', C: 'C', D: 'D' } },
-        correctAnswer: 'B',
-        difficulty: 3,
-        isActive: true,
-      };
-
-      const mediumShort = {
-        id: 4,
-        questionType: 'short' as const,
-        content: 'Q4',
-        correctAnswer: 'Answer',
-        difficulty: 3,
-        isActive: true,
-      };
-
-      const hardEssay = {
-        id: 5,
-        questionType: 'essay' as const,
-        content: 'Q5',
-        correctAnswer: 'Essay answer',
-        difficulty: 5,
-        isActive: true,
-      };
-
-      // [최적화] 단일 getMany() 호출로 모든 후보 문제 반환 (잘못된 데이터 포함)
-      const allCandidates = [invalidMultiple, easyShort, mediumMultiple, mediumShort, hardEssay];
+      // 유효하지 않은 content를 가진 객관식 문제 포함
+      const candidatesWithInvalid = [
+        {
+          id: 1,
+          questionType: 'multiple' as const,
+          content: 'Invalid content - should be object', // Invalid: string instead of object
+          correctAnswer: 'A',
+          difficulty: 1,
+          isActive: true,
+        },
+        {
+          id: 2,
+          questionType: 'short' as const,
+          content: 'Q2',
+          correctAnswer: 'Answer',
+          difficulty: 2,
+          isActive: true,
+        },
+        {
+          id: 3,
+          questionType: 'multiple' as const,
+          content: { question: 'Q3', options: { A: 'A', B: 'B', C: 'C', D: 'D' } },
+          correctAnswer: 'B',
+          difficulty: 3,
+          isActive: true,
+        },
+        {
+          id: 4,
+          questionType: 'short' as const,
+          content: 'Q4',
+          correctAnswer: 'Answer',
+          difficulty: 3,
+          isActive: true,
+        },
+        {
+          id: 5,
+          questionType: 'essay' as const,
+          content: 'Q5',
+          correctAnswer: 'Essay answer',
+          difficulty: 4,
+          isActive: true,
+        },
+      ];
 
       const mockQueryBuilder = {
         leftJoinAndSelect: jest.fn().mockReturnThis(),
@@ -449,7 +333,7 @@ describe('QuizService', () => {
         orderBy: jest.fn().mockReturnThis(),
         addOrderBy: jest.fn().mockReturnThis(),
         limit: jest.fn().mockReturnThis(),
-        getMany: jest.fn().mockResolvedValue(allCandidates),
+        getMany: jest.fn().mockResolvedValue(candidatesWithInvalid),
       };
 
       mockQuestionRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
@@ -460,53 +344,49 @@ describe('QuizService', () => {
     });
 
     it('should throw error when correctAnswer is missing for short answer', async () => {
-      const easyMultiple = {
-        id: 1,
-        questionType: 'multiple' as const,
-        content: { question: 'Q1', options: { A: 'A', B: 'B', C: 'C', D: 'D' } },
-        correctAnswer: 'A',
-        difficulty: 1,
-        isActive: true,
-      };
-
-      const invalidShort = {
-        id: 2,
-        questionType: 'short' as const,
-        content: 'Q2',
-        correctAnswer: '', // Invalid: empty correctAnswer
-        difficulty: 2,
-        isActive: true,
-      };
-
-      const mediumMultiple = {
-        id: 3,
-        questionType: 'multiple' as const,
-        content: { question: 'Q3', options: { A: 'A', B: 'B', C: 'C', D: 'D' } },
-        correctAnswer: 'B',
-        difficulty: 3,
-        isActive: true,
-      };
-
-      const mediumShort = {
-        id: 4,
-        questionType: 'short' as const,
-        content: 'Q4',
-        correctAnswer: 'Answer',
-        difficulty: 3,
-        isActive: true,
-      };
-
-      const hardEssay = {
-        id: 5,
-        questionType: 'essay' as const,
-        content: 'Q5',
-        correctAnswer: 'Essay answer',
-        difficulty: 5,
-        isActive: true,
-      };
-
-      // [최적화] 단일 getMany() 호출로 모든 후보 문제 반환 (잘못된 데이터 포함)
-      const allCandidates = [easyMultiple, invalidShort, mediumMultiple, mediumShort, hardEssay];
+      // correctAnswer가 빈 문자열인 단답형 문제 포함
+      const candidatesWithInvalidShort = [
+        {
+          id: 1,
+          questionType: 'multiple' as const,
+          content: { question: 'Q1', options: { A: 'A', B: 'B', C: 'C', D: 'D' } },
+          correctAnswer: 'A',
+          difficulty: 1,
+          isActive: true,
+        },
+        {
+          id: 2,
+          questionType: 'short' as const,
+          content: 'Q2',
+          correctAnswer: '', // Invalid: empty correctAnswer
+          difficulty: 2,
+          isActive: true,
+        },
+        {
+          id: 3,
+          questionType: 'multiple' as const,
+          content: { question: 'Q3', options: { A: 'A', B: 'B', C: 'C', D: 'D' } },
+          correctAnswer: 'B',
+          difficulty: 3,
+          isActive: true,
+        },
+        {
+          id: 4,
+          questionType: 'short' as const,
+          content: 'Q4',
+          correctAnswer: 'Answer',
+          difficulty: 3,
+          isActive: true,
+        },
+        {
+          id: 5,
+          questionType: 'essay' as const,
+          content: 'Q5',
+          correctAnswer: 'Essay answer',
+          difficulty: 4,
+          isActive: true,
+        },
+      ];
 
       const mockQueryBuilder = {
         leftJoinAndSelect: jest.fn().mockReturnThis(),
@@ -515,7 +395,7 @@ describe('QuizService', () => {
         orderBy: jest.fn().mockReturnThis(),
         addOrderBy: jest.fn().mockReturnThis(),
         limit: jest.fn().mockReturnThis(),
-        getMany: jest.fn().mockResolvedValue(allCandidates),
+        getMany: jest.fn().mockResolvedValue(candidatesWithInvalidShort),
       };
 
       mockQuestionRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
@@ -633,7 +513,7 @@ describe('QuizService', () => {
         },
       ];
 
-      // Mock categoryRepository.find - 3번 호출됨 (첫 번째 루프 2회, 두 번째 루프 2회, 총 4회이지만 각 대분류당 1회씩 실제로는 총 4회)
+      // Mock categoryRepository.find
       mockCategoryRepository.find
         .mockResolvedValueOnce(dbChildren) // parent 1의 하위 카테고리 조회
         .mockResolvedValueOnce(networkChildren); // parent 2의 하위 카테고리 조회
