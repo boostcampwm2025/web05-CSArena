@@ -5,7 +5,8 @@ import { UserService } from '../../src/user/user.service';
 import { User } from '../../src/user/entity';
 import { UserProblemBank } from '../../src/problem-bank/entity';
 import { UserTierHistory } from '../../src/tier/entity/user-tier-history.entity';
-import { Match } from '../../src/match/entity/match.entity';
+import { Match, Round } from '../../src/match/entity';
+import { Question } from '../../src/quiz/entity';
 
 describe('UserService', () => {
   let service: UserService;
@@ -24,6 +25,16 @@ describe('UserService', () => {
   };
 
   const mockMatchRepository = {
+    find: jest.fn(),
+    createQueryBuilder: jest.fn(),
+  };
+
+  const mockRoundRepository = {
+    find: jest.fn(),
+    createQueryBuilder: jest.fn(),
+  };
+
+  const mockQuestionRepository = {
     find: jest.fn(),
   };
 
@@ -46,6 +57,14 @@ describe('UserService', () => {
         {
           provide: getRepositoryToken(Match),
           useValue: mockMatchRepository,
+        },
+        {
+          provide: getRepositoryToken(Round),
+          useValue: mockRoundRepository,
+        },
+        {
+          provide: getRepositoryToken(Question),
+          useValue: mockQuestionRepository,
         },
       ],
     }).compile();
@@ -301,27 +320,42 @@ describe('UserService', () => {
           createdAt: new Date('2025-01-15T10:30:00Z'),
           player1: { nickname: 'player1', userProfile: null },
           player2: { nickname: 'opponent', userProfile: 'http://example.com/avatar.png' },
-          rounds: [
-            {
-              answers: [
-                { userId: 1, score: 100, answerStatus: 'correct' },
-                { userId: 2, score: 80, answerStatus: 'correct' },
-              ],
-            },
+        },
+      ];
+
+      const mockRounds = [
+        {
+          id: 1,
+          matchId: 1,
+          answers: [
+            { id: 1, userId: 1, score: 100, answerStatus: 'correct' },
+            { id: 2, userId: 2, score: 80, answerStatus: 'correct' },
           ],
         },
       ];
 
-      const mockTierHistory = {
-        tierChange: 25,
-      };
+      const mockTierHistories = [
+        {
+          matchId: 1,
+          tierChange: 25,
+        },
+      ];
 
-      mockMatchRepository.find.mockResolvedValue(mockMatches);
-      mockUserTierHistoryRepository.findOne.mockResolvedValue(mockTierHistory);
+      mockMatchRepository.createQueryBuilder.mockReturnValue({
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        take: jest.fn().mockReturnThis(),
+        getMany: jest.fn().mockResolvedValue(mockMatches),
+      });
+      mockRoundRepository.find.mockResolvedValue(mockRounds);
+      mockUserTierHistoryRepository.find.mockResolvedValue(mockTierHistories);
 
       const result = await service.getMatchHistory(1);
 
       expect(result.matchHistory).toHaveLength(1);
+      expect(result.hasMore).toBe(false);
       expect(result.matchHistory[0].type).toBe('multi');
       expect(result.matchHistory[0].match).toHaveProperty('result', 'win');
       expect(result.matchHistory[0].match).toHaveProperty('myScore', 100);
@@ -340,29 +374,60 @@ describe('UserService', () => {
           createdAt: new Date('2025-01-15T11:00:00Z'),
           player1: { nickname: 'player1', userProfile: null },
           player2: null,
-          rounds: [
+        },
+      ];
+
+      const mockRounds = [
+        {
+          id: 1,
+          matchId: 2,
+          questionId: 100,
+          roundNumber: 1,
+          answers: [{ id: 1, userId: 1, score: 100, answerStatus: 'correct' }],
+        },
+      ];
+
+      const mockQuestions = [
+        {
+          id: 100,
+          categoryQuestions: [
             {
-              question: {
-                categoryQuestions: [
-                  {
-                    category: {
-                      name: 'HTTP',
-                      parent: { name: '네트워크' },
-                    },
-                  },
-                ],
+              id: 1,
+              category: {
+                id: 2,
+                name: 'HTTP',
+                parent: {
+                  id: 1,
+                  name: '네트워크',
+                },
               },
-              answers: [{ userId: 1, score: 100, answerStatus: 'correct' }],
             },
           ],
         },
       ];
 
-      mockMatchRepository.find.mockResolvedValue(mockMatches);
+      mockMatchRepository.createQueryBuilder.mockReturnValue({
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        take: jest.fn().mockReturnThis(),
+        getMany: jest.fn().mockResolvedValue(mockMatches),
+      });
+      mockRoundRepository.find.mockResolvedValue(mockRounds);
+      mockRoundRepository.createQueryBuilder.mockReturnValue({
+        select: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getMany: jest.fn().mockResolvedValue([{ matchId: 2, questionId: 100 }]),
+      });
+      mockQuestionRepository.find.mockResolvedValue(mockQuestions);
+      mockUserTierHistoryRepository.find.mockResolvedValue([]);
 
       const result = await service.getMatchHistory(1);
 
       expect(result.matchHistory).toHaveLength(1);
+      expect(result.hasMore).toBe(false);
       expect(result.matchHistory[0].type).toBe('single');
       expect(result.matchHistory[0].match).toHaveProperty('category');
       expect((result.matchHistory[0].match as { category: { name: string } }).category.name).toBe(
@@ -382,17 +447,122 @@ describe('UserService', () => {
           createdAt: new Date('2025-01-15T12:00:00Z'),
           player1: { nickname: 'player1', userProfile: null },
           player2: { nickname: 'opponent', userProfile: null },
-          rounds: [],
         },
       ];
 
-      mockMatchRepository.find.mockResolvedValue(mockMatches);
-      mockUserTierHistoryRepository.findOne.mockResolvedValue(null);
+      mockMatchRepository.createQueryBuilder.mockReturnValue({
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        take: jest.fn().mockReturnThis(),
+        getMany: jest.fn().mockResolvedValue(mockMatches),
+      });
+      mockRoundRepository.find.mockResolvedValue([]);
+      mockUserTierHistoryRepository.find.mockResolvedValue([]);
 
       const result = await service.getMatchHistory(1);
 
       expect(result.matchHistory[0].type).toBe('multi');
       expect(result.matchHistory[0].match).toHaveProperty('result', 'draw');
+    });
+
+    it('matchType 필터링을 적용해야 함', async () => {
+      const mockMatches = [
+        {
+          id: 1,
+          player1Id: 1,
+          player2Id: 2,
+          winnerId: 1,
+          matchType: 'multi',
+          createdAt: new Date('2025-01-15T10:30:00Z'),
+          player1: { nickname: 'player1', userProfile: null },
+          player2: { nickname: 'opponent', userProfile: null },
+        },
+      ];
+
+      const mockQueryBuilder = {
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        take: jest.fn().mockReturnThis(),
+        getMany: jest.fn().mockResolvedValue(mockMatches),
+      };
+
+      mockMatchRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
+      mockRoundRepository.find.mockResolvedValue([]);
+      mockUserTierHistoryRepository.find.mockResolvedValue([]);
+
+      const result = await service.getMatchHistory(1, { matchType: 'multi', limit: 10 });
+
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith('m.matchType = :matchType', {
+        matchType: 'multi',
+      });
+      expect(result.matchHistory).toHaveLength(1);
+    });
+
+    it('커서 기반 페이지네이션을 적용해야 함', async () => {
+      const mockMatches = [
+        {
+          id: 2,
+          player1Id: 1,
+          player2Id: 2,
+          winnerId: 1,
+          matchType: 'multi',
+          createdAt: new Date('2025-01-14T10:30:00Z'),
+          player1: { nickname: 'player1', userProfile: null },
+          player2: { nickname: 'opponent', userProfile: null },
+        },
+      ];
+
+      const cursor = new Date('2025-01-15T10:30:00Z');
+      const mockQueryBuilder = {
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        take: jest.fn().mockReturnThis(),
+        getMany: jest.fn().mockResolvedValue(mockMatches),
+      };
+
+      mockMatchRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
+      mockRoundRepository.find.mockResolvedValue([]);
+      mockUserTierHistoryRepository.find.mockResolvedValue([]);
+
+      const result = await service.getMatchHistory(1, { cursor, limit: 5 });
+
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith('m.createdAt < :cursor', { cursor });
+      expect(result.nextCursor).toEqual(mockMatches[0].createdAt);
+    });
+
+    it('hasMore를 정확히 반환해야 함', async () => {
+      const mockMatches = Array.from({ length: 10 }, (_, i) => ({
+        id: i + 1,
+        player1Id: 1,
+        player2Id: 2,
+        winnerId: 1,
+        matchType: 'multi',
+        createdAt: new Date(`2025-01-${15 - i}T10:30:00Z`),
+        player1: { nickname: 'player1', userProfile: null },
+        player2: { nickname: 'opponent', userProfile: null },
+      }));
+
+      mockMatchRepository.createQueryBuilder.mockReturnValue({
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        take: jest.fn().mockReturnThis(),
+        getMany: jest.fn().mockResolvedValue(mockMatches),
+      });
+      mockRoundRepository.find.mockResolvedValue([]);
+      mockUserTierHistoryRepository.find.mockResolvedValue([]);
+
+      const result = await service.getMatchHistory(1, { limit: 10 });
+
+      expect(result.hasMore).toBe(true);
+      expect(result.nextCursor).toEqual(mockMatches[mockMatches.length - 1].createdAt);
     });
   });
 });

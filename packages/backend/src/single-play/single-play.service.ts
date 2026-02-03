@@ -13,7 +13,7 @@ import { Category, Question as QuestionEntity } from '../quiz/entity';
 import { QuizService } from '../quiz/quiz.service';
 import { Question } from '../quiz/quiz.types';
 import { mapDifficulty, SCORE_MAP } from '../quiz/quiz.constants';
-import { Match } from '../match/entity';
+import { Match, Round, RoundAnswer } from '../match/entity';
 import { UserProblemBank } from '../problem-bank/entity';
 import { calcLevel } from '../common/utils/level.util';
 import { parseUserId } from '../common/utils/parse-user-id.util';
@@ -278,6 +278,21 @@ export class SinglePlayService {
         grade.isCorrect,
         grade.score,
       );
+
+      const round = await manager.save(Round, {
+        matchId: match.id,
+        questionId: questionId,
+        roundNumber: 1,
+      });
+
+      await manager.save(RoundAnswer, {
+        roundId: round.id,
+        userId: uid,
+        userAnswer: answer,
+        score: finalScore,
+        answerStatus: answerStatus,
+        aiFeedback: grade.feedback,
+      });
 
       await manager.save(UserProblemBank, {
         userId: uid,
