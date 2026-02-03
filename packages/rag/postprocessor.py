@@ -131,26 +131,3 @@ def postprocess_questions(questions: list[dict]) -> tuple[list[dict], TokenUsage
         processed.append(q_copy)
 
     return processed, total_usage
-
-
-if __name__ == "__main__":
-    # 테스트
-    test_explanations = [
-        "청크 3970에 따르면 REST는 HTTP 메서드와 페이로드 중심이고, WSDL은 사용자 정의 연산으로 절차를 구현합니다.",
-        "REST의 핵심 원칙은 상태lessness(Stateless), 자원 중심(URI), 표준 HTTP 메서드 사용 등이다.",
-    ]
-
-    print("=== 해설 후처리 테스트 ===\n")
-
-    for i, exp in enumerate(test_explanations, 1):
-        print(f"[테스트 {i}]")
-        print(f"원본: {exp}")
-
-        try:
-            cleaned, usage = postprocess_explanation(exp)
-            print(f"결과: {cleaned}")
-            print(f"비용: {usage.total_cost:.2f}원")
-        except Exception as e:
-            print(f"오류: {e}")
-
-        print()

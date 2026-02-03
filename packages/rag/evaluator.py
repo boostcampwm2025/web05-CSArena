@@ -145,14 +145,3 @@ def print_evaluation_report(results) -> None:
         print(f"- Faithfulness: {df['faithfulness'].mean():.4f}")
     if "answer_relevancy" in df.columns:
         print(f"- Answer Relevancy: {df['answer_relevancy'].mean():.4f}")
-
-
-if __name__ == "__main__":
-    # 테스트 실행
-    try:
-        with open("generation.json", "r", encoding="utf-8") as f:
-            questions = json.load(f)
-        results, _ = evaluate_questions(questions)
-        print_evaluation_report(results)
-    except Exception as e:
-        print(f"테스트 실패: {e}")

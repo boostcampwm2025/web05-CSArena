@@ -89,26 +89,3 @@ def get_question_count(cited_count: int) -> int:
         return 5
     else:
         return 0  # 스킵
-
-
-if __name__ == "__main__":
-    print("=== Reranker 테스트 ===\n")
-
-    # 테스트 데이터
-    test_chunks = [
-        {"id": 1, "content": "HTTP는 HyperText Transfer Protocol의 약자로, 웹에서 데이터를 주고받는 프로토콜이다."},
-        {"id": 2, "content": "TCP는 신뢰성 있는 연결 지향 프로토콜로, 3-way handshake를 통해 연결을 설정한다."},
-        {"id": 3, "content": "UDP는 비연결 지향 프로토콜로, 빠른 전송이 필요한 경우 사용된다."},
-    ]
-
-    test_query = "HTTP 프로토콜의 특징과 동작 방식에 대해 설명하시오."
-
-    try:
-        result = rerank_chunks(test_query, test_chunks)
-        print(f"인용된 문서 ID: {result.cited_doc_ids}")
-        print(f"인용된 문서 수: {len(result.cited_doc_ids)}")
-        print(f"생성할 문제 수: {get_question_count(len(result.cited_doc_ids))}")
-        print(f"토큰 사용량: {result.usage.input_tokens} + {result.usage.output_tokens} = {result.usage.input_tokens + result.usage.output_tokens}")
-        print(f"비용: {result.usage.total_cost:.2f}원")
-    except Exception as e:
-        print(f"오류: {e}")

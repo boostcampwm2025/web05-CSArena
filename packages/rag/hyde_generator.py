@@ -46,31 +46,3 @@ Category Path: {category.path}"""
     usage = calculate_cost(input_tokens, output_tokens, model=config.LLM_MODEL)
 
     return response.content, usage
-
-
-if __name__ == "__main__":
-    print("=== HyDE Generator 검증 ===\n")
-
-    # 1. 카테고리 선정
-    print("1. 테스트 카테고리 선정:")
-    category = get_leaf_category_with_least_questions()
-    if not category:
-        print("   카테고리를 찾을 수 없습니다.")
-        exit(1)
-
-    print(f"   이름: {category.name}")
-    print(f"   경로: {category.path}")
-
-    # 2. HyDE 쿼리 생성
-    print("\n2. HyDE 쿼리 생성 중...")
-    try:
-        hyde_query, usage = generate_hyde_query(category)
-        print(f"\n   생성된 쿼리:")
-        print(f"   {hyde_query}")
-        print("\n   [토큰 사용량]")
-        print(f"   Input:  {usage.input_tokens} 토큰 → {usage.input_cost:.2f}원")
-        print(f"   Output: {usage.output_tokens} 토큰 → {usage.output_cost:.2f}원")
-        print(f"   총 비용: {usage.total_cost:.2f}원")
-        print("\n   [성공] API 호출 및 쿼리 생성 완료")
-    except Exception as e:
-        print(f"\n   [실패] 오류 발생: {e}")

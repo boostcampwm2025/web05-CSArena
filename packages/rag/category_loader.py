@@ -155,27 +155,3 @@ def get_all_leaf_categories_stats() -> list[dict]:
         with get_cursor(conn) as cursor:
             cursor.execute(query)
             return list(cursor.fetchall())
-
-
-if __name__ == "__main__":
-    print("=== Category Loader 검증 ===\n")
-
-    # 1. 전체 leaf 카테고리 통계
-    print("1. Leaf 카테고리별 문제 수 통계:")
-    stats = get_all_leaf_categories_stats()
-    for stat in stats[:10]:  # 상위 10개만 출력
-        print(f"   - {stat['name']}: {stat['question_count']}개")
-    if len(stats) > 10:
-        print(f"   ... 외 {len(stats) - 10}개")
-    print(f"\n   총 {len(stats)}개의 leaf 카테고리")
-
-    # 2. 문제 수가 가장 적은 카테고리 선정
-    print("\n2. 선정된 카테고리:")
-    category = get_leaf_category_with_least_questions()
-    if category:
-        print(f"   ID: {category.id}")
-        print(f"   이름: {category.name}")
-        print(f"   경로: {category.path}")
-        print(f"   현재 문제 수: {category.question_count}")
-    else:
-        print("   선정된 카테고리가 없습니다.")

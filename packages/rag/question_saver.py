@@ -154,25 +154,3 @@ def save_questions_to_db(questions: list[dict]) -> list[int]:
             raise RuntimeError(f"문제 저장 트랜잭션 실패: {e}") from e
 
     return saved_ids
-
-
-if __name__ == "__main__":
-    # 변환 테스트
-    test_question = {
-        "question_type": "multiple_choice",
-        "question": "TCP 3-way handshake에서 첫 번째 패킷은?",
-        "options": ["SYN", "ACK", "FIN", "RST"],
-        "correct_index": 0,
-        "answer": "SYN",
-        "explanation": "TCP 연결 시작 시 클라이언트가 SYN 패킷을 먼저 전송합니다.",
-        "difficulty": 2,
-        "category_id": 1,
-        "scores": {"faithfulness": 0.95, "answer_relevancy": 0.85}
-    }
-
-    print("=== DB 형식 변환 테스트 ===\n")
-    db_format = convert_to_db_format(test_question)
-    print(f"question_type: {db_format['question_type']}")
-    print(f"content: {db_format['content']}")
-    print(f"correct_answer: {db_format['correct_answer']}")
-    print(f"quality_score: {db_format['quality_score']}")
