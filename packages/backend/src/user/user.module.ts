@@ -5,10 +5,13 @@ import { UserService } from './user.service';
 import { User } from './entity';
 import { UserProblemBank } from '../problem-bank/entity';
 import { UserTierHistory } from '../tier/entity/user-tier-history.entity';
-import { Match } from '../match/entity/match.entity';
+import { Match, Round } from '../match/entity';
+import { Question } from '../quiz/entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, UserProblemBank, UserTierHistory, Match])],
+  imports: [
+    TypeOrmModule.forFeature([User, UserProblemBank, UserTierHistory, Match, Round, Question]),
+  ],
   controllers: [UserController],
   providers: [UserService],
   exports: [UserService],
