@@ -36,7 +36,13 @@ class Config:
 
     @classmethod
     def validate(cls) -> bool:
-        required = [cls.CLOVASTUDIO_API_KEY, cls.DB_NAME, cls.DB_USER, cls.DB_PASSWORD]
+        required = [
+            cls.CLOVASTUDIO_API_KEY, 
+            cls.GEMINI_API_KEY,
+            cls.DB_NAME, 
+            cls.DB_USER, 
+            cls.DB_PASSWORD,
+        ]
         return all(required)
 
 
