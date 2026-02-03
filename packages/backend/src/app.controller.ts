@@ -17,9 +17,4 @@ export class AppController {
       timestamp: new Date().toISOString(),
     };
   }
-
-  @Get('test-sentry')
-  getError() {
-    throw new Error('Test Error!');
-  }
 }
