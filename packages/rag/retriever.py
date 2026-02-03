@@ -24,7 +24,7 @@ def get_query_embedding(query: str) -> list[float]:
     }
     data = {"text": query}
 
-    response = requests.post(url, headers=headers, json=data)
+    response = requests.post(url, headers=headers, json=data, timeout=120)
     response.raise_for_status()
 
     result = response.json()

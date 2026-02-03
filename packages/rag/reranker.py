@@ -47,7 +47,7 @@ def rerank_chunks(
         "maxTokens": max_tokens,
     }
 
-    response = requests.post(url, headers=headers, json=data)
+    response = requests.post(url, headers=headers, json=data, timeout=120)
     response.raise_for_status()
 
     result = response.json()
