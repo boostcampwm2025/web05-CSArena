@@ -1,5 +1,5 @@
 [
   {
-    "targets": ["REPLACE_WITH_YOUR_IP:PORT"]
+    "targets": ["host.docker.internal:4000"]
   }
 ]
