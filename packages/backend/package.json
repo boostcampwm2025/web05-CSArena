@@ -15,7 +15,14 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "clean": "rm -rf dist node_modules"
+    "clean": "rm -rf dist node_modules",
+    "seed:realistic": "npx tsx test/seed-realistic-data.ts",
+    "seed:simple": "npx tsx test/seed-test-data.ts",
+    "seed:more": "npx tsx test/seed-more-data.ts",
+    "seed:100k": "npx tsx test/seed-100k.ts",
+    "check:data": "npx tsx test/check-data-simple.ts",
+    "check:indexes": "npx tsx test/check-indexes.ts",
+    "measure:performance": "npx tsx test/measure-query-performance.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",
