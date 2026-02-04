@@ -4,8 +4,8 @@
   "private": true,
   "description": "Monorepo project with React frontend and NestJS backend",
   "scripts": {
-    "dev": "sops exec-env dev.env \"docker compose up -d && pnpm -r --parallel dev\"",
-    "dev:local": "docker compose up -d && pnpm -r --parallel dev",
+    "dev": "sops exec-env dev.env \"docker compose up -d && pnpm --filter @shared/types build && pnpm -r --parallel dev\"",
+    "dev:local": "docker compose up -d && pnpm --filter @shared/types build && pnpm -r --parallel dev",
     "dev:down": "docker compose down",
     "build": "pnpm -r build",
     "build:backend": "pnpm --filter @web05-boostcamp/backend build",
@@ -25,6 +25,9 @@
     ],
     "packages/frontend/**/*.{ts,tsx,js,jsx}": [
       "pnpm --filter @web05-boostcamp/frontend lint"
+    ],
+    "packages/shared/**/*.{ts}": [
+      "pnpm --filter @shared/types lint"
     ]
   },
   "engines": {

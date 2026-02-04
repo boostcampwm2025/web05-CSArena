@@ -1,0 +1,27 @@
+{
+  "name": "@shared/types",
+  "version": "1.0.0",
+  "private": true,
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json -w",
+    "clean": "rm -rf dist node_modules",
+    "lint": "eslint . --fix"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "eslint": "^9.39.1",
+    "typescript-eslint": "^8.46.3",
+    "@eslint/js": "^9.39.2",
+    "globals": "^16.5.0",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-prettier": "^5.5.4"
+  }
+}
