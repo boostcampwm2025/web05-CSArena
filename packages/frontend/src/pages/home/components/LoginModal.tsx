@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 
 import { useLoginModal } from '@/pages/home/hooks/useLoginModal';
@@ -7,9 +8,26 @@ type Props = { onClose: () => void };
 export default function LoginModal({ onClose }: Props) {
   const { onClickLoginWithGithubBtn } = useLoginModal();
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="relative flex h-full max-h-[30vh] w-full max-w-[40vw] flex-col items-stretch gap-4 border-4 border-purple-400 bg-gradient-to-r from-slate-800/95 to-slate-900/95 p-6 shadow-2xl shadow-purple-500/30">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      onMouseDown={onClose}
+    >
+      <div
+        className="relative flex h-full max-h-[30vh] w-full max-w-[40vw] flex-col items-stretch gap-4 border-4 border-purple-400 bg-gradient-to-r from-slate-800/95 to-slate-900/95 p-6 shadow-2xl shadow-purple-500/30"
+        onMouseDown={(e) => e.stopPropagation()}
+      >
         {/* Close Modal Button */}
         <button
           className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center border-4 border-red-300 bg-gradient-to-r from-red-500 to-rose-500 px-3 py-2 text-2xl font-bold text-white shadow-lg shadow-red-500/50 transition-all duration-200 hover:scale-105 hover:from-red-400 hover:to-rose-400"
