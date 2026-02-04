@@ -115,7 +115,7 @@ export class UserService {
     }
 
     const hasMore = matches.length === limit;
-    const nextCursor = matches.length > 0 ? matches[matches.length - 1].createdAt : undefined;
+    const nextCursor = hasMore ? matches[matches.length - 1].createdAt : undefined;
 
     const matchIds = matches.map((m) => Number(m.id));
     const multiMatchIds = matches.filter((m) => m.matchType === 'multi').map((m) => Number(m.id));
@@ -310,6 +310,7 @@ export class UserService {
     return {
       type: 'multi',
       match: {
+        id: Number(match.id),
         opponent: {
           nickname: opponent?.nickname ?? 'Unknown',
           profileImage: opponent?.userProfile ?? null,
@@ -338,6 +339,7 @@ export class UserService {
     return {
       type: 'single',
       match: {
+        id: Number(match.id),
         category: { name: categoryName },
         expGained,
         playedAt: match.createdAt,

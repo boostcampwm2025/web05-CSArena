@@ -4,6 +4,7 @@ export class OpponentDto {
 }
 
 export class MultiMatchDto {
+  id: number;
   opponent: OpponentDto;
   result: 'win' | 'lose' | 'draw';
   myScore: number;
@@ -17,6 +18,7 @@ export class SingleMatchCategoryDto {
 }
 
 export class SingleMatchDto {
+  id: number;
   category: SingleMatchCategoryDto;
   expGained: number;
   playedAt: Date;

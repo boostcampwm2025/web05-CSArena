@@ -156,6 +156,7 @@ describe('UserController', () => {
         {
           type: 'multi',
           match: {
+            id: 1,
             opponent: {
               nickname: 'opponent',
               profileImage: null,
@@ -170,6 +171,7 @@ describe('UserController', () => {
         {
           type: 'single',
           match: {
+            id: 2,
             category: { name: '네트워크' },
             expGained: 30,
             playedAt: new Date('2025-01-15T11:00:00Z'),
@@ -177,6 +179,7 @@ describe('UserController', () => {
         },
       ],
       hasMore: false,
+      nextCursor: undefined,
     };
 
     const mockQuery = {

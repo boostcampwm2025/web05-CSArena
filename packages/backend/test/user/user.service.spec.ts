@@ -356,7 +356,9 @@ describe('UserService', () => {
 
       expect(result.matchHistory).toHaveLength(1);
       expect(result.hasMore).toBe(false);
+      expect(result.nextCursor).toBeUndefined();
       expect(result.matchHistory[0].type).toBe('multi');
+      expect(result.matchHistory[0].match).toHaveProperty('id', 1);
       expect(result.matchHistory[0].match).toHaveProperty('result', 'win');
       expect(result.matchHistory[0].match).toHaveProperty('myScore', 100);
       expect(result.matchHistory[0].match).toHaveProperty('opponentScore', 80);
@@ -428,7 +430,9 @@ describe('UserService', () => {
 
       expect(result.matchHistory).toHaveLength(1);
       expect(result.hasMore).toBe(false);
+      expect(result.nextCursor).toBeUndefined();
       expect(result.matchHistory[0].type).toBe('single');
+      expect(result.matchHistory[0].match).toHaveProperty('id', 2);
       expect(result.matchHistory[0].match).toHaveProperty('category');
       expect((result.matchHistory[0].match as { category: { name: string } }).category.name).toBe(
         '네트워크',
@@ -503,18 +507,16 @@ describe('UserService', () => {
     });
 
     it('커서 기반 페이지네이션을 적용해야 함', async () => {
-      const mockMatches = [
-        {
-          id: 2,
-          player1Id: 1,
-          player2Id: 2,
-          winnerId: 1,
-          matchType: 'multi',
-          createdAt: new Date('2025-01-14T10:30:00Z'),
-          player1: { nickname: 'player1', userProfile: null },
-          player2: { nickname: 'opponent', userProfile: null },
-        },
-      ];
+      const mockMatches = Array.from({ length: 5 }, (_, i) => ({
+        id: i + 10,
+        player1Id: 1,
+        player2Id: 2,
+        winnerId: 1,
+        matchType: 'multi',
+        createdAt: new Date(`2025-01-${14 - i}T10:30:00Z`),
+        player1: { nickname: 'player1', userProfile: null },
+        player2: { nickname: 'opponent', userProfile: null },
+      }));
 
       const cursor = new Date('2025-01-15T10:30:00Z');
       const mockQueryBuilder = {
@@ -533,7 +535,8 @@ describe('UserService', () => {
       const result = await service.getMatchHistory(1, { cursor, limit: 5 });
 
       expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith('m.createdAt < :cursor', { cursor });
-      expect(result.nextCursor).toEqual(mockMatches[0].createdAt);
+      expect(result.hasMore).toBe(true);
+      expect(result.nextCursor).toEqual(mockMatches[mockMatches.length - 1].createdAt);
     });
 
     it('hasMore를 정확히 반환해야 함', async () => {
