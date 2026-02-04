@@ -130,12 +130,12 @@ export function RecentActivityList() {
           </div>
         ) : (
           <div className="flex flex-col gap-2">
-            {allMatches.map((item, index) => {
+            {allMatches.map((item) => {
               const config = getMatchConfig(item);
 
               return (
                 <div
-                  key={`${config.date}-${index}`}
+                  key={item.match.id}
                   className="flex gap-3 border p-2 transition-all duration-200 hover:scale-[1.01]"
                   style={{
                     borderColor: config.color,
