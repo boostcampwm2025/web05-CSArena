@@ -28,6 +28,7 @@ class Config:
     TEMPERATURE: float = 0.3
     TOP_K_CHUNKS: int = 5
     QUESTIONS_PER_TOPIC: int = 10
+    UNSOLVED_THRESHOLD: int = int(os.getenv("UNSOLVED_THRESHOLD", "30"))
 
     @classmethod
     def get_db_url(cls) -> str:
@@ -35,7 +36,13 @@ class Config:
 
     @classmethod
     def validate(cls) -> bool:
-        required = [cls.CLOVASTUDIO_API_KEY, cls.DB_NAME, cls.DB_USER, cls.DB_PASSWORD]
+        required = [
+            cls.CLOVASTUDIO_API_KEY, 
+            cls.GEMINI_API_KEY,
+            cls.DB_NAME, 
+            cls.DB_USER, 
+            cls.DB_PASSWORD,
+        ]
         return all(required)
 
 

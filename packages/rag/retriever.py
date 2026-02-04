@@ -5,6 +5,7 @@ from db import get_connection, get_cursor
 from category_loader import get_leaf_category_with_least_questions
 from hyde_generator import generate_hyde_query
 from token_calculator import TokenUsage
+from reranker import rerank_chunks, get_question_count
 
 
 @dataclass
@@ -23,7 +24,7 @@ def get_query_embedding(query: str) -> list[float]:
     }
     data = {"text": query}
 
-    response = requests.post(url, headers=headers, json=data)
+    response = requests.post(url, headers=headers, json=data, timeout=120)
     response.raise_for_status()
 
     result = response.json()
@@ -142,50 +143,61 @@ def retrieve_chunks(
     return chunks, usage
 
 
-if __name__ == "__main__":
-    from category_loader import CategoryInfo
+@dataclass
+class RetrievalResult:
+    """Reranker 포함 검색 결과"""
+    chunks: list[RetrievedChunk]
+    question_count: int
+    hyde_usage: TokenUsage
+    reranker_usage: TokenUsage
 
-    print("=== Retriever 검증 (Vector vs Hybrid 비교) ===\n")
 
-    # TCP IP Architecture 카테고리
-    category = CategoryInfo(
-        id=11,
-        name="tcp ip architecture",
-        path="Computer Networks > Network Architecture & Models > tcp ip architecture",
-        question_count=0
-    )
-    print(f"테스트 카테고리: {category.name}")
-    print(f"경로: {category.path}")
+def retrieve_chunks_with_reranker(
+    category: "CategoryInfo", top_k: int = 10
+) -> RetrievalResult:
+    """HyDE + Vector + Reranker 전략으로 청크 검색
 
-    # 키워드 추출
-    keyword = extract_keywords_from_category(category)
-    print(f"추출된 키워드: {keyword}")
+    Args:
+        category: 카테고리 정보
+        top_k: 초기 검색할 청크 수 (reranker 전)
 
-    # HyDE 쿼리 생성
-    print("\n1. HyDE 쿼리 생성 중...")
-    hyde_query = generate_hyde_query(category)
-    print(f"   쿼리 길이: {len(hyde_query.split())} 단어")
+    Returns:
+        RetrievalResult: 검색된 청크, 문제 수, 토큰 사용량
+    """
+    # 1. HyDE 쿼리 생성
+    hyde_query, hyde_usage = generate_hyde_query(category)
 
-    # 임베딩 생성
-    print("\n2. 쿼리 임베딩 생성...")
+    # 2. 쿼리 임베딩
     query_embedding = get_query_embedding(hyde_query)
 
-    # 방법 1: Vector Only
-    print(f"\n{'='*50}")
-    print("방법 1: Vector Only Search")
-    print('='*50)
-    vector_chunks = retrieve_similar_chunks(query_embedding, config.TOP_K_CHUNKS)
-    for i, chunk in enumerate(vector_chunks, 1):
-        print(f"\n[{i}] ID: {chunk.id}, 유사도: {chunk.similarity:.4f}")
-        preview = chunk.content[:80].replace("\n", " ")
-        print(f"    {preview}...")
+    # 3. Vector 유사도 검색 (넉넉하게)
+    initial_chunks = retrieve_similar_chunks(query_embedding, top_k)
 
-    # 방법 2: Hybrid Search
-    print(f"\n{'='*50}")
-    print("방법 2: Hybrid Search (Vector 70% + Keyword 30%)")
-    print('='*50)
-    hybrid_chunks = retrieve_hybrid_chunks(query_embedding, keyword, config.TOP_K_CHUNKS)
-    for i, chunk in enumerate(hybrid_chunks, 1):
-        print(f"\n[{i}] ID: {chunk.id}, 유사도: {chunk.similarity:.4f}")
-        preview = chunk.content[:80].replace("\n", " ")
-        print(f"    {preview}...")
+    # 4. Reranker로 관련성 높은 청크 필터링
+    chunks_for_rerank = [
+        {"id": chunk.id, "content": chunk.content}
+        for chunk in initial_chunks
+    ]
+    # Reranker에는 HyDE 쿼리 대신 카테고리 이름(주제)을 직접 사용하여 관련성 판단
+    reranker_result = rerank_chunks(category.name, chunks_for_rerank)
+
+    # 5. 인용된 청크만 필터링
+    cited_ids = set(reranker_result.cited_doc_ids)
+    if cited_ids:
+        filtered_chunks = [
+            chunk for chunk in initial_chunks
+            if str(chunk.id) in cited_ids
+        ]
+    else:
+        # 인용된 청크가 없으면 빈 리스트
+        filtered_chunks = []
+
+    # 6. 문제 수 결정
+    question_count = get_question_count(len(filtered_chunks))
+
+    return RetrievalResult(
+        chunks=filtered_chunks,
+        question_count=question_count,
+        hyde_usage=hyde_usage,
+        reranker_usage=reranker_result.usage,
+    )

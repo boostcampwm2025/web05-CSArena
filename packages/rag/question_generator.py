@@ -14,69 +14,70 @@ from prompts import SYSTEM_PROMPT, build_generation_prompt
 from token_calculator import calculate_cost, TokenUsage
 
 
-# Structured Output을 위한 JSON 스키마
-QUESTION_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "questions": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "question_type": {
-                        "type": "string",
-                        "enum": ["multiple_choice", "short_answer", "essay"],
-                        "description": "문제 유형",
+def get_question_schema(target_count: int = 10) -> dict:
+    """문제 수에 맞는 JSON 스키마 생성"""
+    return {
+        "type": "object",
+        "properties": {
+            "questions": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "question_type": {
+                            "type": "string",
+                            "enum": ["multiple_choice", "short_answer", "essay"],
+                            "description": "문제 유형",
+                        },
+                        "difficulty": {
+                            "type": "integer",
+                            "enum": [1, 2, 3, 4, 5],
+                            "description": "난이도 (1=매우쉬움, 2=쉬움, 3=보통, 4=어려움, 5=매우어려움)",
+                        },
+                        "question": {
+                            "type": "string",
+                            "description": "질문 텍스트",
+                        },
+                        "answer": {
+                            "type": "string",
+                            "description": "정답 (단답형/서술형) 또는 객관식 정답 텍스트",
+                        },
+                        "explanation": {
+                            "type": "string",
+                            "description": "해설 (2-4문장으로 답변의 이유와 개념을 설명. 절대로 '청크', '문서', '출처' 등의 단어 사용 금지)",
+                        },
+                        "options": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "객관식 선택지 (4개, 객관식만 해당)",
+                        },
+                        "correct_index": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 3,
+                            "description": "정답 인덱스 (반드시 0-3 사이의 '정수' 하나여야 하며, [0]과 같은 배열/리스트 형태는 절대 금지)",
+                        },
+                        "chunk_ids": {
+                            "type": "array",
+                            "items": {"type": "integer"},
+                            "description": "참조한 청크 ID 목록",
+                        },
                     },
-                    "difficulty": {
-                        "type": "integer",
-                        "enum": [1, 2, 3],
-                        "description": "난이도 (1=기초, 2=중급, 3=심화)",
-                    },
-                    "question": {
-                        "type": "string",
-                        "description": "질문 텍스트",
-                    },
-                    "answer": {
-                        "type": "string",
-                        "description": "정답 (단답형/서술형) 또는 객관식 정답 텍스트",
-                    },
-                    "explanation": {
-                        "type": "string",
-                        "description": "해설 (2-4문장으로 답변의 이유와 개념을 설명. 절대로 '청크', '문서', '출처' 등의 단어 사용 금지)",
-                    },
-                    "options": {
-                        "type": "array",
-                        "items": {"type": "string"},
-                        "description": "객관식 선택지 (4개, 객관식만 해당)",
-                    },
-                    "correct_index": {
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 3,
-                        "description": "정답 인덱스 (반드시 0-3 사이의 '정수' 하나여야 하며, [0]과 같은 배열/리스트 형태는 절대 금지)",
-                    },
-                    "chunk_ids": {
-                        "type": "array",
-                        "items": {"type": "integer"},
-                        "description": "참조한 청크 ID 목록",
-                    },
+                    "required": [
+                        "question_type",
+                        "difficulty",
+                        "question",
+                        "answer",
+                        "explanation",
+                        "chunk_ids",
+                    ],
                 },
-                "required": [
-                    "question_type",
-                    "difficulty",
-                    "question",
-                    "answer",
-                    "explanation",
-                    "chunk_ids",
-                ],
-            },
-            "minItems": 5,
-            "maxItems": 10,
-        }
-    },
-    "required": ["questions"],
-}
+                "minItems": max(3, target_count - 2),
+                "maxItems": target_count + 2,
+            }
+        },
+        "required": ["questions"],
+    }
 
 
 def call_clova_structured(
@@ -136,7 +137,7 @@ Do not include any other text, explanations, or thinking process in the final ou
     }
 
     # API 호출
-    response = requests.post(url, headers=headers, json=data)
+    response = requests.post(url, headers=headers, json=data, timeout=120)
     response.raise_for_status()
 
     result = response.json()
@@ -180,19 +181,24 @@ def generate_questions(
     # 청크 데이터 준비 (ID, 내용 튜플)
     chunks_with_ids = list(zip(context.chunk_ids, context.chunks))
     valid_chunk_ids = set(context.chunk_ids)
+    target_count = context.target_question_count
 
     # 프롬프트 빌드
     user_prompt = build_generation_prompt(
         category_name=context.category_name,
         category_path=context.category_path,
         chunks=chunks_with_ids,
+        target_count=target_count,
     )
+
+    # 동적 스키마 생성
+    schema = get_question_schema(target_count)
 
     # HyperCLOVA X API 직접 호출
     response, usage = call_clova_structured(
         system_prompt=SYSTEM_PROMPT,
         user_prompt=user_prompt,
-        schema=QUESTION_SCHEMA,
+        schema=schema,
         temperature=config.TEMPERATURE,
     )
 
@@ -208,18 +214,22 @@ def generate_questions(
             print(f"[경고] 유효하지 않은 청크 ID로 생성된 문제 스킵: {q_data.get('question', '')[:50]}...")
             continue
 
-        question = GeneratedQuestion(
-            question_type=QuestionType(q_data["question_type"]),
-            difficulty=Difficulty(q_data["difficulty"]),
-            question=q_data["question"],
-            answer=q_data["answer"],
-            explanation=q_data.get("explanation", ""),
-            options=q_data.get("options", []),
-            correct_index=q_data.get("correct_index", 0),
-            category_id=context.category_id,
-            category_name=context.category_name,
-            chunk_ids=filtered_chunk_ids,
-        )
+        try:
+            question = GeneratedQuestion(
+                question_type=QuestionType(q_data["question_type"]),
+                difficulty=Difficulty(q_data["difficulty"]),
+                question=q_data["question"],
+                answer=q_data["answer"],
+                explanation=q_data.get("explanation", ""),
+                options=q_data.get("options", []),
+                correct_index=q_data.get("correct_index", 0),
+                category_id=context.category_id,
+                category_name=context.category_name,
+                chunk_ids=filtered_chunk_ids,
+            )
+        except (ValueError, KeyError) as e:
+            print(f"[경고] 문제 파싱 실패, 스킵: {e}")
+            continue
 
         # 유효성 검증
         is_valid, msg = question.validate()
@@ -264,89 +274,3 @@ def generate_questions_batch(
             results[context.category_id] = []
 
     return results, total_usage
-
-
-if __name__ == "__main__":
-    from category_loader import get_leaf_category_with_least_questions
-    from retriever import retrieve_chunks
-
-    print("=== Question Generator 검증 ===\n")
-
-    # 1. 테스트 카테고리 선정
-    print("1. 테스트 카테고리 선정:")
-    category = get_leaf_category_with_least_questions()
-    if not category:
-        print("   카테고리를 찾을 수 없습니다.")
-        exit(1)
-
-    print(f"   이름: {category.name}")
-    print(f"   경로: {category.path}")
-    print(f"   ID: {category.id}")
-
-    # 2. 청크 검색
-    print("\n2. 청크 검색 중...")
-    chunks, hyde_usage = retrieve_chunks(category, top_k=config.TOP_K_CHUNKS)
-    print(f"   {len(chunks)}개 청크 검색 완료")
-
-    if not chunks:
-        print("   검색된 청크가 없습니다.")
-        exit(1)
-
-    # 청크 미리보기
-    for i, chunk in enumerate(chunks, 1):
-        preview = chunk.content[:60].replace("\n", " ")
-        print(f"   [{i}] ID:{chunk.id}, 유사도:{chunk.similarity:.4f} - {preview}...")
-
-    # 3. 컨텍스트 생성
-    context = QuestionGenerationContext(
-        category_id=category.id,
-        category_name=category.name,
-        category_path=category.path,
-        chunks=[c.content for c in chunks],
-        chunk_ids=[c.id for c in chunks],
-    )
-
-    # 4. 문제 생성
-    print("\n3. 문제 생성 중...")
-    try:
-        questions, usage = generate_questions(context)
-        print(f"\n   [성공] {len(questions)}개 문제 생성 완료")
-        print(f"\n   [토큰 사용량]")
-        print(f"   Input:  {usage.input_tokens} 토큰 → {usage.input_cost:.2f}원")
-        print(f"   Output: {usage.output_tokens} 토큰 → {usage.output_cost:.2f}원")
-        print(f"   총 비용: {usage.total_cost:.2f}원")
-
-        # 결과 출력 (전체)
-        print("\n4. 생성된 문제 목록:")
-        print("=" * 80)
-
-        for i, q in enumerate(questions, 1):
-            print(f"\n[{i}] {q.question_type.value.upper()} / 난이도 {q.difficulty.value}")
-            print(f"질문: {q.question}")
-
-            if q.question_type == QuestionType.MULTIPLE_CHOICE:
-                for j, opt in enumerate(q.options):
-                    marker = "✓" if j == q.correct_index else " "
-                    print(f"  {marker} {j+1}. {opt}")
-
-            print(f"정답: {q.answer}")
-            print(f"해설: {q.explanation}")
-            print(f"청크 IDs: {q.chunk_ids}")
-            print("-" * 80)
-
-        # JSON 파일로 저장
-        output_file = "generation.json"
-        with open(output_file, "w", encoding="utf-8") as f:
-            json.dump(
-                [q.to_dict() for q in questions],
-                f,
-                ensure_ascii=False,
-                indent=2
-            )
-        print(f"\n결과가 {output_file}에 저장되었습니다.")
-
-    except Exception as e:
-        print(f"\n   [실패] 오류 발생: {e}")
-        import traceback
-
-        traceback.print_exc()

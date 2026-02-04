@@ -5,10 +5,12 @@ from datetime import datetime
 from pathlib import Path
 from dataclasses import dataclass
 
-from category_loader import get_leaf_category_with_least_questions
-from retriever import retrieve_chunks
+from category_loader import get_categories_for_generation, get_questions_to_generate, CategoryInfo
+from retriever import retrieve_chunks_with_reranker
 from question_generator import generate_questions
+from postprocessor import postprocess_questions
 from evaluator import evaluate_questions
+from question_saver import save_questions_to_db
 from config import config
 from schemas import QuestionGenerationContext
 from token_calculator import TokenUsage
@@ -17,7 +19,6 @@ from token_calculator import TokenUsage
 # 품질 기준
 FAITHFULNESS_THRESHOLD = 0.9
 ANSWER_RELEVANCY_THRESHOLD = 0.7
-TARGET_QUESTIONS = 10
 MAX_ROUNDS = 10
 
 
@@ -25,15 +26,17 @@ MAX_ROUNDS = 10
 class CostTracker:
     """비용 추적"""
     hyde: float = 0.0
+    reranker: float = 0.0
     generation: float = 0.0
+    postprocess: float = 0.0
     evaluation: float = 0.0
 
     @property
     def total(self) -> float:
-        return self.hyde + self.generation + self.evaluation
+        return self.hyde + self.reranker + self.generation + self.postprocess + self.evaluation
 
     def summary(self) -> str:
-        return f"HyDE {self.hyde:.1f}원 + 생성 {self.generation:.1f}원 + 평가 {self.evaluation:.1f}원 = {self.total:.1f}원"
+        return f"HyDE {self.hyde:.1f}원 + Reranker {self.reranker:.1f}원 + 생성 {self.generation:.1f}원 + 후처리 {self.postprocess:.1f}원 + 평가 {self.evaluation:.1f}원 = {self.total:.1f}원"
 
 
 class Logger:
@@ -101,129 +104,149 @@ def evaluate_and_classify(
     return passed, rejected, usage
 
 
+def process_category(
+    category: CategoryInfo,
+    logger: Logger,
+    cost: CostTracker,
+) -> tuple[list[dict], list[dict], int]:
+    """단일 카테고리에 대해 문제 생성 및 저장
+
+    Returns:
+        (합격 문제 리스트, 탈락 문제 리스트, 저장된 문제 수)
+    """
+    # 1. 청크 검색 + Reranker
+    try:
+        retrieval = retrieve_chunks_with_reranker(category, top_k=10)
+        if not retrieval.chunks or retrieval.question_count == 0:
+            logger.log(f"관련 청크 없음 (스킵)", indent=1)
+            return [], [], 0
+        cost.hyde += retrieval.hyde_usage.total_cost
+        cost.reranker += retrieval.reranker_usage.total_cost
+        retrieval_cost = retrieval.hyde_usage.total_cost + retrieval.reranker_usage.total_cost
+        logger.log(f"청크 검색: {len(retrieval.chunks)}개, 목표 문제: {retrieval.question_count}개 ({retrieval_cost:.1f}원)", indent=1)
+    except Exception as e:
+        logger.log(f"청크 검색 실패: {e}", indent=1)
+        return [], [], 0
+
+    # 2. 문제 생성
+    context = QuestionGenerationContext(
+        category_id=category.id,
+        category_name=category.name,
+        category_path=category.path,
+        chunks=[c.content for c in retrieval.chunks],
+        chunk_ids=[c.id for c in retrieval.chunks],
+        target_question_count=retrieval.question_count,
+    )
+
+    try:
+        questions, gen_usage = generate_questions(context)
+        if not questions:
+            return [], [], 0
+        cost.generation += gen_usage.total_cost
+        logger.log(f"문제 생성: {len(questions)}개 ({gen_usage.total_cost:.1f}원)", indent=1)
+    except Exception as e:
+        logger.log(f"문제 생성 실패: {e}", indent=1)
+        return [], [], 0
+
+    # 3. 해설 후처리
+    questions_dict = [q.to_dict() for q in questions]
+    try:
+        questions_dict, pp_usage = postprocess_questions(questions_dict)
+        cost.postprocess += pp_usage.total_cost
+        logger.log(f"후처리: {len(questions_dict)}개 ({pp_usage.total_cost:.1f}원)", indent=1)
+    except Exception as e:
+        logger.log(f"후처리 실패 (원본 유지): {e}", indent=1)
+
+    # 4. 평가
+    try:
+        passed, rejected, eval_usage = evaluate_and_classify(questions_dict)
+        cost.evaluation += eval_usage.total_cost
+        logger.log(f"평가: 합격 {len(passed)}개, 탈락 {len(rejected)}개 ({eval_usage.total_cost:.1f}원)", indent=1)
+    except Exception as e:
+        logger.log(f"평가 실패: {e}", indent=1)
+        return [], [], 0
+
+    # 5. 합격 문제 DB 저장
+    saved_count = 0
+    if passed:
+        try:
+            saved_ids = save_questions_to_db(passed)
+            saved_count = len(saved_ids)
+            logger.log(f"DB 저장: {saved_count}개 (IDs: {saved_ids})", indent=1)
+        except Exception as e:
+            logger.log(f"DB 저장 실패: {e}", indent=1)
+
+    return passed, rejected, saved_count
+
+
 def run_pipeline():
     """메인 파이프라인 실행"""
     output_dir = get_output_directory()
     log_file = output_dir / "pipeline.log"
-    passed_file = output_dir / "passed_questions.json"
     rejected_file = output_dir / "rejected_questions.json"
 
     logger = Logger(str(log_file))
     cost = CostTracker()
 
-    logger.log(f"파이프라인 시작 (목표: {TARGET_QUESTIONS}개)")
+    logger.log(f"파이프라인 시작 (unsolved 목표: {config.UNSOLVED_THRESHOLD}개)")
 
-    # 기존 결과 로드
-    all_passed = []
-    all_rejected = []
-
-    if passed_file.exists():
-        with open(passed_file, 'r', encoding='utf-8') as f:
-            all_passed = json.load(f)
-        if all_passed:
-            logger.log(f"기존 결과 로드: {len(all_passed)}개")
-
-    if len(all_passed) >= TARGET_QUESTIONS:
-        logger.log(f"이미 목표 달성 ({len(all_passed)}/{TARGET_QUESTIONS})")
+    # 1. 생성할 문제 수 결정
+    to_generate = get_questions_to_generate()
+    if to_generate == 0:
+        logger.log(f"unsolved가 이미 {config.UNSOLVED_THRESHOLD}개 이상. 종료.")
         return
 
-    # 메인 루프
-    tried_categories = set()
+    logger.log(f"생성할 문제 수: {to_generate}개")
+
+    # 2. 카테고리 목록 조회 (우선순위순)
+    try:
+        categories = get_categories_for_generation()
+        if not categories:
+            logger.log("카테고리가 없음. 종료.")
+            return
+        logger.log(f"대상 카테고리: {len(categories)}개")
+        for cat in categories[:5]:  # 상위 5개만 출력
+            logger.log(f"- {cat.name}: 총 {cat.question_count}개, unsolved {cat.unsolved_count}개", indent=1)
+        if len(categories) > 5:
+            logger.log(f"- ... 외 {len(categories) - 5}개", indent=1)
+    except Exception as e:
+        logger.log(f"카테고리 조회 실패: {e}")
+        return
+
+    # 3. 우선순위 큐 방식으로 문제 생성
     round_num = 1
+    total_saved = 0
+    all_rejected = []
 
-    while len(all_passed) < TARGET_QUESTIONS and round_num <= MAX_ROUNDS:
-        # 1. 카테고리 선택
-        try:
-            category = get_leaf_category_with_least_questions()
-            if not category or category.id in tried_categories:
-                round_num += 1
-                continue
-            tried_categories.add(category.id)
-        except Exception as e:
-            logger.log(f"카테고리 선택 실패: {e}")
-            round_num += 1
-            continue
+    while total_saved < to_generate and categories and round_num <= MAX_ROUNDS:
+        # 가장 부족한 카테고리 선택 (unsolved 적은 순, 동일하면 question_count=0 우선)
+        categories.sort(key=lambda c: (c.unsolved_count, 0 if c.question_count == 0 else 1))
+        category = categories[0]
 
-        logger.log(f"Round {round_num}: {category.name} (ID:{category.id})")
+        logger.log(f"Round {round_num}: {category.name} (ID:{category.id}, unsolved:{category.unsolved_count})")
 
-        # 2. 청크 검색
-        try:
-            chunks, hyde_usage = retrieve_chunks(category, top_k=config.TOP_K_CHUNKS)
-            if not chunks:
-                round_num += 1
-                continue
-            cost.hyde += hyde_usage.total_cost
-            logger.log(f"청크 검색: {len(chunks)}개 ({hyde_usage.total_cost:.1f}원)", indent=1)
-        except Exception as e:
-            logger.log(f"청크 검색 실패: {e}", indent=1)
-            round_num += 1
-            continue
+        # 문제 생성 처리
+        passed, rejected, saved_count = process_category(category, logger, cost)
 
-        # 3. 문제 생성
-        context = QuestionGenerationContext(
-            category_id=category.id,
-            category_name=category.name,
-            category_path=category.path,
-            chunks=[c.content for c in chunks],
-            chunk_ids=[c.id for c in chunks],
-        )
-
-        try:
-            questions, gen_usage = generate_questions(context)
-            if not questions:
-                round_num += 1
-                continue
-            cost.generation += gen_usage.total_cost
-            logger.log(f"문제 생성: {len(questions)}개 ({gen_usage.total_cost:.1f}원)", indent=1)
-        except Exception as e:
-            logger.log(f"문제 생성 실패: {e}", indent=1)
-            round_num += 1
-            continue
-
-        # 4. 평가
-        try:
-            passed, rejected, eval_usage = evaluate_and_classify(
-                [q.to_dict() for q in questions]
-            )
-            cost.evaluation += eval_usage.total_cost
-            logger.log(f"평가: 합격 {len(passed)}개, 탈락 {len(rejected)}개 ({eval_usage.total_cost:.1f}원)", indent=1)
-        except Exception as e:
-            logger.log(f"평가 실패: {e}", indent=1)
-            round_num += 1
-            continue
-
-        # 5. 결과 누적
-        all_passed.extend(passed)
+        # 결과 누적
+        total_saved += saved_count
         all_rejected.extend(rejected)
 
-        logger.log(f"누적: {len(all_passed)}/{TARGET_QUESTIONS}", indent=1)
-
-        # 6. 중간 저장
-        with open(passed_file, 'w', encoding='utf-8') as f:
-            json.dump(all_passed, f, ensure_ascii=False, indent=2)
+        # 탈락 문제 파일 저장
         with open(rejected_file, 'w', encoding='utf-8') as f:
             json.dump(all_rejected, f, ensure_ascii=False, indent=2)
 
-        if len(all_passed) >= TARGET_QUESTIONS:
-            break
+        # unsolved 카운트 업데이트
+        category.unsolved_count += saved_count
+        category.question_count += saved_count
+
+        logger.log(f"→ 누적: {total_saved}/{to_generate}", indent=1)
 
         round_num += 1
 
-    # 최종 저장
-    with open(passed_file, 'w', encoding='utf-8') as f:
-        json.dump(all_passed, f, ensure_ascii=False, indent=2)
-    with open(rejected_file, 'w', encoding='utf-8') as f:
-        json.dump(all_rejected, f, ensure_ascii=False, indent=2)
-
     # 최종 리포트
     logger.log("완료")
-    logger.log(f"결과: 합격 {len(all_passed)}개, 탈락 {len(all_rejected)}개", indent=1)
-
-    if all_passed:
-        avg_faith = sum(q['scores']['faithfulness'] for q in all_passed) / len(all_passed)
-        avg_relevancy = sum(q['scores']['answer_relevancy'] for q in all_passed) / len(all_passed)
-        logger.log(f"평균: Faithfulness {avg_faith:.2f}, Relevancy {avg_relevancy:.2f}", indent=1)
-
+    logger.log(f"결과: DB 저장 {total_saved}개, 탈락 {len(all_rejected)}개", indent=1)
     logger.log(f"비용: {cost.summary()}", indent=1)
     logger.log(f"소요시간: {logger.elapsed()}", indent=1)
 

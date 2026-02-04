@@ -12,9 +12,11 @@ class QuestionType(Enum):
 
 
 class Difficulty(Enum):
-    LEVEL_1 = 1  # 기초: 단순 개념 정의, 용어 암기
-    LEVEL_2 = 2  # 중급: 개념 비교, 동작 원리 설명
-    LEVEL_3 = 3  # 심화: 상황 적용, 장단점 분석
+    LEVEL_1 = 1  # 매우 쉬움: 단순 정의, 용어
+    LEVEL_2 = 2  # 쉬움: 기본 개념 이해
+    LEVEL_3 = 3  # 보통: 개념 적용, 비교
+    LEVEL_4 = 4  # 어려움: 심화 이해, 분석
+    LEVEL_5 = 5  # 매우 어려움: 복합 분석, 설계
 
 
 @dataclass
@@ -100,6 +102,7 @@ class QuestionGenerationContext:
     category_path: str
     chunks: list[str]  # 청크 내용 목록
     chunk_ids: list[int]  # 청크 ID 목록
+    target_question_count: int = 10  # 생성할 문제 수 (기본값 10)
 
     def get_combined_context(self, separator: str = "\n\n---\n\n") -> str:
         """청크들을 하나의 컨텍스트로 합침"""
