@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { UserInfo } from '../user/interfaces';
 import { Question as QuestionEntity } from '../quiz/entity';
+import { MetricsService } from '../metrics';
 import {
   GameSession,
   GradingInput,
@@ -13,6 +14,8 @@ import {
 @Injectable()
 export class GameSessionManager {
   private gameSessions = new Map<string, GameSession>();
+
+  constructor(private readonly metricsService: MetricsService) {}
 
   /**
    * socketId로 userId 조회 (게임 세션에서)
@@ -93,6 +96,7 @@ export class GameSessionManager {
     };
 
     this.gameSessions.set(roomId, session);
+    this.metricsService.incrementActiveGames();
 
     return session;
   }
@@ -102,7 +106,13 @@ export class GameSessionManager {
   }
 
   deleteGameSession(roomId: string): boolean {
-    return this.gameSessions.delete(roomId);
+    const deleted = this.gameSessions.delete(roomId);
+
+    if (deleted) {
+      this.metricsService.decrementActiveGames();
+    }
+
+    return deleted;
   }
 
   startNextRound(roomId: string): RoundData {

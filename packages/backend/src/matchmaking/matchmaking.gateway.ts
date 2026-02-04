@@ -18,6 +18,7 @@ import { AuthService } from '../auth/auth.service';
 import { AuthenticatedUser } from '../auth/strategies/jwt.strategy';
 import { calculateTier } from '../common/utils/tier.util';
 import { DEFAULT_ELO_RATING, POLLING_INTERVAL_MS } from './constants/matchmaking.constants';
+import { MetricsService } from '../metrics';
 
 interface AuthenticatedSocket extends Socket {
   data: {
@@ -42,6 +43,7 @@ export class MatchmakingGateway
     private readonly gameSessionManager: GameSessionManager,
     private readonly roundProgression: RoundProgressionService,
     private readonly authService: AuthService,
+    private readonly metricsService: MetricsService,
   ) {}
 
   onModuleInit() {
@@ -95,6 +97,8 @@ export class MatchmakingGateway
     authSocket.data.userInfo = userInfo;
 
     this.sessionManager.registerUser(client.id, authUser.id);
+
+    this.metricsService.incrementWebsocketConnections();
 
     client.emit('connect:completed');
   }
@@ -178,6 +182,7 @@ export class MatchmakingGateway
 
     if (disconnectInfo.userId) {
       this.matchmakingService.removeFromQueue(disconnectInfo.userId);
+      this.metricsService.decrementWebsocketConnections();
     }
   }
 

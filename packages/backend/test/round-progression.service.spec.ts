@@ -6,6 +6,7 @@ import { RoundTimer } from '../src/game/round-timer';
 import { MatchPersistenceService } from '../src/game/match-persistence.service';
 import { Question as QuestionEntity } from '../src/quiz/entity';
 import { SCORE_MAP, SPEED_BONUS } from '../src/quiz/quiz.constants';
+import { MetricsService } from '../src/metrics';
 
 describe('RoundProgressionService - AI Score Weighted Grading Logic', () => {
   let roundProgressionService: RoundProgressionService;
@@ -38,6 +39,11 @@ describe('RoundProgressionService - AI Score Weighted Grading Logic', () => {
     saveMatchToDatabase: jest.fn(),
   };
 
+  const mockMetricsService = {
+    incrementActiveGames: jest.fn(),
+    decrementActiveGames: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -54,6 +60,10 @@ describe('RoundProgressionService - AI Score Weighted Grading Logic', () => {
         {
           provide: MatchPersistenceService,
           useValue: mockMatchPersistence,
+        },
+        {
+          provide: MetricsService,
+          useValue: mockMetricsService,
         },
       ],
     }).compile();

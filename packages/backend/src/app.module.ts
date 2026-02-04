@@ -1,4 +1,6 @@
-import { Module, ModuleMetadata } from '@nestjs/common';
+import { MiddlewareConsumer, Module, ModuleMetadata, NestModule } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
+import { MetricsIpMiddleware } from './metrics/metrics-ip.middleware';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { GameModule } from './game/game.module';
@@ -16,6 +18,8 @@ import { WinstonModule } from 'nest-winston';
 import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
 import { TierModule } from './tier/tier.module';
+import { SentryGlobalFilter, SentryModule } from '@sentry/nestjs/setup';
+import { HttpMetricsInterceptor, MetricsModule } from './metrics';
 
 const configModule = ConfigModule.forRoot({
   isGlobal: true,
@@ -43,9 +47,11 @@ const typeOrmModule = TypeOrmModule.forRootAsync({
 
 const metadata: ModuleMetadata = {
   imports: [
+    SentryModule.forRoot(),
     configModule,
     typeOrmModule,
     WinstonModule.forRoot(feedbackLoggerConfig),
+    MetricsModule,
     TierModule, // 티어 시드 데이터 자동 삽입
     AuthModule,
     QuizModule,
@@ -58,8 +64,22 @@ const metadata: ModuleMetadata = {
     UserModule,
   ],
   controllers: [AppController, HealthController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: 'APP_FILTER',
+      useClass: SentryGlobalFilter,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: HttpMetricsInterceptor,
+    },
+  ],
 };
 
 @Module(metadata)
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(MetricsIpMiddleware).forRoutes('/metrics');
+  }
+}

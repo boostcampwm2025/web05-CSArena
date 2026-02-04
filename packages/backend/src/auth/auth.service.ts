@@ -10,6 +10,7 @@ import { calculateTier } from '../common/utils/tier.util';
 import { ELO_CONFIG } from '../common/utils/elo.util';
 import { LoginResult, TokenPair } from './interfaces';
 import { calcLevel } from 'src/common/utils/level.util';
+import { MetricsService } from '../metrics';
 
 @Injectable()
 export class AuthService {
@@ -21,6 +22,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly dataSource: DataSource,
+    private readonly metricsService: MetricsService,
   ) {}
 
   async loginWithOAuth(profile: GithubProfile): Promise<LoginResult> {
@@ -37,6 +39,8 @@ export class AuthService {
     }
 
     const tokens = this.generateTokens(user);
+
+    this.metricsService.recordLogin(profile.oauthProvider);
 
     return {
       ...tokens,
@@ -66,6 +70,8 @@ export class AuthService {
     }
 
     const tokens = this.generateTokens(user);
+
+    this.metricsService.recordLogin('dev');
 
     return {
       ...tokens,

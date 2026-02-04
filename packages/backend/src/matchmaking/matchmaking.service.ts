@@ -1,13 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { IMatchQueue, Match } from './interfaces/matchmaking.interface';
 import { EloMatchQueue } from './queue/elo-match-queue';
+import { MetricsService } from '../metrics';
 
 @Injectable()
 export class MatchmakingService {
   private readonly matchQueue: IMatchQueue;
   private readonly userToSessionId = new Map<string, string>();
 
-  constructor() {
+  constructor(private readonly metricsService: MetricsService) {
     this.matchQueue = new EloMatchQueue();
   }
 
@@ -15,12 +16,16 @@ export class MatchmakingService {
     const sessionId = `session-${userId}-${Date.now()}`;
     this.userToSessionId.set(userId, sessionId);
 
-    return this.matchQueue.add(userId, eloRating);
+    const match = this.matchQueue.add(userId, eloRating);
+    this.metricsService.setMatchmakingQueueSize(this.matchQueue.getQueueSize());
+
+    return match;
   }
 
   removeFromQueue(userId: string): void {
     this.matchQueue.remove(userId);
     this.userToSessionId.delete(userId);
+    this.metricsService.setMatchmakingQueueSize(this.matchQueue.getQueueSize());
   }
 
   getQueueSize(): number {
@@ -36,7 +41,10 @@ export class MatchmakingService {
    */
   getPollingMatches(): Match[] {
     if ('getAndClearPendingMatches' in this.matchQueue) {
-      return (this.matchQueue as EloMatchQueue).getAndClearPendingMatches();
+      const matches = (this.matchQueue as EloMatchQueue).getAndClearPendingMatches();
+      this.metricsService.setMatchmakingQueueSize(this.matchQueue.getQueueSize());
+
+      return matches;
     }
 
     return [];
