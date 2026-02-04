@@ -1,6 +1,29 @@
 import { ISODateString } from "./common.type";
+import { OpponentProfile } from "./user-info.type";
+import { Category } from "./category.type";
 
-export type MatchType = "multi" | "single";
+type MatchResult = "win" | "draw" | "lose";
+type MatchType = "multi" | "single";
+
+type BaseHistory = { type: MatchType };
+
+export type MatchHistory = BaseHistory & {
+  type: "multi";
+  opponent: OpponentProfile;
+  result: MatchResult;
+  myTotalScore: number;
+  opponentTotalScore: number;
+  tierDelta: number;
+  playedAt: ISODateString;
+};
+export type SingleplayHistory = BaseHistory & {
+  type: "single";
+  categories: Pick<Category, "name">[];
+  expDelta: number;
+  playedAt: ISODateString;
+};
+
+export type HistoryItem = MatchHistory | SingleplayHistory;
 
 export type AnswerStatus = "incorrect" | "partial" | "correct";
 

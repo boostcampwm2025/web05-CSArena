@@ -8,7 +8,7 @@ import {
 } from "./constant/user-info.type";
 import { Question } from "./constant/question.type";
 import { Category } from "./constant/category.type";
-import { MatchType, MySubmission, Solution } from "./constant/game.type";
+import { HistoryItem, MySubmission, Solution } from "./constant/game.type";
 
 // 요청 객체는 interface로, 응답 객체는 type으로 선언
 
@@ -53,7 +53,7 @@ export interface FetchUserTierHistoryRes {
 
 // GET /api/users/me/match-history
 export interface FetchUserMatchHistoryRes {
-  history: { type: MatchType }[];
+  history: HistoryItem[];
 }
 
 // #endregion
