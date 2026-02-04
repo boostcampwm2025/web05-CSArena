@@ -176,15 +176,21 @@ describe('UserController', () => {
           },
         },
       ],
+      hasMore: false,
+    };
+
+    const mockQuery = {
+      matchType: 'all' as const,
+      limit: 10,
     };
 
     it('매치 히스토리를 반환해야 함', async () => {
       mockUserService.getMatchHistory.mockResolvedValue(mockMatchHistoryResponse);
 
-      const result = await controller.getMatchHistory(mockUser);
+      const result = await controller.getMatchHistory(mockUser, mockQuery);
 
       expect(result).toEqual(mockMatchHistoryResponse);
-      expect(mockUserService.getMatchHistory).toHaveBeenCalledWith(1);
+      expect(mockUserService.getMatchHistory).toHaveBeenCalledWith(1, mockQuery);
     });
   });
 });
