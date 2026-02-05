@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { useHome } from './hooks/useHome';
 import LoginModal from './components/LoginModal';
+import ReferenceModal from './components/ReferenceModal';
 import TierBadge from '@/shared/TierBadge';
 import ProfileAvatar from '@/shared/ProfileAvatar';
 
@@ -16,6 +18,8 @@ export default function Home() {
     onClickProblemBankBtn,
     onClickLeaderboardBtn,
   } = useHome();
+
+  const [isOpenReferenceModal, setIsOpenReferenceModal] = useState(false);
 
   return (
     <div className="relative h-screen w-screen overflow-hidden bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
@@ -47,7 +51,7 @@ export default function Home() {
               className="bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-5xl font-black text-transparent"
               style={{ fontFamily: '"Press Start 2P"' }}
             >
-              CS BATTLE
+              CS ARENA
             </h1>
             <p
               className="text-base tracking-widest text-cyan-300"
@@ -190,7 +194,18 @@ export default function Home() {
         </div>
       </div>
 
+      {/* Reference Button */}
+      <button
+        className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center border-2 border-cyan-300 bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-lg shadow-cyan-500/50 transition-all duration-200 hover:scale-110 hover:from-cyan-400 hover:to-blue-400"
+        style={{ fontFamily: 'Orbitron' }}
+        aria-label="참고 교재 정보 보기"
+        onClick={() => setIsOpenReferenceModal(true)}
+      >
+        <i className="ri-book-2-line text-2xl" />
+      </button>
+
       {isOpenLoginModal && <LoginModal onClose={() => setIsOpenLoginModal(false)} />}
+      {isOpenReferenceModal && <ReferenceModal onClose={() => setIsOpenReferenceModal(false)} />}
     </div>
   );
 }
