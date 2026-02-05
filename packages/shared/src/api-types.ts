@@ -10,7 +10,8 @@ import { Question } from "./constant/question.type";
 import { Category } from "./constant/category.type";
 import { HistoryItem, MySubmission, Solution } from "./constant/game.type";
 
-// 요청 객체는 interface로, 응답 객체는 type으로 선언
+// 유니온 타입을 제거함에 따라 type을 사용할 이유가 사라졌음.
+// 이에 따라 코드의 통일성을 위해 type 대신 interface로 선언.
 
 // #region Auth
 
