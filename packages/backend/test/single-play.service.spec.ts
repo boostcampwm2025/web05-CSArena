@@ -240,10 +240,9 @@ describe('SinglePlayService', () => {
         expect.objectContaining({ where: { id: matchId } }),
       );
 
-      // solved_count, correct_count 업데이트 검증 (정답이므로 correct_count + 1)
       expect(mockManager.query).toHaveBeenCalledWith(
         expect.stringContaining('solved_count = solved_count + 1'),
-        expect.arrayContaining([1]), // isCorrect ? 1 : 0 → 정답이므로 1
+        [expect.any(Number), expect.any(Number), 1],
       );
     });
 
@@ -285,11 +284,9 @@ describe('SinglePlayService', () => {
       const result = await service.submitAnswer(userId, matchId, questionId, answer);
 
       expect(result.grade.isCorrect).toBe(false);
-
-      // solved_count는 항상 증가, correct_count는 오답이므로 0
       expect(mockManager.query).toHaveBeenCalledWith(
         expect.stringContaining('solved_count = solved_count + 1'),
-        expect.arrayContaining([0]), // isCorrect ? 1 : 0 → 오답이므로 0
+        [expect.any(Number), expect.any(Number), 0],
       );
     });
 
