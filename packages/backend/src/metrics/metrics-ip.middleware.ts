@@ -34,6 +34,11 @@ export class MetricsIpMiddleware implements NestMiddleware {
       return ip;
     }
 
+    // ::1 (IPv6 loopback) → 127.0.0.1
+    if (ip === '::1') {
+      return '127.0.0.1';
+    }
+
     // ::ffff:x.x.x.x (IPv4-mapped IPv6)
     const prefix = '::ffff:';
 
