@@ -13,7 +13,9 @@ export class MockClovaClientService {
   private readonly delayMs: number;
 
   constructor() {
-    this.delayMs = parseInt(process.env.MOCK_CLOVA_DELAY_MS ?? '300', 10);
+    const parsed = parseInt(process.env.MOCK_CLOVA_DELAY_MS ?? '300', 10);
+
+    this.delayMs = Number.isFinite(parsed) && parsed >= 0 ? parsed : 300;
     this.logger.warn(`Mock Clova 클라이언트 활성화 (지연: ${this.delayMs}ms)`);
   }
 
@@ -42,7 +44,9 @@ export class MockClovaClientService {
       if (match) {
         const parsed = JSON.parse(match[1]) as { playerId: string }[];
 
-        return parsed.map((p) => p.playerId);
+        return parsed
+          .map((p) => p.playerId)
+          .filter((id) => typeof id === 'string' && id.length > 0);
       }
     } catch {
       this.logger.warn('Mock: USER_ANSWER 파싱 실패');
