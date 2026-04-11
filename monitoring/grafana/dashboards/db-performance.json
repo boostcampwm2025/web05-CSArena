@@ -1,0 +1,310 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "title": "Slow Queries - 평균 실행시간 Top 10",
+      "description": "pg_stat_statements 기반 느린 쿼리 Top 10",
+      "type": "table",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "align": "auto", "cellOptions": { "type": "auto" }, "inspect": false }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "mean_exec_time_seconds" },
+            "properties": [
+              { "id": "displayName", "value": "Avg (s)" },
+              { "id": "unit", "value": "s" },
+              { "id": "decimals", "value": 4 },
+              { "id": "custom.width", "value": 100 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "calls" },
+            "properties": [
+              { "id": "displayName", "value": "Calls" },
+              { "id": "custom.width", "value": 80 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "total_exec_time_seconds" },
+            "properties": [
+              { "id": "displayName", "value": "Total (s)" },
+              { "id": "unit", "value": "s" },
+              { "id": "decimals", "value": 1 },
+              { "id": "custom.width", "value": 100 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "query" },
+            "properties": [
+              { "id": "displayName", "value": "Query" },
+              { "id": "custom.width", "value": 600 }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "topk(10, pg_stat_statements_mean_exec_time_seconds)",
+          "format": "table",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "__name__": true,
+              "datname": true,
+              "instance": true,
+              "job": true,
+              "queryid": true,
+              "server": true,
+              "user": true
+            },
+            "indexByName": {
+              "query": 0,
+              "Value #A": 1,
+              "calls": 2,
+              "total_exec_time_seconds": 3
+            }
+          }
+        }
+      ]
+    },
+    {
+      "title": "Seq Scan vs Index Scan (테이블별)",
+      "description": "테이블별 Sequential Scan과 Index Scan 횟수 비교",
+      "type": "barchart",
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 10 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" }
+        }
+      },
+      "options": {
+        "orientation": "horizontal",
+        "showValue": "auto",
+        "stacking": "none",
+        "groupWidth": 0.7,
+        "barWidth": 0.8
+      },
+      "targets": [
+        {
+          "expr": "topk(10, pg_stat_user_tables_seq_scan{relname=~\"users|user_statistics|matches|rounds|round_answers|user_problem_banks|user_tier_hisotries\"})",
+          "legendFormat": "{{relname}} - seq_scan",
+          "instant": true,
+          "refId": "A"
+        },
+        {
+          "expr": "topk(10, pg_stat_user_tables_idx_scan{relname=~\"users|user_statistics|matches|rounds|round_answers|user_problem_banks|user_tier_hisotries\"})",
+          "legendFormat": "{{relname}} - idx_scan",
+          "instant": true,
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "title": "테이블별 Row 수",
+      "description": "주요 테이블의 live row 수",
+      "type": "barchart",
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 10 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "options": {
+        "orientation": "horizontal",
+        "showValue": "auto"
+      },
+      "targets": [
+        {
+          "expr": "pg_stat_user_tables_n_live_tup{relname=~\"users|user_statistics|matches|rounds|round_answers|user_problem_banks|user_tier_hisotries\"}",
+          "legendFormat": "{{relname}}",
+          "instant": true,
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "HTTP API 응답시간 (p95)",
+      "description": "엔드포인트별 95th percentile 응답시간",
+      "type": "timeseries",
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 20 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "color": { "mode": "palette-classic" }
+        }
+      },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] }
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{path=~\"/api/leaderboard|/api/problem-bank|/api/users/me|/api/users/me/match-history|/api/users/me/tier-history\"}[1m])) by (le, path))",
+          "legendFormat": "{{path}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "HTTP 요청 처리량 (RPS)",
+      "description": "초당 요청 수",
+      "type": "timeseries",
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 20 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "color": { "mode": "palette-classic" }
+        }
+      },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] }
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total[1m]))",
+          "legendFormat": "Total RPS",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(http_requests_total[1m])) by (path)",
+          "legendFormat": "{{path}}",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "title": "HTTP 에러율",
+      "description": "4xx/5xx 에러 비율",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 29 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.01 },
+              { "color": "red", "value": 0.05 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_errors_total[5m])) / sum(rate(http_requests_total[5m]))",
+          "legendFormat": "Error Rate",
+          "instant": true,
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Active WebSocket 연결",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 29 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "websocket_connections_active",
+          "legendFormat": "WS Connections",
+          "instant": true,
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "DB Size",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 29 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": { "unit": "bytes" }
+      },
+      "targets": [
+        {
+          "expr": "pg_database_size_size_bytes{datname=\"boostcamp\"}",
+          "legendFormat": "boostcamp",
+          "instant": true,
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "쿼리 누적 실행시간 Top 5",
+      "description": "가장 많은 DB 시간을 소모하는 쿼리",
+      "type": "piechart",
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 34 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "right", "values": ["value"] },
+        "tooltip": { "mode": "single" },
+        "pieType": "donut"
+      },
+      "targets": [
+        {
+          "expr": "topk(5, pg_stat_statements_total_exec_time_seconds)",
+          "legendFormat": "{{query}}",
+          "instant": true,
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Seq Scan으로 읽은 Row 수 (테이블별)",
+      "description": "Sequential Scan으로 읽어들인 총 row 수 — 인덱스 부재 지표",
+      "type": "timeseries",
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 34 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "palette-classic" }
+        }
+      },
+      "targets": [
+        {
+          "expr": "pg_stat_user_tables_seq_tup_read{relname=~\"users|user_statistics|matches|user_problem_banks|user_tier_hisotries\"}",
+          "legendFormat": "{{relname}}",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["csarena", "performance", "database"],
+  "templating": {
+    "list": [
+      {
+        "current": { "selected": false, "text": "Prometheus", "value": "prometheus" },
+        "hide": 2,
+        "name": "DS_PROMETHEUS",
+        "type": "datasource",
+        "query": "prometheus"
+      }
+    ]
+  },
+  "time": { "from": "now-15m", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "CSArena - DB Performance",
+  "uid": "csarena-db-perf",
+  "version": 1
+}

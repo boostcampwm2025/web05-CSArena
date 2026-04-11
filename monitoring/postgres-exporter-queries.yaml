@@ -1,0 +1,45 @@
+pg_stat_statements:
+  query: |
+    SELECT
+      pg_get_userbyid(userid) as user,
+      queryid,
+      left(query, 200) as query,
+      calls,
+      mean_exec_time / 1000.0 as mean_exec_time_seconds,
+      total_exec_time / 1000.0 as total_exec_time_seconds,
+      rows,
+      shared_blks_hit,
+      shared_blks_read
+    FROM pg_stat_statements
+    WHERE calls > 5
+      AND query NOT LIKE '%pg_stat%'
+    ORDER BY mean_exec_time DESC
+    LIMIT 30
+  metrics:
+    - user:
+        usage: "LABEL"
+        description: "DB user"
+    - queryid:
+        usage: "LABEL"
+        description: "Query ID"
+    - query:
+        usage: "LABEL"
+        description: "Query text (truncated)"
+    - calls:
+        usage: "GAUGE"
+        description: "Number of times executed"
+    - mean_exec_time_seconds:
+        usage: "GAUGE"
+        description: "Mean execution time in seconds"
+    - total_exec_time_seconds:
+        usage: "GAUGE"
+        description: "Total execution time in seconds"
+    - rows:
+        usage: "GAUGE"
+        description: "Total rows retrieved or affected"
+    - shared_blks_hit:
+        usage: "GAUGE"
+        description: "Shared blocks hit in cache"
+    - shared_blks_read:
+        usage: "GAUGE"
+        description: "Shared blocks read from disk"

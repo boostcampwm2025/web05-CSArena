@@ -1,8 +1,9 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { ClovaClientService } from './clova/clova-client.service';
+import { MockClovaClientService } from './clova/mock-clova-client.service';
 import { Category, CategoryQuestion, Question } from './entity';
 import { QuizSeedService } from './seed';
 import { QuizService } from './quiz.service';
@@ -44,8 +45,20 @@ import {
     GradingService,
     // Facade
     QuizService,
-    // Others
-    ClovaClientService,
+    // Clova: GRADING_MODE=mock이면 MockClovaClientService 사용
+    {
+      provide: ClovaClientService,
+      useFactory: (configService: ConfigService) => {
+        const mode = configService.get<string>('GRADING_MODE');
+
+        if (mode === 'mock') {
+          return new MockClovaClientService();
+        }
+
+        return new ClovaClientService(configService);
+      },
+      inject: [ConfigService],
+    },
     QuizSeedService,
   ],
   exports: [QuizService],
