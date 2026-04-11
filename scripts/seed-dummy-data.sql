@@ -23,7 +23,29 @@
 BEGIN;
 
 -- ============================================================
--- 0. 기존 더미데이터 정리
+-- 0. sequence 리셋 (이전 rollback으로 sequence가 앞서 있을 경우 보정)
+-- ============================================================
+SELECT setval(pg_get_serial_sequence('tiers', 'id'),
+              GREATEST(1, COALESCE((SELECT MAX(id) FROM tiers), 1)));
+SELECT setval(pg_get_serial_sequence('categories', 'id'),
+              GREATEST(1, COALESCE((SELECT MAX(id) FROM categories), 1)));
+SELECT setval(pg_get_serial_sequence('questions', 'id'),
+              GREATEST(1, COALESCE((SELECT MAX(id) FROM questions), 1)));
+SELECT setval(pg_get_serial_sequence('users', 'id'),
+              GREATEST(1, COALESCE((SELECT MAX(id) FROM users), 1)));
+SELECT setval(pg_get_serial_sequence('matches', 'id'),
+              GREATEST(1, COALESCE((SELECT MAX(id) FROM matches), 1)));
+SELECT setval(pg_get_serial_sequence('rounds', 'id'),
+              GREATEST(1, COALESCE((SELECT MAX(id) FROM rounds), 1)));
+SELECT setval(pg_get_serial_sequence('round_answers', 'id'),
+              GREATEST(1, COALESCE((SELECT MAX(id) FROM round_answers), 1)));
+SELECT setval(pg_get_serial_sequence('user_problem_banks', 'id'),
+              GREATEST(1, COALESCE((SELECT MAX(id) FROM user_problem_banks), 1)));
+SELECT setval(pg_get_serial_sequence('user_tier_hisotries', 'id'),
+              GREATEST(1, COALESCE((SELECT MAX(id) FROM user_tier_hisotries), 1)));
+
+-- ============================================================
+-- 0-1. 기존 더미데이터 정리
 -- ============================================================
 -- TRUNCATE
 --   user_tier_hisotries,
@@ -93,6 +115,10 @@ BEGIN
       WHEN '보안'           THEN ARRAY['암호화', '인증/인가', 'XSS/CSRF', '네트워크보안']
     END;
 
+    IF subcategories IS NULL THEN
+      CONTINUE;
+    END IF;
+
     i := 1;
     FOREACH sub IN ARRAY subcategories
     LOOP
@@ -109,7 +135,7 @@ END $$;
 -- ============================================================
 INSERT INTO questions (question_type, content, correct_answer, explanation, difficulty, usage_count, is_active, quality_score, model_name)
 SELECT
-  (ARRAY['multiple', 'short', 'essay'])[floor(random() * 3 + 1)],
+  ((ARRAY['multiple', 'short', 'essay'])[floor(random() * 3 + 1)])::questions_question_type_enum,
   CASE (ARRAY['multiple', 'short', 'essay'])[floor(random() * 3 + 1)]
     WHEN 'multiple' THEN jsonb_build_object(
       'type', 'multiple',
@@ -171,7 +197,7 @@ SELECT
   'user' || i || '@test.com',
   'testuser_' || i,
   CASE WHEN random() > 0.7 THEN 'https://avatars.githubusercontent.com/u/' || i ELSE NULL END,
-  'github',
+  'github'::users_oauth_provider_enum,
   'github_' || i,
   NOW() - (random() * interval '365 days')
 FROM generate_series(1, 100000) AS i;
@@ -218,7 +244,7 @@ BEGIN
         ELSE NULL  -- single play는 player2 없음
       END,
       NULL,  -- winner는 나중에 설정
-      CASE WHEN random() > 0.3 THEN 'multi' ELSE 'single' END,
+      (CASE WHEN random() > 0.3 THEN 'multi' ELSE 'single' END)::matches_match_type_enum,
       NOW() - (random() * interval '365 days')
     FROM generate_series(1, 100000);
 
@@ -290,7 +316,7 @@ BEGIN
       r.id,
       '사용자 답변 내용 ' || r.id,
       floor(random() * 11)::int,  -- score 0~10
-      (ARRAY['correct', 'incorrect', 'partial'])[floor(random() * 3 + 1)]::varchar,
+      (ARRAY['correct', 'incorrect', 'partial'])[floor(random() * 3 + 1)]::round_answers_answer_status_enum,
       CASE WHEN random() > 0.3
         THEN 'AI 피드백: 답변에 대한 분석 내용입니다. 라운드 ' || r.id
         ELSE NULL
@@ -305,7 +331,7 @@ BEGIN
       r.id,
       '상대 답변 내용 ' || r.id,
       floor(random() * 11)::int,
-      (ARRAY['correct', 'incorrect', 'partial'])[floor(random() * 3 + 1)]::varchar,
+      (ARRAY['correct', 'incorrect', 'partial'])[floor(random() * 3 + 1)]::round_answers_answer_status_enum,
       CASE WHEN random() > 0.3
         THEN 'AI 피드백: 상대 답변에 대한 분석입니다. 라운드 ' || r.id
         ELSE NULL
@@ -345,7 +371,7 @@ BEGIN
       floor(random() * (max_mid - min_mid + 1) + min_mid)::bigint,
       random() < 0.15,  -- 15% 북마크
       '사용자가 제출한 답변입니다. 문제 #' || i,
-      (ARRAY['correct', 'incorrect', 'partial'])[floor(random() * 3 + 1)]::varchar,
+      (ARRAY['correct', 'incorrect', 'partial'])[floor(random() * 3 + 1)]::user_problem_banks_answer_status_enum,
       'AI 피드백 내용입니다.',
       NOW() - (random() * interval '365 days')
     FROM generate_series(1, 200000) AS i;
