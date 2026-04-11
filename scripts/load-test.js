@@ -17,10 +17,11 @@ const requestCount = new Counter('total_requests');
 // 테스트 설정
 // ============================================================
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:4000';
+const USER_COUNT = parseInt(__ENV.USER_COUNT || '100');
+const USER_ID_START = parseInt(__ENV.USER_ID_START || '13');
 
 export const options = {
   scenarios: {
-    // Baseline: 점진적 부하 증가
     load_test: {
       executor: 'ramping-vus',
       startVUs: 0,
@@ -46,65 +47,73 @@ export const options = {
 };
 
 // ============================================================
-// Setup: 테스트 시작 전 토큰 발급
+// Setup: 여러 유저의 토큰을 미리 발급
 // ============================================================
 export function setup() {
-  // dev-login으로 토큰 발급 (redirect에서 추출)
-  const loginRes = http.get(`${BASE_URL}/api/auth/dev-login?name=loadtest_user`, {
-    redirects: 0, // redirect를 따라가지 않음
-  });
+  const tokens = [];
+  let successCount = 0;
+  let failCount = 0;
 
-  // 302 redirect의 Location 헤더에서 access_token 추출
-  const location = loginRes.headers['Location'] || '';
-  const tokenMatch = location.match(/access_token=([^&]+)/);
+  for (let i = 0; i < USER_COUNT; i++) {
+    const userId = USER_ID_START + i;
+    const loginRes = http.get(
+      `${BASE_URL}/api/auth/dev-login?name=testuser_${userId}`,
+      { redirects: 0 },
+    );
 
-  if (!tokenMatch) {
-    throw new Error(`토큰 발급 실패 (status: ${loginRes.status}, location: ${location})`);
+    const location = loginRes.headers['Location'] || '';
+    const tokenMatch = location.match(/access_token=([^&]+)/);
+
+    if (tokenMatch) {
+      tokens.push(tokenMatch[1]);
+      successCount++;
+    } else {
+      failCount++;
+    }
   }
 
-  const token = tokenMatch[1];
-  console.log('토큰 발급 성공');
+  console.log(`토큰 발급 완료: 성공 ${successCount}, 실패 ${failCount}`);
 
-  // 발급된 토큰으로 프로필 조회 검증
+  if (tokens.length === 0) {
+    throw new Error('토큰을 하나도 발급받지 못했습니다.');
+  }
+
+  // 첫 번째 토큰으로 프로필 조회 검증
   const profileRes = http.get(`${BASE_URL}/api/users/me`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: { Authorization: `Bearer ${tokens[0]}` },
   });
 
   if (profileRes.status !== 200) {
-    throw new Error(`토큰 검증 실패: 프로필 조회 status ${profileRes.status}`);
+    throw new Error(`토큰 검증 실패: status ${profileRes.status}`);
   }
 
   console.log('토큰 검증 완료');
 
-  return { token };
+  return { tokens };
 }
 
 // ============================================================
 // 메인 테스트 시나리오
 // ============================================================
 export default function (data) {
+  // VU마다 다른 토큰 사용 (유저 분산)
+  const tokenIndex = __VU % data.tokens.length;
   const headers = {
-    Authorization: `Bearer ${data.token}`,
+    Authorization: `Bearer ${data.tokens[tokenIndex]}`,
     'Content-Type': 'application/json',
   };
 
-  // 시나리오 비중에 따라 랜덤 선택
   const rand = Math.random();
 
   if (rand < 0.30) {
-    // 30% — 리더보드 조회
     testLeaderboard(headers);
   } else if (rand < 0.55) {
-    // 25% — 문제은행 조회
     testProblemBank(headers);
   } else if (rand < 0.75) {
-    // 20% — 유저 프로필
     testProfile(headers);
   } else if (rand < 0.90) {
-    // 15% — 매치 히스토리
     testMatchHistory(headers);
   } else {
-    // 10% — 티어 히스토리
     testTierHistory(headers);
   }
 }
@@ -115,7 +124,6 @@ export default function (data) {
 
 function testLeaderboard(headers) {
   group('리더보드 조회', () => {
-    // 멀티 리더보드
     const multiRes = http.get(`${BASE_URL}/api/leaderboard?type=multi`, { headers });
     leaderboardDuration.add(multiRes.timings.duration);
     requestCount.add(1);
@@ -124,7 +132,6 @@ function testLeaderboard(headers) {
     });
     errorRate.add(!multiOk);
 
-    // 싱글 리더보드
     const singleRes = http.get(`${BASE_URL}/api/leaderboard?type=single`, { headers });
     leaderboardDuration.add(singleRes.timings.duration);
     requestCount.add(1);
@@ -137,7 +144,6 @@ function testLeaderboard(headers) {
 
 function testProblemBank(headers) {
   group('문제은행 조회', () => {
-    // 기본 목록
     const listRes = http.get(`${BASE_URL}/api/problem-bank?page=1&limit=20`, { headers });
     problemBankDuration.add(listRes.timings.duration);
     requestCount.add(1);
@@ -146,7 +152,6 @@ function testProblemBank(headers) {
     });
     errorRate.add(!listOk);
 
-    // 필터링 (오답만 + 북마크)
     const filterRes = http.get(
       `${BASE_URL}/api/problem-bank?page=1&limit=20&result=incorrect`,
       { headers },
@@ -196,11 +201,8 @@ function testTierHistory(headers) {
   });
 }
 
-// ============================================================
-// Teardown: 결과 요약
-// ============================================================
 export function teardown(data) {
   console.log('========================================');
-  console.log('부하테스트 완료');
+  console.log(`부하테스트 완료 (유저 ${data.tokens.length}명 사용)`);
   console.log('========================================');
 }
