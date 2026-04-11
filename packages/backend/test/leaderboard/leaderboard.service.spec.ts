@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { NotFoundException } from '@nestjs/common';
+import { DataSource } from 'typeorm';
 import { LeaderboardService } from '../../src/leaderboard/leaderboard.service';
 import { UserStatistics } from '../../src/user/entity/user-statistics.entity';
 import { MatchType } from '../../src/leaderboard/dto/leaderboard-query.dto';
@@ -12,6 +13,7 @@ import {
 describe('LeaderboardService', () => {
   let service: LeaderboardService;
   let mockUserStatisticsRepository: any;
+  let mockDataSource: any;
 
   const createMockQueryBuilder = (overrides = {}) => ({
     innerJoin: jest.fn().mockReturnThis(),
@@ -36,6 +38,9 @@ describe('LeaderboardService', () => {
   beforeEach(async () => {
     mockUserStatisticsRepository = {
       createQueryBuilder: jest.fn(),
+    };
+
+    mockDataSource = {
       query: jest.fn(),
     };
 
@@ -45,6 +50,10 @@ describe('LeaderboardService', () => {
         {
           provide: getRepositoryToken(UserStatistics),
           useValue: mockUserStatisticsRepository,
+        },
+        {
+          provide: DataSource,
+          useValue: mockDataSource,
         },
       ],
     }).compile();
@@ -64,14 +73,12 @@ describe('LeaderboardService', () => {
       const myStatsQB = createMockQueryBuilder({
         getRawOne: jest.fn().mockResolvedValue(myStats),
       });
-      const rankQB = createMockQueryBuilder({
-        getRawOne: jest.fn().mockResolvedValue({ rank: String(myRank) }),
-      });
 
       mockUserStatisticsRepository.createQueryBuilder
         .mockReturnValueOnce(rankingsQB)
-        .mockReturnValueOnce(myStatsQB)
-        .mockReturnValueOnce(rankQB);
+        .mockReturnValueOnce(myStatsQB);
+
+      mockDataSource.query.mockResolvedValue([{ rank: myRank }]);
     };
 
     it('랭킹 목록과 내 순위를 반환한다', async () => {
@@ -302,14 +309,12 @@ describe('LeaderboardService', () => {
       const myStatsQB = createMockQueryBuilder({
         getRawOne: jest.fn().mockResolvedValue(myStats),
       });
-      const rankQB = createMockQueryBuilder({
-        getRawOne: jest.fn().mockResolvedValue({ rank: String(myRank) }),
-      });
 
       mockUserStatisticsRepository.createQueryBuilder
         .mockReturnValueOnce(rankingsQB)
-        .mockReturnValueOnce(myStatsQB)
-        .mockReturnValueOnce(rankQB);
+        .mockReturnValueOnce(myStatsQB);
+
+      mockDataSource.query.mockResolvedValue([{ rank: myRank }]);
     };
 
     it('랭킹 목록과 내 순위를 반환한다', async () => {
@@ -530,14 +535,12 @@ describe('LeaderboardService', () => {
           tier: 'silver',
         }),
       });
-      const rankQB = createMockQueryBuilder({
-        getRawOne: jest.fn().mockResolvedValue({ rank: '1' }),
-      });
 
       mockUserStatisticsRepository.createQueryBuilder
         .mockReturnValueOnce(rankingsQB)
-        .mockReturnValueOnce(myStatsQB)
-        .mockReturnValueOnce(rankQB);
+        .mockReturnValueOnce(myStatsQB);
+
+      mockDataSource.query.mockResolvedValue([{ rank: 1 }]);
 
       const result = (await service.getLeaderboard(
         MatchType.MULTI,
@@ -598,14 +601,12 @@ describe('LeaderboardService', () => {
       const myStatsQB = createMockQueryBuilder({
         getRawOne: jest.fn().mockResolvedValue(myStats),
       });
-      const rankQB = createMockQueryBuilder({
-        getRawOne: jest.fn().mockResolvedValue({ rank: '4' }),
-      });
 
       mockUserStatisticsRepository.createQueryBuilder
         .mockReturnValueOnce(rankingsQB)
-        .mockReturnValueOnce(myStatsQB)
-        .mockReturnValueOnce(rankQB);
+        .mockReturnValueOnce(myStatsQB);
+
+      mockDataSource.query.mockResolvedValue([{ rank: 4 }]);
 
       const result = (await service.getLeaderboard(
         MatchType.MULTI,
