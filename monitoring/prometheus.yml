@@ -9,3 +9,7 @@ scrape_configs:
       - files:
           - '/etc/prometheus/sd/backend.json'
         refresh_interval: 1m
+
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['web05-postgres-exporter:9187']
