@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Brackets, Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { UserStatistics } from '../user/entity/user-statistics.entity';
 import { Tier } from '../tier/entity/tier.entity';
 import { MatchType } from './dto/leaderboard-query.dto';
@@ -38,6 +38,7 @@ export class LeaderboardService {
   constructor(
     @InjectRepository(UserStatistics)
     private readonly userStatisticsRepository: Repository<UserStatistics>,
+    private readonly dataSource: DataSource,
   ) {}
 
   async getLeaderboard(
@@ -147,32 +148,13 @@ export class LeaderboardService {
     const tierPoint = Number(myStats.tierPoint);
     const winCount = Number(myStats.winCount);
     const loseCount = Number(myStats.loseCount);
-    const totalGames = winCount + loseCount;
 
-    const winRateExpr =
-      'CASE WHEN us.winCount + us.loseCount > 0 THEN us.winCount * 1.0 / (us.winCount + us.loseCount) ELSE 0 END';
-    const myWinRateExpr = totalGames > 0 ? ':winCount * 1.0 / :totalGames' : '0';
+    const rankRow = await this.dataSource.query<{ rank: number }[]>(
+      'SELECT rank FROM mv_multi_rank WHERE user_id = $1',
+      [userId],
+    );
 
-    const result = await this.userStatisticsRepository
-      .createQueryBuilder('us')
-      .select('COUNT(*) + 1', 'rank')
-      .where('us.tierPoint > :tierPoint')
-      .orWhere(
-        new Brackets((qb) => {
-          qb.where('us.tierPoint = :tierPoint').andWhere(`${winRateExpr} > ${myWinRateExpr}`);
-        }),
-      )
-      .orWhere(
-        new Brackets((qb) => {
-          qb.where('us.tierPoint = :tierPoint')
-            .andWhere(`${winRateExpr} = ${myWinRateExpr}`)
-            .andWhere('us.winCount + us.loseCount > :totalGames');
-        }),
-      )
-      .setParameters({ tierPoint, winCount, totalGames })
-      .getRawOne<{ rank: string }>();
-
-    const rank = result ? Number(result.rank) : 0;
+    const rank = rankRow[0]?.rank ?? 0;
 
     return {
       rank,
@@ -264,30 +246,12 @@ export class LeaderboardService {
     const solvedCount = Number(myStats.solvedCount);
     const correctCount = Number(myStats.correctCount);
 
-    const correctRateExpr =
-      'CASE WHEN us.solvedCount > 0 THEN us.correctCount * 1.0 / us.solvedCount ELSE 0 END';
-    const myCorrectRateExpr = solvedCount > 0 ? ':correctCount * 1.0 / :solvedCount' : '0';
+    const rankRow = await this.dataSource.query<{ rank: number }[]>(
+      'SELECT rank FROM mv_single_rank WHERE user_id = $1',
+      [userId],
+    );
 
-    const result = await this.userStatisticsRepository
-      .createQueryBuilder('us')
-      .select('COUNT(*) + 1', 'rank')
-      .where('us.expPoint > :expPoint')
-      .orWhere(
-        new Brackets((qb) => {
-          qb.where('us.expPoint = :expPoint').andWhere(`${correctRateExpr} > ${myCorrectRateExpr}`);
-        }),
-      )
-      .orWhere(
-        new Brackets((qb) => {
-          qb.where('us.expPoint = :expPoint')
-            .andWhere(`${correctRateExpr} = ${myCorrectRateExpr}`)
-            .andWhere('us.solvedCount > :solvedCount');
-        }),
-      )
-      .setParameters({ expPoint, correctCount, solvedCount })
-      .getRawOne<{ rank: string }>();
-
-    const rank = result ? Number(result.rank) : 0;
+    const rank = rankRow[0]?.rank ?? 0;
 
     return {
       rank,
