@@ -45,9 +45,9 @@ export class MockClovaClientService {
         return parsed.map((p) => p.playerId);
       }
     } catch {
-      // 파싱 실패 시 기본값
+      this.logger.warn('Mock: USER_ANSWER 파싱 실패');
     }
 
-    return ['player1', 'player2'];
+    return [];
   }
 }

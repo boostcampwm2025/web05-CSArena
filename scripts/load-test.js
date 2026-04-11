@@ -59,19 +59,22 @@ export function setup() {
   const tokenMatch = location.match(/access_token=([^&]+)/);
 
   if (!tokenMatch) {
-    console.error('토큰 발급 실패. Location:', location);
-    console.error('Status:', loginRes.status);
-    return { token: '' };
+    throw new Error(`토큰 발급 실패 (status: ${loginRes.status}, location: ${location})`);
   }
 
   const token = tokenMatch[1];
   console.log('토큰 발급 성공');
 
-  // 발급된 토큰으로 프로필 조회 테스트
+  // 발급된 토큰으로 프로필 조회 검증
   const profileRes = http.get(`${BASE_URL}/api/users/me`, {
     headers: { Authorization: `Bearer ${token}` },
   });
-  console.log(`프로필 조회 확인: ${profileRes.status}`);
+
+  if (profileRes.status !== 200) {
+    throw new Error(`토큰 검증 실패: 프로필 조회 status ${profileRes.status}`);
+  }
+
+  console.log('토큰 검증 완료');
 
   return { token };
 }
