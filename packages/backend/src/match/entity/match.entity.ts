@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   OneToMany,
@@ -12,6 +13,8 @@ import { Round } from './round.entity';
 import { UserProblemBank } from '../../problem-bank/entity';
 
 @Entity('matches')
+@Index('idx_matches_player1', ['player1Id', 'createdAt'])
+@Index('idx_matches_player2', ['player2Id', 'createdAt'])
 export class Match {
   @PrimaryGeneratedColumn('increment', { type: 'bigint' })
   id: number;
