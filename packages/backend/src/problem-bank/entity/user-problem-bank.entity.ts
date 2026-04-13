@@ -14,6 +14,7 @@ import { Match } from '../../match/entity';
 
 @Entity('user_problem_banks')
 @Index('idx_user_problem_banks_match', ['matchId'])
+@Index('idx_problem_bank_user_status', ['userId', 'answerStatus'])
 export class UserProblemBank {
   @PrimaryGeneratedColumn('increment', { type: 'bigint' })
   id: number;
