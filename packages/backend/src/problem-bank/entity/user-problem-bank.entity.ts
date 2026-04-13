@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
@@ -12,6 +13,7 @@ import { Question } from '../../quiz/entity';
 import { Match } from '../../match/entity';
 
 @Entity('user_problem_banks')
+@Index('idx_user_problem_banks_match', ['matchId'])
 export class UserProblemBank {
   @PrimaryGeneratedColumn('increment', { type: 'bigint' })
   id: number;
