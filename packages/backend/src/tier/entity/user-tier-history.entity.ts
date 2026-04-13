@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
@@ -11,6 +12,8 @@ import { Tier } from './tier.entity';
 import { Match } from '../../match/entity/match.entity';
 
 @Entity('user_tier_hisotries')
+@Index('idx_tier_history_user', ['userId', 'updatedAt'])
+@Index('idx_tier_history_user_match', ['userId', 'matchId'])
 export class UserTierHistory {
   @PrimaryGeneratedColumn('increment', { type: 'bigint' })
   id: number;

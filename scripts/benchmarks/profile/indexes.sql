@@ -40,23 +40,36 @@ WHERE user_id = (SELECT id FROM users WHERE oauth_id = 'github_1' LIMIT 1);
 CREATE INDEX IF NOT EXISTS idx_user_statistics_user
   ON user_statistics (user_id);
 
--- B-2. user_problem_banks → user_id (집계 쿼리 최적화)
---   (user_id, answer_status) 복합 인덱스: answer_status 별 집계 커버
+-- B-2. user_problem_banks → (user_id, answer_status) 복합 인덱스
+--   buildProblemStats의 SUM(CASE WHEN answer_status = ...)를 Index-Only Scan으로 처리
 CREATE INDEX IF NOT EXISTS idx_problem_bank_user_status
   ON user_problem_banks (user_id, answer_status);
 
--- B-3. users oauth 조회 (토큰 인증 경로 최적화)
+-- B-3. user_tier_hisotries → (user_id, updated_at) 복합 인덱스
+--   getTierHistory ORDER BY updated_at DESC 정렬 커버링
+CREATE INDEX IF NOT EXISTS idx_tier_history_user
+  ON user_tier_hisotries (user_id, updated_at DESC);
+
+-- B-4. user_tier_hisotries → (user_id, match_id) 복합 인덱스
+--   getMatchHistory 티어 히스토리 배치 조회 (IN 조건)
+CREATE INDEX IF NOT EXISTS idx_tier_history_user_match
+  ON user_tier_hisotries (user_id, match_id);
+
+-- B-5. users oauth 조회 (토큰 인증 경로 최적화)
 CREATE UNIQUE INDEX IF NOT EXISTS idx_users_oauth
   ON users (oauth_provider, oauth_id);
 
 ANALYZE users;
 ANALYZE user_statistics;
 ANALYZE user_problem_banks;
+ANALYZE user_tier_hisotries;
 
 -- ============================================================
 -- Section C: 롤백
 -- ============================================================
 -- DROP INDEX IF EXISTS idx_user_statistics_user;
 -- DROP INDEX IF EXISTS idx_problem_bank_user_status;
+-- DROP INDEX IF EXISTS idx_tier_history_user;
+-- DROP INDEX IF EXISTS idx_tier_history_user_match;
 -- DROP INDEX IF EXISTS idx_users_oauth;
--- ANALYZE users; ANALYZE user_statistics; ANALYZE user_problem_banks;
+-- ANALYZE users; ANALYZE user_statistics; ANALYZE user_problem_banks; ANALYZE user_tier_hisotries;

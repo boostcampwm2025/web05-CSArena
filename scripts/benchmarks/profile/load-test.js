@@ -1,5 +1,10 @@
 /**
- * 프로필(마이페이지) 단독 부하테스트
+ * 프로필(마이페이지) 통합 부하테스트
+ *
+ * 이터레이션마다 프로필 페이지 진입 시 실제로 호출되는 세 엔드포인트를 순서대로 호출한다.
+ *   1. GET /api/users/me          — 기본 프로필 + 문제 통계
+ *   2. GET /api/users/me/tier-history  — 티어 히스토리
+ *   3. GET /api/users/me/match-history — 최근 매치 히스토리
  *
  * 실행:
  *   k6 run scripts/benchmarks/profile/load-test.js
@@ -9,6 +14,8 @@ import { check } from 'k6';
 import { Trend, Rate, Counter } from 'k6/metrics';
 
 const profileDuration = new Trend('profile_duration', true);
+const tierHistoryDuration = new Trend('tier_history_duration', true);
+const matchHistoryDuration = new Trend('match_history_duration', true);
 const errorRate = new Rate('errors');
 const requestCount = new Counter('total_requests');
 
@@ -34,6 +41,8 @@ export const options = {
     http_req_duration: ['p(95)<200', 'p(99)<500'],
     http_req_failed: ['rate<0.01'],
     profile_duration: ['p(95)<200'],
+    tier_history_duration: ['p(95)<200'],
+    match_history_duration: ['p(95)<500'],
     errors: ['rate<0.01'],
   },
 };
@@ -57,10 +66,20 @@ export default function (data) {
   const token = data.tokens[__VU % data.tokens.length];
   const headers = { Authorization: `Bearer ${token}` };
 
-  const res = http.get(`${BASE_URL}/api/users/me`, { headers });
-  profileDuration.add(res.timings.duration);
+  const profileRes = http.get(`${BASE_URL}/api/users/me`, { headers });
+  profileDuration.add(profileRes.timings.duration);
   requestCount.add(1);
-  errorRate.add(!check(res, { 'profile 200': (r) => r.status === 200 }));
+  errorRate.add(!check(profileRes, { 'profile 200': (r) => r.status === 200 }));
+
+  const tierRes = http.get(`${BASE_URL}/api/users/me/tier-history`, { headers });
+  tierHistoryDuration.add(tierRes.timings.duration);
+  requestCount.add(1);
+  errorRate.add(!check(tierRes, { 'tier-history 200': (r) => r.status === 200 }));
+
+  const matchRes = http.get(`${BASE_URL}/api/users/me/match-history`, { headers });
+  matchHistoryDuration.add(matchRes.timings.duration);
+  requestCount.add(1);
+  errorRate.add(!check(matchRes, { 'match-history 200': (r) => r.status === 200 }));
 }
 
 export function teardown(data) {

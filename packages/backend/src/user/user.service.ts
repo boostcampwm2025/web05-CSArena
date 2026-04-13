@@ -141,18 +141,36 @@ export class UserService {
       }
     }
 
-    const matchHistory = await Promise.all(
-      matches.map((match) =>
-        match.matchType === 'multi'
-          ? this.buildMultiMatchHistory(match, userId)
-          : Promise.resolve(this.buildSingleMatchHistory(match, userId)),
-      ),
+    const multiMatchIds = matches.filter((m) => m.matchType === 'multi').map((m) => Number(m.id));
+
+    const tierHistoryMap = new Map<number, UserTierHistory>();
+
+    if (multiMatchIds.length > 0) {
+      const tierHistories = await this.userTierHistoryRepository.find({
+        where: { userId, matchId: In(multiMatchIds) },
+      });
+
+      for (const th of tierHistories) {
+        if (th.matchId !== null) {
+          tierHistoryMap.set(Number(th.matchId), th);
+        }
+      }
+    }
+
+    const matchHistory = matches.map((match) =>
+      match.matchType === 'multi'
+        ? this.buildMultiMatchHistory(match, userId, tierHistoryMap)
+        : this.buildSingleMatchHistory(match, userId),
     );
 
     return { matchHistory };
   }
 
-  private async buildMultiMatchHistory(match: Match, userId: number): Promise<MatchHistoryItemDto> {
+  private buildMultiMatchHistory(
+    match: Match,
+    userId: number,
+    tierHistoryMap: Map<number, UserTierHistory>,
+  ): MatchHistoryItemDto {
     const isPlayer1 = Number(match.player1Id) === userId;
     const opponent = isPlayer1 ? match.player2 : match.player1;
 
@@ -161,10 +179,7 @@ export class UserService {
     const result =
       match.winnerId === null ? 'draw' : Number(match.winnerId) === userId ? 'win' : 'lose';
 
-    const tierHistory = await this.userTierHistoryRepository.findOne({
-      where: { userId, matchId: Number(match.id) },
-    });
-    const tierPointChange = tierHistory?.tierChange ?? 0;
+    const tierPointChange = tierHistoryMap.get(Number(match.id))?.tierChange ?? 0;
 
     return {
       type: 'multi',
