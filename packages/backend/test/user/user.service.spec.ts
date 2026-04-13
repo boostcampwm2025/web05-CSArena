@@ -16,6 +16,7 @@ describe('UserService', () => {
 
   const mockUserProblemBankRepository = {
     createQueryBuilder: jest.fn(),
+    find: jest.fn(),
   };
 
   const mockUserTierHistoryRepository = {
@@ -23,8 +24,17 @@ describe('UserService', () => {
     findOne: jest.fn(),
   };
 
+  const mockQueryBuilder = {
+    select: jest.fn().mockReturnThis(),
+    where: jest.fn().mockReturnThis(),
+    orderBy: jest.fn().mockReturnThis(),
+    limit: jest.fn().mockReturnThis(),
+    getRawMany: jest.fn().mockResolvedValue([]),
+  };
+
   const mockMatchRepository = {
     find: jest.fn(),
+    createQueryBuilder: jest.fn().mockReturnValue(mockQueryBuilder),
   };
 
   beforeEach(async () => {
@@ -316,6 +326,7 @@ describe('UserService', () => {
         tierChange: 25,
       };
 
+      mockQueryBuilder.getRawMany.mockResolvedValue([{ match_id: 1 }]);
       mockMatchRepository.find.mockResolvedValue(mockMatches);
       mockUserTierHistoryRepository.findOne.mockResolvedValue(mockTierHistory);
 
@@ -358,7 +369,9 @@ describe('UserService', () => {
         },
       ];
 
+      mockQueryBuilder.getRawMany.mockResolvedValue([{ match_id: 2 }]);
       mockMatchRepository.find.mockResolvedValue(mockMatches);
+      mockUserProblemBankRepository.find.mockResolvedValue([]);
 
       const result = await service.getMatchHistory(1);
 
@@ -386,6 +399,7 @@ describe('UserService', () => {
         },
       ];
 
+      mockQueryBuilder.getRawMany.mockResolvedValue([{ match_id: 3 }]);
       mockMatchRepository.find.mockResolvedValue(mockMatches);
       mockUserTierHistoryRepository.findOne.mockResolvedValue(null);
 

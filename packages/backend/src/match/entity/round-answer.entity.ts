@@ -1,8 +1,10 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
-import { User } from '../../user/entity/user.entity';
+import { Column, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { User } from '../../user/entity';
 import { Round } from './round.entity';
 
 @Entity('round_answers')
+@Index('idx_round_answers_round', ['roundId'])
+@Index('idx_round_answers_user', ['userId'])
 export class RoundAnswer {
   @PrimaryGeneratedColumn('increment', { type: 'bigint' })
   id: number;

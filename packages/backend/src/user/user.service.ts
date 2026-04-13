@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { User, UserStatistics } from './entity';
 import { UserProblemBank } from '../problem-bank/entity';
 import { UserTierHistory } from '../tier/entity';
@@ -78,8 +78,25 @@ export class UserService {
   }
 
   async getMatchHistory(userId: number): Promise<MatchHistoryResponseDto> {
+    // 매치 ID만 조회 (JOIN 없이, DISTINCT 없이)
+    const matchIdRows = await this.matchRepository
+      .createQueryBuilder('match')
+      .select('match.id')
+      .where('match.player1Id = :userId OR match.player2Id = :userId', { userId })
+      .orderBy('match.createdAt', 'DESC')
+      .limit(10)
+      .getRawMany();
+
+    const matchIds = matchIdRows.map((r: unknown) => (r as { match_id: number }).match_id);
+
+    if (matchIds.length === 0) {
+      return { matchHistory: [] };
+    }
+
+    // Steprounds 체인 로딩 (problemBanks 없음 → 카테시안 곱 방지)
+    // take 없음 → TypeORM DISTINCT 서브쿼리 미생성
     const matches = await this.matchRepository.find({
-      where: [{ player1Id: userId }, { player2Id: userId }],
+      where: { id: In(matchIds) },
       relations: [
         'player1',
         'player2',
@@ -89,15 +106,40 @@ export class UserService {
         'rounds.question.categoryQuestions',
         'rounds.question.categoryQuestions.category',
         'rounds.question.categoryQuestions.category.parent',
-        'problemBanks',
-        'problemBanks.question',
-        'problemBanks.question.categoryQuestions',
-        'problemBanks.question.categoryQuestions.category',
-        'problemBanks.question.categoryQuestions.category.parent',
       ],
       order: { createdAt: 'DESC' },
-      take: 10,
     });
+
+    // problemBanks 별도 로딩 (single 매치의 카테고리 fallback용)
+    const singleMatchIds = matches.filter((m) => m.matchType === 'single').map((m) => Number(m.id));
+
+    if (singleMatchIds.length > 0) {
+      const problemBanks = await this.userProblemBankRepository.find({
+        where: { matchId: In(singleMatchIds) },
+        relations: [
+          'question',
+          'question.categoryQuestions',
+          'question.categoryQuestions.category',
+          'question.categoryQuestions.category.parent',
+        ],
+      });
+
+      // 매치에 problemBanks 수동 매핑
+      const pbByMatchId = new Map<number, UserProblemBank[]>();
+
+      for (const pb of problemBanks) {
+        const mid = Number(pb.matchId);
+        const list = pbByMatchId.get(mid) ?? [];
+        list.push(pb);
+        pbByMatchId.set(mid, list);
+      }
+
+      for (const match of matches) {
+        if (match.matchType === 'single') {
+          match.problemBanks = pbByMatchId.get(Number(match.id)) ?? [];
+        }
+      }
+    }
 
     const matchHistory = await Promise.all(
       matches.map((match) =>
