@@ -154,7 +154,8 @@ export class LeaderboardService {
       [userId],
     );
 
-    const rank = rankRow[0]?.rank ?? 0;
+    const rank =
+      rankRow[0]?.rank ?? (await this.getMultiRankFallback(tierPoint, winCount, loseCount));
 
     return {
       rank,
@@ -165,6 +166,33 @@ export class LeaderboardService {
       loseCount,
       tier: myStats.tier,
     };
+  }
+
+  private async getMultiRankFallback(
+    tierPoint: number,
+    winCount: number,
+    loseCount: number,
+  ): Promise<number> {
+    const total = winCount + loseCount;
+    const winRate = total > 0 ? winCount / total : 0;
+
+    const result = await this.dataSource.query<{ rank: string }[]>(
+      `SELECT COUNT(*) + 1 AS rank
+       FROM user_statistics
+       WHERE tier_point > $1
+          OR (tier_point = $1
+              AND CASE WHEN win_count + lose_count > 0
+                       THEN win_count * 1.0 / (win_count + lose_count)
+                       ELSE 0 END > $2)
+          OR (tier_point = $1
+              AND CASE WHEN win_count + lose_count > 0
+                       THEN win_count * 1.0 / (win_count + lose_count)
+                       ELSE 0 END = $2
+              AND win_count + lose_count > $3)`,
+      [tierPoint, winRate, total],
+    );
+
+    return Number(result[0]?.rank ?? 1);
   }
 
   private async getSingleLeaderboard(userId: number): Promise<SingleLeaderboardResponseDto> {
@@ -251,7 +279,8 @@ export class LeaderboardService {
       [userId],
     );
 
-    const rank = rankRow[0]?.rank ?? 0;
+    const rank =
+      rankRow[0]?.rank ?? (await this.getSingleRankFallback(expPoint, solvedCount, correctCount));
 
     return {
       rank,
@@ -262,5 +291,31 @@ export class LeaderboardService {
       solvedCount,
       correctCount,
     };
+  }
+
+  private async getSingleRankFallback(
+    expPoint: number,
+    solvedCount: number,
+    correctCount: number,
+  ): Promise<number> {
+    const correctRate = solvedCount > 0 ? correctCount / solvedCount : 0;
+
+    const result = await this.dataSource.query<{ rank: string }[]>(
+      `SELECT COUNT(*) + 1 AS rank
+       FROM user_statistics
+       WHERE exp_point > $1
+          OR (exp_point = $1
+              AND CASE WHEN solved_count > 0
+                       THEN correct_count * 1.0 / solved_count
+                       ELSE 0 END > $2)
+          OR (exp_point = $1
+              AND CASE WHEN solved_count > 0
+                       THEN correct_count * 1.0 / solved_count
+                       ELSE 0 END = $2
+              AND solved_count > $3)`,
+      [expPoint, correctRate, solvedCount],
+    );
+
+    return Number(result[0]?.rank ?? 1);
   }
 }

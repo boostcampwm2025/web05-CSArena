@@ -5,6 +5,7 @@ import { DataSource } from 'typeorm';
 export class RankRefreshService implements OnApplicationBootstrap, OnModuleDestroy {
   private readonly logger = new Logger(RankRefreshService.name);
   private readonly REFRESH_INTERVAL_MS = 60000;
+  private readonly ADVISORY_LOCK_KEY = 7233597;
   private intervalId: NodeJS.Timeout | null = null;
   private isRefreshing = false;
 
@@ -28,7 +29,7 @@ export class RankRefreshService implements OnApplicationBootstrap, OnModuleDestr
 
   private async createExpressionIndexes(): Promise<void> {
     await this.dataSource.query(`
-      CREATE INDEX IF NOT EXISTS idx_multi_ranking ON user_statistics (
+      CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_multi_ranking ON user_statistics (
         tier_point DESC,
         (CASE WHEN win_count + lose_count > 0
               THEN win_count * 1.0 / (win_count + lose_count)
@@ -38,7 +39,7 @@ export class RankRefreshService implements OnApplicationBootstrap, OnModuleDestr
     `);
 
     await this.dataSource.query(`
-      CREATE INDEX IF NOT EXISTS idx_single_ranking ON user_statistics (
+      CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_single_ranking ON user_statistics (
         exp_point DESC,
         (CASE WHEN solved_count > 0
               THEN correct_count * 1.0 / solved_count
@@ -48,12 +49,12 @@ export class RankRefreshService implements OnApplicationBootstrap, OnModuleDestr
     `);
 
     await this.dataSource.query(`
-      CREATE INDEX IF NOT EXISTS idx_user_stats_tier_point
+      CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_user_stats_tier_point
         ON user_statistics (tier_point DESC)
     `);
 
     await this.dataSource.query(`
-      CREATE INDEX IF NOT EXISTS idx_user_stats_exp_point
+      CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_user_stats_exp_point
         ON user_statistics (exp_point DESC)
     `);
 
@@ -109,6 +110,15 @@ export class RankRefreshService implements OnApplicationBootstrap, OnModuleDestr
       return;
     }
 
+    const lockResult = await this.dataSource.query<{ acquired: boolean }[]>(
+      'SELECT pg_try_advisory_lock($1) AS acquired',
+      [this.ADVISORY_LOCK_KEY],
+    );
+
+    if (!lockResult[0]?.acquired) {
+      return;
+    }
+
     this.isRefreshing = true;
 
     try {
@@ -118,6 +128,7 @@ export class RankRefreshService implements OnApplicationBootstrap, OnModuleDestr
       this.logger.error(`Rank view refresh failed: ${(error as Error).message}`);
     } finally {
       this.isRefreshing = false;
+      await this.dataSource.query('SELECT pg_advisory_unlock($1)', [this.ADVISORY_LOCK_KEY]);
     }
   }
 }
