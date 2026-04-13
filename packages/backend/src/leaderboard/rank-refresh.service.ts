@@ -109,24 +109,34 @@ export class RankRefreshService implements OnApplicationBootstrap, OnModuleDestr
       return;
     }
 
-    const lockResult = await this.dataSource.query<{ acquired: boolean }[]>(
-      `SELECT pg_try_advisory_lock(hashtext('rank_refresh')) AS acquired`,
-    );
-
-    if (!lockResult[0]?.acquired) {
-      return;
-    }
-
-    this.isRefreshing = true;
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    let lockAcquired = false;
 
     try {
-      await this.dataSource.query('REFRESH MATERIALIZED VIEW CONCURRENTLY mv_multi_rank');
-      await this.dataSource.query('REFRESH MATERIALIZED VIEW CONCURRENTLY mv_single_rank');
+      const lockResult = (await queryRunner.query(
+        `SELECT pg_try_advisory_lock(hashtext('rank_refresh')) AS acquired`,
+      )) as { acquired: boolean }[];
+      lockAcquired = !!lockResult[0]?.acquired;
+
+      if (!lockAcquired) {
+        return;
+      }
+
+      this.isRefreshing = true;
+
+      await queryRunner.query('REFRESH MATERIALIZED VIEW CONCURRENTLY mv_multi_rank');
+      await queryRunner.query('REFRESH MATERIALIZED VIEW CONCURRENTLY mv_single_rank');
     } catch (error) {
       this.logger.error(`Rank view refresh failed: ${(error as Error).message}`);
     } finally {
       this.isRefreshing = false;
-      await this.dataSource.query(`SELECT pg_advisory_unlock(hashtext('rank_refresh'))`);
+
+      if (lockAcquired) {
+        await queryRunner.query(`SELECT pg_advisory_unlock(hashtext('rank_refresh'))`);
+      }
+
+      await queryRunner.release();
     }
   }
 }
