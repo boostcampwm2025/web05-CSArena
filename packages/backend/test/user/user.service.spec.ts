@@ -328,7 +328,7 @@ describe('UserService', () => {
 
       mockQueryBuilder.getRawMany.mockResolvedValue([{ match_id: 1 }]);
       mockMatchRepository.find.mockResolvedValue(mockMatches);
-      mockUserTierHistoryRepository.findOne.mockResolvedValue(mockTierHistory);
+      mockUserTierHistoryRepository.find.mockResolvedValue([{ matchId: 1, tierChange: 25 }]);
 
       const result = await service.getMatchHistory(1);
 
@@ -401,7 +401,7 @@ describe('UserService', () => {
 
       mockQueryBuilder.getRawMany.mockResolvedValue([{ match_id: 3 }]);
       mockMatchRepository.find.mockResolvedValue(mockMatches);
-      mockUserTierHistoryRepository.findOne.mockResolvedValue(null);
+      mockUserTierHistoryRepository.find.mockResolvedValue([]);
 
       const result = await service.getMatchHistory(1);
 
