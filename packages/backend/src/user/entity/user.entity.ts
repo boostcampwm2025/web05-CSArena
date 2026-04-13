@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
@@ -12,6 +13,7 @@ import { RoundAnswer } from '../../match/entity';
 import { UserProblemBank } from '../../problem-bank/entity';
 
 @Entity('users')
+@Index('idx_users_oauth', ['oauthProvider', 'oauthId'], { unique: true })
 export class User {
   @PrimaryGeneratedColumn('increment', { type: 'bigint' })
   id: number;
