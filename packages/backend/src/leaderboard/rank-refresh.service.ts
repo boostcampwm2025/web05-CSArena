@@ -5,7 +5,6 @@ import { DataSource } from 'typeorm';
 export class RankRefreshService implements OnApplicationBootstrap, OnModuleDestroy {
   private readonly logger = new Logger(RankRefreshService.name);
   private readonly REFRESH_INTERVAL_MS = 60000;
-  private readonly ADVISORY_LOCK_KEY = 7233597;
   private intervalId: NodeJS.Timeout | null = null;
   private isRefreshing = false;
 
@@ -111,8 +110,7 @@ export class RankRefreshService implements OnApplicationBootstrap, OnModuleDestr
     }
 
     const lockResult = await this.dataSource.query<{ acquired: boolean }[]>(
-      'SELECT pg_try_advisory_lock($1) AS acquired',
-      [this.ADVISORY_LOCK_KEY],
+      `SELECT pg_try_advisory_lock(hashtext('rank_refresh')) AS acquired`,
     );
 
     if (!lockResult[0]?.acquired) {
@@ -128,7 +126,7 @@ export class RankRefreshService implements OnApplicationBootstrap, OnModuleDestr
       this.logger.error(`Rank view refresh failed: ${(error as Error).message}`);
     } finally {
       this.isRefreshing = false;
-      await this.dataSource.query('SELECT pg_advisory_unlock($1)', [this.ADVISORY_LOCK_KEY]);
+      await this.dataSource.query(`SELECT pg_advisory_unlock(hashtext('rank_refresh'))`);
     }
   }
 }
