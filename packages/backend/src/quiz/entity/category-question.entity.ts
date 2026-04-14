@@ -1,8 +1,10 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { Category } from './category.entity';
 import { Question } from './question.entity';
 
 @Entity('category_questions')
+@Index('idx_category_questions_category', ['categoryId'])
+@Index('idx_category_questions_question', ['questionId'])
 export class CategoryQuestion {
   @PrimaryGeneratedColumn('increment', { type: 'bigint' })
   id: number;
