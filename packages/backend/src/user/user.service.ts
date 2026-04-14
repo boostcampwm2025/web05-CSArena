@@ -32,10 +32,13 @@ export class UserService {
   ) {}
 
   async getMyPageData(userId: number): Promise<MyPageResponseDto> {
-    const user = await this.userRepository.findOne({
-      where: { id: userId },
-      relations: ['statistics'],
-    });
+    const [user, problemStats] = await Promise.all([
+      this.userRepository.findOne({
+        where: { id: userId },
+        relations: ['statistics'],
+      }),
+      this.buildProblemStats(userId),
+    ]);
 
     if (!user) {
       throw new NotFoundException('사용자를 찾을 수 없습니다.');
@@ -49,7 +52,6 @@ export class UserService {
     const rank = this.buildRank(tierPoint);
     const { level, needExpPoint, remainedExpPoint } = calcLevel(expPoint);
     const matchStats = this.buildMatchStats(stats);
-    const problemStats = await this.buildProblemStats(userId);
 
     return {
       profile,

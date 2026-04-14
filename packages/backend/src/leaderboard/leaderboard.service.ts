@@ -53,8 +53,10 @@ export class LeaderboardService {
   }
 
   private async getMultiLeaderboard(userId: number): Promise<MultiLeaderboardResponseDto> {
-    const rankings = await this.getMultiRankings();
-    const myRanking = await this.getMultiMyRanking(userId);
+    const [rankings, myRanking] = await Promise.all([
+      this.getMultiRankings(),
+      this.getMultiMyRanking(userId),
+    ]);
 
     return { rankings, myRanking };
   }
@@ -196,8 +198,10 @@ export class LeaderboardService {
   }
 
   private async getSingleLeaderboard(userId: number): Promise<SingleLeaderboardResponseDto> {
-    const rankings = await this.getSingleRankings();
-    const myRanking = await this.getSingleMyRanking(userId);
+    const [rankings, myRanking] = await Promise.all([
+      this.getSingleRankings(),
+      this.getSingleMyRanking(userId),
+    ]);
 
     return { rankings, myRanking };
   }
