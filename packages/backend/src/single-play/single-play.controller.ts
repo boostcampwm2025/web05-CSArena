@@ -9,6 +9,7 @@ import {
   UseGuards,
   ValidationPipe,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { SinglePlayService } from './single-play.service';
 import { GetQuestionDto, SubmitAnswerDto } from './dto';
@@ -137,6 +138,7 @@ export class SinglePlayController {
    * POST /api/singleplay/submit
    */
   @Post('submit')
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')

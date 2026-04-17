@@ -1,5 +1,6 @@
 import { MiddlewareConsumer, Module, ModuleMetadata, NestModule } from '@nestjs/common';
-import { APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { MetricsIpMiddleware } from './metrics/metrics-ip.middleware';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -50,6 +51,7 @@ const metadata: ModuleMetadata = {
     SentryModule.forRoot(),
     configModule,
     typeOrmModule,
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 60 }]),
     WinstonModule.forRoot(feedbackLoggerConfig),
     MetricsModule,
     TierModule, // 티어 시드 데이터 자동 삽입
@@ -69,6 +71,10 @@ const metadata: ModuleMetadata = {
     {
       provide: 'APP_FILTER',
       useClass: SentryGlobalFilter,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
     },
     {
       provide: APP_INTERCEPTOR,
