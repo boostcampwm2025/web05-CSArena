@@ -5,10 +5,12 @@ import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import compression from 'compression';
+import type { Application } from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  (app.getHttpAdapter().getInstance() as Application).set('trust proxy', 1);
   app.use(compression());
   app.use(cookieParser());
 
