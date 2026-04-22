@@ -40,10 +40,17 @@ export class RedisMatchQueue implements IMatchQueue, OnModuleDestroy {
     local queuedAt = ARGV[3]
     local allowedRange = tonumber(ARGV[4])
 
-    -- 중복 체크
+    -- 중복 체크 — 메타데이터(${PLAYER_DATA_PREFIX}) TTL은 300s인데
+    -- ZSET 멤버는 자동 만료되지 않아 stale 항목이 남을 수 있음.
+    -- 메타데이터가 살아있을 때만 "이미 큐에 있음"으로 판단하고,
+    -- 없으면 stale로 간주해 ZREM 후 신규 추가 절차를 그대로 진행.
     local existingScore = redis.call('ZSCORE', queueKey, userId)
     if existingScore then
-      return nil
+      local existingData = redis.call('GET', '${PLAYER_DATA_PREFIX}' .. userId)
+      if existingData then
+        return nil
+      end
+      redis.call('ZREM', queueKey, userId)
     end
 
     -- 허용 범위 내 후보 탐색
@@ -200,8 +207,12 @@ export class RedisMatchQueue implements IMatchQueue, OnModuleDestroy {
     const now = Date.now();
     const allowedRange = this.getEloRangeForWaitTime(0); // 방금 들어온 플레이어
 
+    // Redis 오류는 throw — null은 "큐 추가만 됨, 매칭 없음"의 정상 결과와
+    // 구분되어야 하므로 실패를 숨기지 않는다.
+    let matchedUserId: string | null;
+
     try {
-      const matchedUserId = await this.redis.eval(
+      matchedUserId = (await this.redis.eval(
         this.addAndMatchScript,
         1,
         QUEUE_KEY,
@@ -209,28 +220,27 @@ export class RedisMatchQueue implements IMatchQueue, OnModuleDestroy {
         eloRating.toString(),
         now.toString(),
         allowedRange.toString(),
-      );
-
-      if (matchedUserId) {
-        const roomId = randomUUID();
-        this.logger.log(`Match found: ${userId} (${eloRating}) vs ${matchedUserId as string}`);
-
-        return {
-          player1: userId,
-          player2: matchedUserId as string,
-          roomId,
-        };
-      }
-
-      this.logger.log(`User ${userId} added to Redis queue (ELO: ${eloRating})`);
-
-      return null;
+      )) as string | null;
     } catch (error) {
       const message = error instanceof Error ? error.message : 'unknown error';
       this.logger.error(`Failed to add to queue: ${message}`);
-
-      return null;
+      throw error;
     }
+
+    if (matchedUserId) {
+      const roomId = randomUUID();
+      this.logger.log(`Match found: ${userId} (${eloRating}) vs ${matchedUserId}`);
+
+      return {
+        player1: userId,
+        player2: matchedUserId,
+        roomId,
+      };
+    }
+
+    this.logger.log(`User ${userId} added to Redis queue (ELO: ${eloRating})`);
+
+    return null;
   }
 
   remove(userId: string): void {
