@@ -66,6 +66,18 @@ export class GameGateway implements OnGatewayDisconnect, OnGatewayInit, OnModule
       return { correlationId, ok: true };
     }
 
+    if (type === 'phase_timeout') {
+      const phase = payload?.phase as 'ready' | 'question' | 'review' | undefined;
+
+      if (!phase) {
+        return { correlationId, ok: false, error: 'Missing phase in phase_timeout command' };
+      }
+
+      await this.roundProgression.handleTimerExpired(roomId, phase);
+
+      return { correlationId, ok: true };
+    }
+
     return { correlationId, ok: false, error: `Unknown command type: ${String(type)}` };
   }
 
@@ -134,7 +146,7 @@ export class GameGateway implements OnGatewayDisconnect, OnGatewayInit, OnModule
 
       // 양쪽 모두 제출했으면 그레이딩 시작
       if (this.sessionManager.isAllSubmitted(roomId)) {
-        this.roundTimer.clearQuestionTimer(roomId);
+        await this.roundTimer.clearQuestionTimer(roomId);
         this.roundTimer.clearTickInterval(roomId);
         await this.roundProgression.phaseGrading(roomId);
       }
@@ -186,7 +198,7 @@ export class GameGateway implements OnGatewayDisconnect, OnGatewayInit, OnModule
    * 연결 끊김 처리 (로컬 + 원격 커맨드 버스 모두에서 호출)
    */
   private async processDisconnect(roomId: string, userId: string): Promise<void> {
-    this.roundTimer.clearAllTimers(roomId);
+    await this.roundTimer.clearAllTimers(roomId);
 
     const gameSession = this.sessionManager.getGameSession(roomId);
 

@@ -9,13 +9,14 @@ const COMMAND_CHANNEL_PREFIX = 'game:commands';
 const RESPONSE_CHANNEL_PREFIX = 'game:responses';
 
 export interface GameCommand {
-  type: 'submit_answer' | 'disconnect';
+  type: 'submit_answer' | 'disconnect' | 'phase_timeout';
   correlationId: string;
   roomId: string;
   userId: string;
   payload?: {
     answer?: string;
     socketId?: string;
+    phase?: string;
   };
 }
 
