@@ -34,13 +34,32 @@ export class RoundProgressionService {
    * 라운드 시퀀스 시작
    */
   startRoundSequence(roomId: string): void {
-    this.phaseReady(roomId);
+    void this.phaseReady(roomId);
+  }
+
+  /**
+   * BullMQ 워커에서 호출: 페이즈 타임아웃 처리
+   */
+  async handleTimerExpired(roomId: string, phase: 'ready' | 'question' | 'review'): Promise<void> {
+    switch (phase) {
+      case 'ready':
+        await this.phaseQuestion(roomId);
+        break;
+      case 'question':
+        this.handleQuestionTimeout(roomId);
+        break;
+      case 'review':
+        await this.transitionToNextRound(roomId);
+        break;
+      default:
+        this.logger.warn(`Unknown phase timeout: ${phase as string} for room ${roomId}`);
+    }
   }
 
   /**
    * Phase 1: Ready (준비 카운트다운)
    */
-  private phaseReady(roomId: string): void {
+  private async phaseReady(roomId: string): Promise<void> {
     try {
       this.sessionManager.setPhase(roomId, 'ready');
       const session = this.sessionManager.getGameSession(roomId);
@@ -56,10 +75,8 @@ export class RoundProgressionService {
         totalRounds: session.totalRounds,
       });
 
-      // 준비 카운트다운 시작
-      this.roundTimer.startReadyCountdown(roomId, ROUND_DURATIONS.READY, () => {
-        void this.phaseQuestion(roomId);
-      });
+      // 준비 카운트다운 시작 (BullMQ delayed job)
+      await this.roundTimer.startReadyCountdown(roomId, ROUND_DURATIONS.READY);
 
       // 틱 인터벌 시작
       this.roundTimer.startTickInterval(roomId, ROUND_DURATIONS.READY, (remainedSec) => {
@@ -67,7 +84,7 @@ export class RoundProgressionService {
       });
     } catch (error) {
       this.logger.error(`Error in phaseReady for room ${roomId}:`, error);
-      this.roundTimer.clearAllTimers(roomId);
+      await this.roundTimer.clearAllTimers(roomId);
     }
   }
 
@@ -107,10 +124,8 @@ export class RoundProgressionService {
         question: transformedQuestion,
       });
 
-      // 타이머 시작
-      this.roundTimer.startQuestionTimer(roomId, questionDuration, () => {
-        this.handleQuestionTimeout(roomId);
-      });
+      // 타이머 시작 (BullMQ delayed job)
+      await this.roundTimer.startQuestionTimer(roomId, questionDuration);
 
       // 틱 인터벌 시작
       this.roundTimer.startTickInterval(roomId, questionDuration, (remainedSec) => {
@@ -118,7 +133,7 @@ export class RoundProgressionService {
       });
     } catch (error) {
       this.logger.error(`Error in phaseQuestion for room ${roomId}:`, error);
-      this.roundTimer.clearAllTimers(roomId);
+      await this.roundTimer.clearAllTimers(roomId);
     }
   }
 
@@ -136,10 +151,10 @@ export class RoundProgressionService {
       await this.processGrading(roomId);
 
       // 결과 확인 단계로 이동
-      this.phaseReview(roomId);
+      await this.phaseReview(roomId);
     } catch (error) {
       this.logger.error(`Error in phaseGrading for room ${roomId}:`, error);
-      this.roundTimer.clearAllTimers(roomId);
+      await this.roundTimer.clearAllTimers(roomId);
     }
   }
 
@@ -227,7 +242,7 @@ export class RoundProgressionService {
   /**
    * Phase 4: Review (결과 확인)
    */
-  private phaseReview(roomId: string): void {
+  private async phaseReview(roomId: string): Promise<void> {
     try {
       this.sessionManager.setPhase(roomId, 'review');
       const session = this.sessionManager.getGameSession(roomId);
@@ -307,10 +322,8 @@ export class RoundProgressionService {
         },
       });
 
-      // 리뷰 타이머 시작
-      this.roundTimer.startReviewTimer(roomId, reviewDuration, () => {
-        void this.transitionToNextRound(roomId);
-      });
+      // 리뷰 타이머 시작 (BullMQ delayed job)
+      await this.roundTimer.startReviewTimer(roomId, reviewDuration);
 
       // 틱 인터벌 시작
       this.roundTimer.startTickInterval(roomId, reviewDuration, (remainedSec) => {
@@ -318,7 +331,7 @@ export class RoundProgressionService {
       });
     } catch (error) {
       this.logger.error(`Error in phaseReview for room ${roomId}:`, error);
-      this.roundTimer.clearAllTimers(roomId);
+      await this.roundTimer.clearAllTimers(roomId);
     }
   }
 
@@ -338,7 +351,7 @@ export class RoundProgressionService {
       }
     } catch (error) {
       this.logger.error(`Error in transitionToNextRound for room ${roomId}:`, error);
-      this.roundTimer.clearAllTimers(roomId);
+      await this.roundTimer.clearAllTimers(roomId);
     }
   }
 
@@ -375,10 +388,10 @@ export class RoundProgressionService {
 
       // 세션 정리
       this.sessionManager.deleteGameSession(roomId);
-      this.roundTimer.clearAllTimers(roomId);
+      await this.roundTimer.clearAllTimers(roomId);
     } catch (error) {
       this.logger.error(`Error in finishGame for room ${roomId}:`, error);
-      this.roundTimer.clearAllTimers(roomId);
+      await this.roundTimer.clearAllTimers(roomId);
     }
   }
 

@@ -1,6 +1,7 @@
 import { MiddlewareConsumer, Module, ModuleMetadata, NestModule } from '@nestjs/common';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { BullModule } from '@nestjs/bullmq';
 import { MetricsIpMiddleware } from './metrics/metrics-ip.middleware';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -53,6 +54,16 @@ const metadata: ModuleMetadata = {
     configModule,
     typeOrmModule,
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 60 }]),
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        connection: {
+          host: configService.get('REDIS_HOST', 'localhost'),
+          port: parseInt(configService.get('REDIS_PORT', '6379'), 10),
+        },
+      }),
+      inject: [ConfigService],
+    }),
     WinstonModule.forRoot(feedbackLoggerConfig),
     MetricsModule,
     RedisModule,
