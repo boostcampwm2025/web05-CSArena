@@ -4,10 +4,14 @@
  * 실제 코드(packages/backend/src/matchmaking/queue/redis-match-queue.ts)에서
  * Lua 스크립트 문자열을 그대로 가져와 실행 → 원자성 + 매칭 로직 검증.
  *
- * 사용:
- *   node scripts/benchmarks/websocket-multi-instance/smoke-test-redis-queue.mjs
+ * 사용 (scripts/benchmarks 디렉터리는 pnpm workspace에 포함되지 않은
+ * 독립 패키지 — 루트 pnpm install로는 설치되지 않음):
+ *
+ *   cd scripts/benchmarks
+ *   pnpm install --ignore-workspace
+ *   pnpm smoke:queue
  */
-import Redis from '../../../packages/backend/node_modules/ioredis/built/index.js';
+import Redis from 'ioredis';
 
 const redis = new Redis({ host: 'localhost', port: 6379 });
 
