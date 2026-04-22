@@ -11,6 +11,7 @@ import { UserTierHistory } from '../tier/entity';
 import { RoundProgressionService } from './round-progression.service';
 import { RoundTimer } from './round-timer';
 import { MatchPersistenceService } from './match-persistence.service';
+import { GameCommandBus } from './game-command-bus';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { MatchPersistenceService } from './match-persistence.service';
     RoundProgressionService,
     RoundTimer,
     MatchPersistenceService,
+    GameCommandBus,
   ],
   exports: [GameSessionManager, RoundProgressionService],
 })

@@ -27,6 +27,12 @@ export class MetricsService {
 
     @InjectMetric('games_active_total')
     public readonly gamesActiveTotal: Gauge<string>,
+
+    @InjectMetric('game_command_forwards_total')
+    public readonly gameCommandForwardsTotal: Counter<string>,
+
+    @InjectMetric('game_command_forward_latency_seconds')
+    public readonly gameCommandForwardLatency: Histogram<string>,
   ) {}
 
   // HTTP 메트릭 기록
@@ -69,6 +75,16 @@ export class MetricsService {
   // 진행 중인 게임 수 감소
   decrementActiveGames(): void {
     this.gamesActiveTotal.dec();
+  }
+
+  // 게임 커맨드 포워딩 횟수 증가
+  incrementGameCommandForwards(): void {
+    this.gameCommandForwardsTotal.inc();
+  }
+
+  // 게임 커맨드 포워딩 지연 시간 기록
+  recordGameCommandForwardLatency(durationSeconds: number): void {
+    this.gameCommandForwardLatency.observe(durationSeconds);
   }
 
   // 경로 정규화 (동적 파라미터 제거)

@@ -56,6 +56,16 @@ import { HttpMetricsInterceptor } from './http-metrics.interceptor';
       help: 'Number of active game sessions',
     }),
 
+    makeCounterProvider({
+      name: 'game_command_forwards_total',
+      help: 'Total number of game commands forwarded to remote instances via Redis',
+    }),
+    makeHistogramProvider({
+      name: 'game_command_forward_latency_seconds',
+      help: 'Latency of cross-instance game command forwarding',
+      buckets: [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1],
+    }),
+
     MetricsService,
     HttpMetricsInterceptor,
   ],
