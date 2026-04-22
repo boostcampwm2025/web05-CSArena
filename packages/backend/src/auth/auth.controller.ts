@@ -1,6 +1,7 @@
 import { Controller, Get, NotFoundException, Query, Req, Res, UseGuards } from '@nestjs/common';
 import { ApiCookieAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
+import { Throttle } from '@nestjs/throttler';
 import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { ConfigService } from '@nestjs/config';
@@ -19,6 +20,7 @@ export class AuthController {
   ) {}
 
   @Get('dev-login')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @ApiOperation({
     summary: '개발용 로그인',
     description: '개발 환경에서만 사용 가능한 로그인 엔드포인트입니다.',
@@ -52,6 +54,7 @@ export class AuthController {
   }
 
   @Get('github')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @UseGuards(AuthGuard('github'))
   @ApiOperation({
     summary: 'GitHub OAuth 로그인',
@@ -63,6 +66,7 @@ export class AuthController {
   }
 
   @Get('github/callback')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @UseGuards(AuthGuard('github'))
   @ApiOperation({
     summary: 'GitHub OAuth 콜백',
@@ -89,6 +93,7 @@ export class AuthController {
   }
 
   @Get('refresh')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @ApiOperation({
     summary: '토큰 갱신',
     description: 'Refresh Token을 사용하여 새로운 Access Token을 발급합니다.',
