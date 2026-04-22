@@ -1,19 +1,27 @@
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { QueueSession } from './queue/queue.session';
 import { UserInfo } from '../user/interfaces';
 import { randomUUID } from 'crypto';
+import { REDIS_CLIENT } from '../common/redis.module';
+import Redis from 'ioredis';
 
+const SESSION_TTL = 300; // 5분
+
+@Injectable()
 export class MatchmakingSessionManager {
-  private socketToUser = new Map<string, string>();
-  private userToSocket = new Map<string, string>();
-  private queueSessions = new Map<string, QueueSession>();
+  private readonly logger = new Logger(MatchmakingSessionManager.name);
   private roomSessions = new Map<string, Set<string>>();
 
-  registerUser(socketId: string, userId: string): void {
-    this.socketToUser.set(socketId, userId);
-    this.userToSocket.set(userId, socketId);
+  constructor(@Inject(REDIS_CLIENT) private readonly redis: Redis) {}
+
+  async registerUser(socketId: string, userId: string): Promise<void> {
+    await Promise.all([
+      this.redis.set(`mm:socket:${socketId}`, userId, 'EX', SESSION_TTL),
+      this.redis.set(`mm:user:${userId}`, socketId, 'EX', SESSION_TTL),
+    ]);
   }
 
-  createQueueSession(socketId: string, userId: string, userInfo: UserInfo): string {
+  async createQueueSession(socketId: string, userId: string, userInfo: UserInfo): Promise<string> {
     const sessionId = randomUUID();
     const session: QueueSession = {
       sessionId,
@@ -22,39 +30,66 @@ export class MatchmakingSessionManager {
       userInfo,
     };
 
-    this.socketToUser.set(socketId, userId);
-    this.userToSocket.set(userId, socketId);
-    this.queueSessions.set(sessionId, session);
+    await Promise.all([
+      this.redis.set(`mm:socket:${socketId}`, userId, 'EX', SESSION_TTL),
+      this.redis.set(`mm:user:${userId}`, socketId, 'EX', SESSION_TTL),
+      this.redis.set(`mm:session:${sessionId}`, JSON.stringify(session), 'EX', SESSION_TTL),
+      this.redis.set(`mm:session:user:${userId}`, sessionId, 'EX', SESSION_TTL),
+      this.redis.set(`mm:session:socket:${socketId}`, sessionId, 'EX', SESSION_TTL),
+    ]);
 
     return sessionId;
   }
 
-  getQueueSession(sessionId: string): QueueSession | undefined {
-    return this.queueSessions.get(sessionId);
+  async getQueueSession(sessionId: string): Promise<QueueSession | undefined> {
+    const data = await this.redis.get(`mm:session:${sessionId}`);
+
+    return data ? (JSON.parse(data) as QueueSession) : undefined;
   }
 
-  getQueueSessionBySocketId(socketId: string): QueueSession | undefined {
-    return Array.from(this.queueSessions.values()).find((s) => s.socketId === socketId);
-  }
+  async getQueueSessionBySocketId(socketId: string): Promise<QueueSession | undefined> {
+    const sessionId = await this.redis.get(`mm:session:socket:${socketId}`);
 
-  getQueueSessionByUserId(userId: string): QueueSession | undefined {
-    return Array.from(this.queueSessions.values()).find((s) => s.userId === userId);
-  }
-
-  removeQueueSession(sessionId: string): void {
-    const session = this.queueSessions.get(sessionId);
-
-    if (session) {
-      this.socketToUser.delete(session.socketId);
-      this.userToSocket.delete(session.userId);
-      this.queueSessions.delete(sessionId);
+    if (!sessionId) {
+      return undefined;
     }
+
+    return this.getQueueSession(sessionId);
   }
 
-  getUserId(socketId: string): string | undefined {
-    return this.socketToUser.get(socketId);
+  async getQueueSessionByUserId(userId: string): Promise<QueueSession | undefined> {
+    const sessionId = await this.redis.get(`mm:session:user:${userId}`);
+
+    if (!sessionId) {
+      return undefined;
+    }
+
+    return this.getQueueSession(sessionId);
   }
 
+  async removeQueueSession(sessionId: string): Promise<void> {
+    const session = await this.getQueueSession(sessionId);
+
+    if (!session) {
+      return;
+    }
+
+    await Promise.all([
+      this.redis.del(`mm:socket:${session.socketId}`),
+      this.redis.del(`mm:user:${session.userId}`),
+      this.redis.del(`mm:session:${sessionId}`),
+      this.redis.del(`mm:session:user:${session.userId}`),
+      this.redis.del(`mm:session:socket:${session.socketId}`),
+    ]);
+  }
+
+  async getUserId(socketId: string): Promise<string | undefined> {
+    const userId = await this.redis.get(`mm:socket:${socketId}`);
+
+    return userId || undefined;
+  }
+
+  // roomSessions는 로컬 유지 (해당 인스턴스의 disconnect 처리용)
   addToRoom(roomId: string, userId: string): void {
     if (!this.roomSessions.has(roomId)) {
       this.roomSessions.set(roomId, new Set());
@@ -85,8 +120,8 @@ export class MatchmakingSessionManager {
     return undefined;
   }
 
-  getRoomBySocketId(socketId: string): string | undefined {
-    const userId = this.socketToUser.get(socketId);
+  async getRoomBySocketId(socketId: string): Promise<string | undefined> {
+    const userId = await this.getUserId(socketId);
 
     if (!userId) {
       return undefined;
@@ -95,23 +130,26 @@ export class MatchmakingSessionManager {
     return this.getUserRoom(userId);
   }
 
-  disconnect(socketId: string): { userId?: string; sessionId?: string; roomId?: string } {
-    const userId = this.socketToUser.get(socketId);
-    const session = this.getQueueSessionBySocketId(socketId);
+  async disconnect(
+    socketId: string,
+  ): Promise<{ userId?: string; sessionId?: string; roomId?: string }> {
+    const userId = await this.getUserId(socketId);
+    const session = await this.getQueueSessionBySocketId(socketId);
     const roomId = userId ? this.getUserRoom(userId) : undefined;
 
     if (session) {
-      this.removeQueueSession(session.sessionId);
+      await this.removeQueueSession(session.sessionId);
     }
 
     if (userId && roomId) {
       this.removeFromRoom(roomId, userId);
     }
 
-    this.socketToUser.delete(socketId);
+    // 소켓-유저 매핑 정리
+    await this.redis.del(`mm:socket:${socketId}`);
 
     if (userId) {
-      this.userToSocket.delete(userId);
+      await this.redis.del(`mm:user:${userId}`);
     }
 
     return {
