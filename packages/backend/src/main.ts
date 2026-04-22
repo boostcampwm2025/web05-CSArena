@@ -6,12 +6,21 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import compression from 'compression';
 import type { Application } from 'express';
+import { RedisIoAdapter } from './common/redis-io-adapter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   (app.getHttpAdapter().getInstance() as Application).set('trust proxy', 1);
   app.use(compression());
+
+  // Redis IO Adapter 설정 (Socket.IO 인스턴스 간 이벤트 브로드캐스트)
+  const redisHost = process.env.REDIS_HOST || 'localhost';
+  const redisPort = parseInt(process.env.REDIS_PORT || '6379', 10);
+  const redisIoAdapter = new RedisIoAdapter(app, redisHost, redisPort);
+  await redisIoAdapter.connectToRedis();
+  app.useWebSocketAdapter(redisIoAdapter);
+
   app.use(cookieParser());
 
   app.enableCors({
