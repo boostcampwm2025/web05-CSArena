@@ -1,0 +1,12 @@
+## 포트 오버라이드: 기존 dev redis(6379)/postgres(5432)와 충돌 회피
+## 사용: docker compose -f docker-compose-multi.yml -f scripts/benchmarks/websocket-multi-instance/docker-compose-multi.override.yml up -d
+services:
+  redis:
+    ports:
+      - "6380:6379"
+  postgres:
+    ports:
+      - "5433:5432"
+  nginx:
+    ports:
+      - "8080:80"
