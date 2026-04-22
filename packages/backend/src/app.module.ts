@@ -20,6 +20,7 @@ import { UserModule } from './user/user.module';
 import { TierModule } from './tier/tier.module';
 import { SentryGlobalFilter, SentryModule } from '@sentry/nestjs/setup';
 import { HttpMetricsInterceptor, MetricsModule } from './metrics';
+import { RedisModule } from './common/redis.module';
 
 const configModule = ConfigModule.forRoot({
   isGlobal: true,
@@ -52,7 +53,8 @@ const metadata: ModuleMetadata = {
     typeOrmModule,
     WinstonModule.forRoot(feedbackLoggerConfig),
     MetricsModule,
-    TierModule, // 티어 시드 데이터 자동 삽입
+    RedisModule,
+    TierModule,
     AuthModule,
     QuizModule,
     MatchmakingModule,
