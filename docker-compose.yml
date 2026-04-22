@@ -1,4 +1,21 @@
 services:
+  redis:
+    image: redis:7-alpine
+    container_name: web05-redis
+    restart: unless-stopped
+    # AOF 영속화: appendonly=yes, fsync=everysec (성능/안정성 균형)
+    # 인프라 재시작에도 mm:* / matchmaking:queue 상태 유지
+    command: ["redis-server", "--appendonly", "yes", "--appendfsync", "everysec"]
+    volumes:
+      - redis_data:/data
+    ports:
+      - "127.0.0.1:6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
   postgres:
     image: postgres:18.1
     container_name: web05-postgres
@@ -73,3 +90,4 @@ volumes:
   postgres_data:
   prometheus_data:
   grafana_data:
+  redis_data:

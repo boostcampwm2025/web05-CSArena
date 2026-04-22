@@ -1,0 +1,13 @@
+{
+  "name": "csarena-benchmark-scripts",
+  "version": "0.0.0",
+  "private": true,
+  "description": "로컬 실행용 스모크/부하 테스트 스크립트 — 의존성은 이 디렉터리에서 독립적으로 관리",
+  "type": "module",
+  "scripts": {
+    "smoke:queue": "node websocket-multi-instance/smoke-test-redis-queue.mjs"
+  },
+  "dependencies": {
+    "ioredis": "^5.10.1"
+  }
+}
