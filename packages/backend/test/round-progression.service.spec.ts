@@ -42,6 +42,7 @@ describe('RoundProgressionService - AI Score Weighted Grading Logic', () => {
   const mockMetricsService = {
     incrementActiveGames: jest.fn(),
     decrementActiveGames: jest.fn(),
+    recordGameSessionLeakRecovered: jest.fn(),
   };
 
   beforeEach(async () => {
