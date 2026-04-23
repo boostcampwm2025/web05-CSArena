@@ -20,6 +20,9 @@ export interface GameSession {
   rounds: Map<number, RoundData>;
   currentPhase: 'ready' | 'question' | 'grading' | 'review' | 'finished';
   currentPhaseStartTime: number;
+  // 세션 수명 감사용. idle sweeper가 lastActivityAt 기준으로 stale 판정.
+  createdAt: number;
+  lastActivityAt: number;
 }
 
 export type RoundStatus = 'waiting' | 'in_progress' | 'completed';

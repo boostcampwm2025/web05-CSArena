@@ -100,6 +100,8 @@ describe('MatchPersistenceService', () => {
       rounds: new Map(),
       currentPhase: 'finished',
       currentPhaseStartTime: Date.now(),
+      createdAt: Date.now(),
+      lastActivityAt: Date.now(),
     };
 
     const finalResult = {

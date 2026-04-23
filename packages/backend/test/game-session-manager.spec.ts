@@ -39,8 +39,14 @@ describe('GameSessionManager - Game Session Management', () => {
     const mockMetricsService = {
       incrementActiveGames: jest.fn(),
       decrementActiveGames: jest.fn(),
+      recordGameSessionLeakRecovered: jest.fn(),
     } as any;
     sessionManager = new GameSessionManager(mockMetricsService);
+  });
+
+  afterEach(() => {
+    // setInterval 기반 sweeper가 테스트 런타임에 떠있지 않도록 정리
+    sessionManager.onModuleDestroy();
   });
 
   describe('createGameSession', () => {
@@ -613,7 +619,7 @@ describe('GameSessionManager - Game Session Management', () => {
     });
   });
 
-  describe('disconnectFromGame', () => {
+  describe('getDisconnectInfo', () => {
     beforeEach(() => {
       sessionManager.createGameSession(
         'room-1',
@@ -627,17 +633,52 @@ describe('GameSessionManager - Game Session Management', () => {
     });
 
     it('socketId로 연결 해제 정보를 반환해야 함', () => {
-      const disconnectInfo = sessionManager.disconnectFromGame('socket1');
+      const disconnectInfo = sessionManager.getDisconnectInfo('socket1');
 
       expect(disconnectInfo.userId).toBe('user1');
       expect(disconnectInfo.roomId).toBe('room-1');
     });
 
     it('등록되지 않은 socketId의 경우 undefined를 반환해야 함', () => {
-      const disconnectInfo = sessionManager.disconnectFromGame('non-existent');
+      const disconnectInfo = sessionManager.getDisconnectInfo('non-existent');
 
       expect(disconnectInfo.userId).toBeUndefined();
       expect(disconnectInfo.roomId).toBeUndefined();
+    });
+  });
+
+  describe('sweepStaleSessions', () => {
+    beforeEach(() => {
+      sessionManager.createGameSession(
+        'room-stale',
+        'user1',
+        'socket1',
+        mockUserInfo1,
+        'user2',
+        'socket2',
+        mockUserInfo2,
+      );
+    });
+
+    it('stale 기준(30분) 이하 세션은 남아있어야 함', () => {
+      const cleaned = sessionManager.sweepStaleSessions();
+
+      expect(cleaned).toBe(0);
+      expect(sessionManager.getGameSession('room-stale')).not.toBeNull();
+    });
+
+    it('lastActivityAt이 31분 이상 경과한 세션은 정리되어야 함', () => {
+      const session = sessionManager.getGameSession('room-stale');
+
+      if (!session) throw new Error('expected session');
+
+      // 31분 전으로 인위적 조작
+      session.lastActivityAt = Date.now() - 31 * 60 * 1000;
+
+      const cleaned = sessionManager.sweepStaleSessions();
+
+      expect(cleaned).toBe(1);
+      expect(sessionManager.getGameSession('room-stale')).toBeNull();
     });
   });
 });

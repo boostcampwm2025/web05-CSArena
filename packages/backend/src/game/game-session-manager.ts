@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import * as Sentry from '@sentry/nestjs';
 import { UserInfo } from '../user/interfaces';
 import { Question as QuestionEntity } from '../quiz/entity';
 import { MetricsService } from '../metrics';
@@ -11,11 +12,32 @@ import {
   Submission,
 } from './interfaces/game.interfaces';
 
+// Idle sweeper 설정
+// - 주기: 5분마다 검사
+// - stale 기준: 마지막 활동으로부터 30분 경과 (게임 1판 최대 ~5분 고려 시 여유)
+const SWEEP_INTERVAL_MS = 5 * 60 * 1000;
+const SESSION_STALE_MS = 30 * 60 * 1000;
+
 @Injectable()
-export class GameSessionManager {
+export class GameSessionManager implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(GameSessionManager.name);
   private gameSessions = new Map<string, GameSession>();
+  private sweepInterval: NodeJS.Timeout | null = null;
 
   constructor(private readonly metricsService: MetricsService) {}
+
+  onModuleInit(): void {
+    this.sweepInterval = setInterval(() => {
+      this.sweepStaleSessions();
+    }, SWEEP_INTERVAL_MS);
+  }
+
+  onModuleDestroy(): void {
+    if (this.sweepInterval) {
+      clearInterval(this.sweepInterval);
+      this.sweepInterval = null;
+    }
+  }
 
   /**
    * socketId로 userId 조회 (게임 세션에서)
@@ -48,9 +70,11 @@ export class GameSessionManager {
   }
 
   /**
-   * 게임 세션에서 연결 해제 처리
+   * socketId로부터 (userId, roomId)만 조회.
+   * 실제 세션 정리는 호출자가 deleteGameSession을 별도로 호출해야 한다.
+   * 이전 이름(disconnectFromGame)은 cleanup을 수행한다고 오해하기 쉬워 교정.
    */
-  disconnectFromGame(socketId: string): { userId?: string; roomId?: string } {
+  getDisconnectInfo(socketId: string): { userId?: string; roomId?: string } {
     const roomId = this.getRoomBySocketId(socketId);
     const userId = this.getUserIdBySocketId(socketId);
 
@@ -78,6 +102,7 @@ export class GameSessionManager {
       throw new Error(`이미 존재하는 게임 세션입니다: ${roomId}`);
     }
 
+    const now = Date.now();
     const session: GameSession = {
       roomId,
       player1Id,
@@ -92,13 +117,67 @@ export class GameSessionManager {
       totalRounds,
       rounds: new Map(),
       currentPhase: 'ready',
-      currentPhaseStartTime: Date.now(),
+      currentPhaseStartTime: now,
+      createdAt: now,
+      lastActivityAt: now,
     };
 
     this.gameSessions.set(roomId, session);
     this.metricsService.incrementActiveGames();
 
     return session;
+  }
+
+  /**
+   * 세션 활동 시각 갱신. phase 전환·답안 제출 등 상태 변경 시점에 호출.
+   * idle sweeper가 이 값을 기준으로 stale 세션을 판정한다.
+   */
+  private touchSession(session: GameSession): void {
+    session.lastActivityAt = Date.now();
+  }
+
+  /**
+   * Idle sweeper — SESSION_STALE_MS 이상 활동 없는 세션 일괄 정리.
+   * catch 블록 누락·비정상 종료 경로에서 남은 좀비 세션의 2차 방어선.
+   * 회수된 세션 수는 game_session_leak_recovered_total 메트릭에 기록.
+   */
+  sweepStaleSessions(): number {
+    const now = Date.now();
+    const staleRoomIds: string[] = [];
+
+    for (const [roomId, session] of this.gameSessions.entries()) {
+      if (now - session.lastActivityAt >= SESSION_STALE_MS) {
+        staleRoomIds.push(roomId);
+      }
+    }
+
+    for (const roomId of staleRoomIds) {
+      const session = this.gameSessions.get(roomId);
+
+      if (!session) {
+        continue;
+      }
+
+      const ageMs = now - session.createdAt;
+      const idleMs = now - session.lastActivityAt;
+
+      this.logger.warn(
+        `Stale session reclaimed: roomId=${roomId} age=${Math.round(ageMs / 1000)}s idle=${Math.round(
+          idleMs / 1000,
+        )}s phase=${session.currentPhase}`,
+      );
+      Sentry.captureMessage('Stale game session reclaimed', {
+        level: 'warning',
+        tags: { roomId, phase: session.currentPhase },
+        extra: { ageMs, idleMs },
+      });
+
+      this.gameSessions.delete(roomId);
+      this.metricsService.decrementActiveGames();
+      this.metricsService.recordGameSessionLeakRecovered('idle');
+    }
+
+    return staleRoomIds.length;
   }
 
   getGameSession(roomId: string): GameSession | null {
@@ -137,6 +216,7 @@ export class GameSessionManager {
 
     session.rounds.set(nextRoundNumber, roundData);
     session.currentRound = nextRoundNumber;
+    this.touchSession(session);
 
     return roundData;
   }
@@ -184,6 +264,7 @@ export class GameSessionManager {
     };
 
     round.submissions[playerId] = submission;
+    this.touchSession(session);
 
     return submission;
   }
@@ -221,6 +302,7 @@ export class GameSessionManager {
 
     round.result = result;
     round.status = 'completed';
+    this.touchSession(session);
   }
 
   getRoundResult(roomId: string, roundNumber?: number): RoundResult | null {
@@ -294,6 +376,7 @@ export class GameSessionManager {
     const session = this.getGameSessionOrThrow(roomId);
     session.currentPhase = phase;
     session.currentPhaseStartTime = Date.now();
+    this.touchSession(session);
   }
 
   getPhase(roomId: string): RoundPhase {
