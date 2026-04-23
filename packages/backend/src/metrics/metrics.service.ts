@@ -33,6 +33,9 @@ export class MetricsService {
 
     @InjectMetric('game_command_forward_latency_seconds')
     public readonly gameCommandForwardLatency: Histogram<string>,
+
+    @InjectMetric('game_session_leak_recovered_total')
+    public readonly gameSessionLeakRecovered: Counter<string>,
   ) {}
 
   // HTTP 메트릭 기록
@@ -85,6 +88,11 @@ export class MetricsService {
   // 게임 커맨드 포워딩 지연 시간 기록
   recordGameCommandForwardLatency(durationSeconds: number): void {
     this.gameCommandForwardLatency.observe(durationSeconds);
+  }
+
+  // Idle sweeper가 회수한 누수 세션 기록
+  recordGameSessionLeakRecovered(reason: 'idle' | 'catch_error'): void {
+    this.gameSessionLeakRecovered.inc({ reason });
   }
 
   // 경로 정규화 (동적 파라미터 제거)

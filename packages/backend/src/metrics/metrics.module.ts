@@ -66,6 +66,13 @@ import { HttpMetricsInterceptor } from './http-metrics.interceptor';
       buckets: [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1],
     }),
 
+    // Idle sweeper가 회수한 누수 세션 수 (catch 블록 누락·비정상 종료 경로 감지)
+    makeCounterProvider({
+      name: 'game_session_leak_recovered_total',
+      help: 'Number of stale game sessions cleaned up by the idle sweeper',
+      labelNames: ['reason'],
+    }),
+
     MetricsService,
     HttpMetricsInterceptor,
   ],
