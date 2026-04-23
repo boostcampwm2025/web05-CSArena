@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { DataSource, EntityManager, Repository } from 'typeorm';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { getQueueToken } from '@nestjs/bullmq';
 import { MatchPersistenceService } from '../src/game/match-persistence.service';
 import { GameSessionManager } from '../src/game/game-session-manager';
 import { QuizService } from '../src/quiz/quiz.service';
@@ -8,6 +9,7 @@ import { Match, Round, RoundAnswer } from '../src/match/entity';
 import { UserProblemBank } from '../src/problem-bank/entity';
 import { UserStatistics } from '../src/user/entity';
 import { GameSession } from '../src/game/interfaces/game.interfaces';
+import { MATCH_PERSISTENCE_QUEUE } from '../src/game/queues/queue.constants';
 
 describe('MatchPersistenceService', () => {
   let service: MatchPersistenceService;
@@ -59,6 +61,10 @@ describe('MatchPersistenceService', () => {
         {
           provide: QuizService,
           useValue: mockQuizService,
+        },
+        {
+          provide: getQueueToken(MATCH_PERSISTENCE_QUEUE),
+          useValue: { add: jest.fn() },
         },
       ],
     }).compile();
