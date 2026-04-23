@@ -1,8 +1,16 @@
 import { HttpException, Injectable, Logger } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import { DataSource, EntityManager } from 'typeorm';
 import { GameSessionManager } from './game-session-manager';
 import { QuizService } from '../quiz/quiz.service';
-import { FinalResult, GameSession } from './interfaces/game.interfaces';
+import {
+  FinalResult,
+  GameSession,
+  GradeResult,
+  RoundResult,
+  Submission,
+} from './interfaces/game.interfaces';
 import { Match, Round, RoundAnswer } from '../match/entity';
 import { UserProblemBank } from '../problem-bank/entity';
 import { UserStatistics } from '../user/entity';
@@ -10,6 +18,7 @@ import { Tier, UserTierHistory } from '../tier/entity';
 import { calculateMatchEloUpdate } from '../common/utils/elo.util';
 import { calculateTier } from '../common/utils/tier.util';
 import { parseUserId } from '../common/utils/parse-user-id.util';
+import { MATCH_PERSISTENCE_QUEUE } from './queues/queue.constants';
 
 class NonRetryableError extends Error {
   constructor(message: string) {
@@ -19,21 +28,45 @@ class NonRetryableError extends Error {
   }
 }
 
+export interface SerializedRoundData {
+  roundNumber: number;
+  questionId: number | null;
+  questionType: string | null;
+  submissions: { [playerId: string]: Submission | null };
+  result: RoundResult | null;
+}
+
+export interface SessionSnapshot {
+  roomId: string;
+  player1Id: string;
+  player2Id: string;
+  player1Score: number;
+  player2Score: number;
+  rounds: SerializedRoundData[];
+}
+
+export interface MatchPersistenceJobData {
+  snapshot: SessionSnapshot;
+  finalResult: FinalResult;
+}
+
 @Injectable()
 export class MatchPersistenceService {
   private readonly logger = new Logger(MatchPersistenceService.name);
-  private readonly MAX_RETRIES = 5;
-  private readonly BASE_DELAY = 1000;
 
   constructor(
     private readonly connection: DataSource,
     private readonly sessionManager: GameSessionManager,
     private readonly quizService: QuizService,
+    @InjectQueue(MATCH_PERSISTENCE_QUEUE)
+    private readonly persistenceQueue: Queue<MatchPersistenceJobData>,
   ) {}
 
   /**
-   * 매치 종료 후 DB에 결과 저장 (Batch INSERT, 지수 백오프 재시도)
-   * @returns ELO 변화량 정보 { player1Change, player2Change }
+   * 매치 종료 후 DB에 결과 저장
+   *
+   * 1차 시도는 동기 경로로 즉시 실행 → ELO 변화량을 바로 반환 가능.
+   * 실패 시 세션 스냅샷을 BullMQ 큐에 저장 → Redis 기반 영속적 재시도.
    */
   async saveMatchToDatabase(
     roomId: string,
@@ -47,73 +80,93 @@ export class MatchPersistenceService {
       return null;
     }
 
-    for (let attempt = 1; attempt <= this.MAX_RETRIES; attempt++) {
-      try {
-        let eloChanges: { player1Change: number; player2Change: number } | null = null;
+    const snapshot = this.createSnapshot(session);
 
-        await this.connection.transaction(async (manager) => {
-          const matchId = await this.insertMatch(manager, session, finalResult);
-          const roundIdMap = await this.insertRounds(manager, matchId, session);
-          await this.insertRoundAnswers(manager, roundIdMap, session);
-          await this.insertUserProblemBanks(manager, matchId, session);
+    try {
+      return await this.executeTransaction(snapshot, finalResult);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
-          // ELO 업데이트 (무승부가 아닐 때만)
-          if (!finalResult.isDraw && finalResult.winnerId) {
-            eloChanges = await this.updateEloRatings(manager, matchId, session, finalResult);
-          }
-        });
+      if (error instanceof HttpException || error instanceof NonRetryableError) {
+        this.logger.error(`매치 저장 실패 (재시도 불가) - room: ${roomId}`, errorMessage);
 
-        return eloChanges;
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        const errorStack = error instanceof Error ? error.stack : undefined;
-
-        if (
-          error instanceof HttpException ||
-          (error instanceof Error && error.name === 'NonRetryableError')
-        ) {
-          this.logger.error(
-            `매치 저장 실패 (재시도 불가) - room: ${roomId}`,
-            JSON.stringify({ roomId, finalResult, error: errorMessage }),
-          );
-
-          return null;
-        }
-
-        const delay = this.calculateBackoff(attempt);
-
-        if (attempt < this.MAX_RETRIES) {
-          this.logger.warn(
-            `매치 저장 실패 - room: ${roomId} (${attempt}/${this.MAX_RETRIES}회), ${delay}ms 후 재시도`,
-            errorStack,
-          );
-          await this.delay(delay);
-        } else {
-          this.logger.error(
-            `매치 저장 최종 실패 - room: ${roomId}. 데이터 유실 가능성 있음.`,
-            JSON.stringify({ roomId, finalResult, error: errorMessage }),
-          );
-        }
+        return null;
       }
+
+      this.logger.warn(
+        `매치 저장 1차 실패 - room: ${roomId}, BullMQ 재시도 큐에 등록: ${errorMessage}`,
+      );
+      await this.enqueueRetry(snapshot, finalResult);
+
+      return null;
     }
-
-    return null;
-  }
-
-  private calculateBackoff(attempt: number): number {
-    return this.BASE_DELAY * Math.pow(2, attempt - 1);
-  }
-
-  private delay(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
-   * Match 테이블에 INSERT
+   * BullMQ 워커에서 호출: 스냅샷으로 DB 저장
    */
+  async saveMatchFromSnapshot(snapshot: SessionSnapshot, finalResult: FinalResult): Promise<void> {
+    await this.executeTransaction(snapshot, finalResult);
+  }
+
+  private createSnapshot(session: GameSession): SessionSnapshot {
+    return {
+      roomId: session.roomId,
+      player1Id: session.player1Id,
+      player2Id: session.player2Id,
+      player1Score: session.player1Score,
+      player2Score: session.player2Score,
+      rounds: Array.from(session.rounds.values()).map((round) => ({
+        roundNumber: round.roundNumber,
+        questionId: round.questionId,
+        questionType: round.question?.questionType ?? null,
+        submissions: round.submissions,
+        result: round.result,
+      })),
+    };
+  }
+
+  private async enqueueRetry(snapshot: SessionSnapshot, finalResult: FinalResult): Promise<void> {
+    await this.persistenceQueue.add(
+      'save-match',
+      { snapshot, finalResult },
+      {
+        jobId: `save-match:${snapshot.roomId}`,
+        attempts: 5,
+        backoff: { type: 'exponential', delay: 1000 },
+        removeOnComplete: true,
+        removeOnFail: false,
+      },
+    );
+    this.logger.log(`매치 ${snapshot.roomId} 재시도 큐 등록 완료`);
+  }
+
+  /**
+   * 트랜잭션 실행 (스냅샷 기반)
+   */
+  private async executeTransaction(
+    snapshot: SessionSnapshot,
+    finalResult: FinalResult,
+  ): Promise<{ player1Change: number; player2Change: number } | null> {
+    let eloChanges: { player1Change: number; player2Change: number } | null = null;
+
+    await this.connection.transaction(async (manager) => {
+      const matchId = await this.insertMatch(manager, snapshot, finalResult);
+      const roundIdMap = await this.insertRounds(manager, matchId, snapshot);
+      await this.insertRoundAnswers(manager, roundIdMap, snapshot);
+      await this.insertUserProblemBanks(manager, matchId, snapshot);
+
+      if (!finalResult.isDraw && finalResult.winnerId) {
+        eloChanges = await this.updateEloRatings(manager, matchId, snapshot, finalResult);
+      }
+    });
+
+    return eloChanges;
+  }
+
   private async insertMatch(
     manager: EntityManager,
-    session: GameSession,
+    snapshot: SessionSnapshot,
     finalResult: FinalResult,
   ): Promise<number> {
     const result = await manager
@@ -121,8 +174,8 @@ export class MatchPersistenceService {
       .insert()
       .into(Match)
       .values({
-        player1Id: parseUserId(session.player1Id),
-        player2Id: parseUserId(session.player2Id),
+        player1Id: parseUserId(snapshot.player1Id),
+        player2Id: parseUserId(snapshot.player2Id),
         winnerId: finalResult.winnerId ? parseUserId(finalResult.winnerId) : null,
         matchType: 'multi',
       })
@@ -138,18 +191,15 @@ export class MatchPersistenceService {
     return generated.id as number;
   }
 
-  /**
-   * Rounds 테이블에 Bulk INSERT
-   */
   private async insertRounds(
     manager: EntityManager,
     matchId: number,
-    session: GameSession,
+    snapshot: SessionSnapshot,
   ): Promise<Map<number, number>> {
-    const roundsData = Array.from(session.rounds.entries()).map(([roundNum, roundData]) => ({
+    const roundsData = snapshot.rounds.map((round) => ({
       matchId,
-      questionId: roundData.questionId,
-      roundNumber: roundNum,
+      questionId: round.questionId,
+      roundNumber: round.roundNumber,
     }));
 
     const result = await manager
@@ -173,50 +223,44 @@ export class MatchPersistenceService {
     return roundIdMap;
   }
 
-  /**
-   * RoundAnswers 테이블에 Bulk INSERT
-   */
   private async insertRoundAnswers(
     manager: EntityManager,
     roundIdMap: Map<number, number>,
-    session: GameSession,
+    snapshot: SessionSnapshot,
   ): Promise<void> {
-    const answersData = this.prepareRoundAnswersData(roundIdMap, session);
+    const answersData = this.prepareRoundAnswersData(roundIdMap, snapshot);
 
     if (answersData.length > 0) {
       await manager.createQueryBuilder().insert().into(RoundAnswer).values(answersData).execute();
     }
   }
 
-  /**
-   * RoundAnswers INSERT용 데이터 준비
-   */
   private prepareRoundAnswersData(
     roundIdMap: Map<number, number>,
-    session: GameSession,
+    snapshot: SessionSnapshot,
   ): Partial<RoundAnswer>[] {
     const answersData: Partial<RoundAnswer>[] = [];
 
-    for (const [roundNum, roundData] of session.rounds.entries()) {
-      const roundId = roundIdMap.get(roundNum);
-      const questionType = roundData.question?.questionType;
+    for (const round of snapshot.rounds) {
+      const roundId = roundIdMap.get(round.roundNumber);
+      const questionType = round.questionType;
 
       if (roundId === undefined) {
-        this.logger.warn(`roundId 없음: round ${roundNum}`);
+        this.logger.warn(`roundId 없음: round ${round.roundNumber}`);
         continue;
       }
 
       if (!questionType) {
-        this.logger.warn(`questionType 없음: round ${roundNum}`);
+        this.logger.warn(`questionType 없음: round ${round.roundNumber}`);
         continue;
       }
 
-      for (const [playerId, submission] of Object.entries(roundData.submissions)) {
+      for (const [playerId, submission] of Object.entries(round.submissions)) {
         if (!submission) {
           continue;
         }
 
-        const grade = roundData.result?.grades.find((g) => g.playerId === playerId);
+        const grade = round.result?.grades.find((g: GradeResult) => g.playerId === playerId);
 
         if (!grade) {
           continue;
@@ -240,15 +284,12 @@ export class MatchPersistenceService {
     return answersData;
   }
 
-  /**
-   * UserProblemBanks 테이블에 Bulk INSERT
-   */
   private async insertUserProblemBanks(
     manager: EntityManager,
     matchId: number,
-    session: GameSession,
+    snapshot: SessionSnapshot,
   ): Promise<void> {
-    const problemBanksData = this.prepareProblemBanksData(matchId, session);
+    const problemBanksData = this.prepareProblemBanksData(matchId, snapshot);
 
     if (problemBanksData.length > 0) {
       await manager
@@ -260,29 +301,26 @@ export class MatchPersistenceService {
     }
   }
 
-  /**
-   * UserProblemBanks INSERT용 데이터 준비
-   */
   private prepareProblemBanksData(
     matchId: number,
-    session: GameSession,
+    snapshot: SessionSnapshot,
   ): Partial<UserProblemBank>[] {
     const problemBanksData: Partial<UserProblemBank>[] = [];
 
-    for (const [roundNum, roundData] of session.rounds.entries()) {
-      const questionType = roundData.question?.questionType;
+    for (const round of snapshot.rounds) {
+      const questionType = round.questionType;
 
       if (!questionType) {
-        this.logger.warn(`questionType 없음 (problemBank): round ${roundNum}`);
+        this.logger.warn(`questionType 없음 (problemBank): round ${round.roundNumber}`);
         continue;
       }
 
-      for (const [playerId, submission] of Object.entries(roundData.submissions)) {
+      for (const [playerId, submission] of Object.entries(round.submissions)) {
         if (!submission) {
           continue;
         }
 
-        const grade = roundData.result?.grades.find((g) => g.playerId === playerId);
+        const grade = round.result?.grades.find((g: GradeResult) => g.playerId === playerId);
 
         if (!grade) {
           continue;
@@ -290,7 +328,7 @@ export class MatchPersistenceService {
 
         problemBanksData.push({
           userId: parseUserId(playerId),
-          questionId: roundData.questionId,
+          questionId: round.questionId,
           matchId,
           userAnswer: submission.answer || '',
           answerStatus: this.quizService.determineAnswerStatus(
@@ -306,35 +344,20 @@ export class MatchPersistenceService {
     return problemBanksData;
   }
 
-  /**
-   * ELO 레이팅 업데이트
-   *
-   * @param manager - 트랜잭션 매니저
-   * @param matchId - 매치 ID
-   * @param session - 게임 세션
-   * @param finalResult - 게임 결과
-   * @returns ELO 변화량 { player1Change, player2Change }
-   */
   private async updateEloRatings(
     manager: EntityManager,
     matchId: number,
-    session: GameSession,
+    snapshot: SessionSnapshot,
     finalResult: FinalResult,
   ): Promise<{ player1Change: number; player2Change: number }> {
     const winnerId = parseUserId(finalResult.winnerId);
     const loserId =
-      parseUserId(session.player1Id) === winnerId
-        ? parseUserId(session.player2Id)
-        : parseUserId(session.player1Id);
+      parseUserId(snapshot.player1Id) === winnerId
+        ? parseUserId(snapshot.player2Id)
+        : parseUserId(snapshot.player1Id);
 
-    // 현재 통계 조회
-    const winnerStats = await manager.findOne(UserStatistics, {
-      where: { userId: winnerId },
-    });
-
-    const loserStats = await manager.findOne(UserStatistics, {
-      where: { userId: loserId },
-    });
+    const winnerStats = await manager.findOne(UserStatistics, { where: { userId: winnerId } });
+    const loserStats = await manager.findOne(UserStatistics, { where: { userId: loserId } });
 
     if (!winnerStats) {
       throw new NonRetryableError(`승자의 UserStatistics를 찾을 수 없습니다. userId: ${winnerId}`);
@@ -349,7 +372,6 @@ export class MatchPersistenceService {
     const winnerTotalGames = winnerStats.totalMatches ?? 0;
     const loserTotalGames = loserStats.totalMatches ?? 0;
 
-    // ELO 계산
     const { winnerNewRating, loserNewRating, winnerChange, loserChange } = calculateMatchEloUpdate(
       winnerElo,
       loserElo,
@@ -362,7 +384,6 @@ export class MatchPersistenceService {
         `패자: ${loserId} (${loserElo} → ${loserNewRating}, ${loserChange})`,
     );
 
-    // UserStatistics 업데이트 (승패 기록 + ELO)
     await manager.update(
       UserStatistics,
       { userId: winnerId },
@@ -383,13 +404,11 @@ export class MatchPersistenceService {
       },
     );
 
-    // 티어 변동 히스토리 기록
     await this.recordTierHistory(manager, winnerId, matchId, winnerChange, winnerNewRating);
     await this.recordTierHistory(manager, loserId, matchId, loserChange, loserNewRating);
 
-    // player1과 player2의 변화량 반환
-    const player1Id = parseUserId(session.player1Id);
-    const player2Id = parseUserId(session.player2Id);
+    const player1Id = parseUserId(snapshot.player1Id);
+    const player2Id = parseUserId(snapshot.player2Id);
 
     return {
       player1Change: player1Id === winnerId ? winnerChange : loserChange,
@@ -397,15 +416,6 @@ export class MatchPersistenceService {
     };
   }
 
-  /**
-   * 티어 변동 히스토리 기록
-   *
-   * @param manager - 트랜잭션 매니저
-   * @param userId - 유저 ID
-   * @param matchId - 매치 ID
-   * @param tierChange - 티어 변화량
-   * @param newElo - 새로운 ELO
-   */
   private async recordTierHistory(
     manager: EntityManager,
     userId: number,
@@ -414,10 +424,7 @@ export class MatchPersistenceService {
     newElo: number,
   ): Promise<void> {
     const tierName = calculateTier(newElo);
-
-    const tier = await manager.findOne(Tier, {
-      where: { name: tierName },
-    });
+    const tier = await manager.findOne(Tier, { where: { name: tierName } });
 
     if (!tier) {
       throw new NonRetryableError(
