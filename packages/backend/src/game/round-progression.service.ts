@@ -41,18 +41,32 @@ export class RoundProgressionService {
    * BullMQ 워커에서 호출: 페이즈 타임아웃 처리
    */
   async handleTimerExpired(roomId: string, phase: 'ready' | 'question' | 'review'): Promise<void> {
+    const session = this.sessionManager.getGameSession(roomId);
+
+    if (!session) {
+      this.logger.warn(`Timer expired for missing session: phase=${phase} room=${roomId}`);
+
+      return;
+    }
+
+    if (session.currentPhase !== phase) {
+      this.logger.warn(
+        `Stale phase timeout ignored: expected=${session.currentPhase} received=${phase} room=${roomId}`,
+      );
+
+      return;
+    }
+
     switch (phase) {
       case 'ready':
         await this.phaseQuestion(roomId);
         break;
       case 'question':
-        this.handleQuestionTimeout(roomId);
+        await this.handleQuestionTimeout(roomId);
         break;
       case 'review':
         await this.transitionToNextRound(roomId);
         break;
-      default:
-        this.logger.warn(`Unknown phase timeout: ${phase as string} for room ${roomId}`);
     }
   }
 
@@ -433,7 +447,7 @@ export class RoundProgressionService {
   /**
    * 타임아웃 처리 (답안 미제출)
    */
-  private handleQuestionTimeout(roomId: string): void {
+  private async handleQuestionTimeout(roomId: string): Promise<void> {
     try {
       const session = this.sessionManager.getGameSession(roomId);
 
@@ -447,10 +461,10 @@ export class RoundProgressionService {
       }
 
       // 그레이딩으로 진행
-      void this.phaseGrading(roomId);
+      await this.phaseGrading(roomId);
     } catch (error) {
       this.logger.error(`Error in handleQuestionTimeout for room ${roomId}:`, error);
-      this.roundTimer.clearAllTimers(roomId);
+      await this.roundTimer.clearAllTimers(roomId);
     }
   }
 }

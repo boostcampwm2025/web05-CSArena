@@ -67,10 +67,14 @@ export class GameGateway implements OnGatewayDisconnect, OnGatewayInit, OnModule
     }
 
     if (type === 'phase_timeout') {
-      const phase = payload?.phase as 'ready' | 'question' | 'review' | undefined;
+      const phase = payload?.phase;
 
-      if (!phase) {
-        return { correlationId, ok: false, error: 'Missing phase in phase_timeout command' };
+      if (phase !== 'ready' && phase !== 'question' && phase !== 'review') {
+        return { correlationId, ok: false, error: `Invalid phase: ${String(phase)}` };
+      }
+
+      if (!this.sessionManager.getGameSession(roomId)) {
+        return { correlationId, ok: false, error: 'No local session' };
       }
 
       await this.roundProgression.handleTimerExpired(roomId, phase);
