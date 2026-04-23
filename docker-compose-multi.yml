@@ -1,0 +1,129 @@
+## 멀티 인스턴스 테스트 환경
+## 사용법: docker compose -f docker-compose-multi.yml up --build
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: web05-redis-multi
+    ports:
+      - "6379:6379"
+    networks:
+      - multi-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  postgres:
+    image: postgres:18.1
+    container_name: web05-postgres-multi
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-boostcamp}
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    ports:
+      - "5432:5432"
+    networks:
+      - multi-network
+    volumes:
+      - postgres_multi_data:/var/lib/postgresql
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    command: ["postgres", "-c", "shared_preload_libraries=pg_stat_statements", "-c", "pg_stat_statements.track=all"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres} -d ${DB_DATABASE:-boostcamp}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend-1:
+    build:
+      context: .
+      dockerfile: packages/backend/Dockerfile
+    container_name: web05-backend-1
+    networks:
+      - multi-network
+    environment:
+      NODE_ENV: development
+      INSTANCE_ID: backend-1
+      CORS_ORIGIN: http://localhost
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_DATABASE: ${DB_DATABASE:-boostcamp}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      CLOVA_STUDIO_API_KEY: ${CLOVA_STUDIO_API_KEY:-}
+      JWT_SECRET: ${JWT_SECRET:-test_jwt_secret_for_multi_instance_32chars}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-test_refresh_secret_for_multi_32chars}
+    ports:
+      - "4001:4000"
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      # NestJS가 실제로 listen을 시작한 뒤에야 nginx가 프록시를 시작하도록 한다
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:4000/api/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 30s
+
+  backend-2:
+    build:
+      context: .
+      dockerfile: packages/backend/Dockerfile
+    container_name: web05-backend-2
+    networks:
+      - multi-network
+    environment:
+      NODE_ENV: development
+      INSTANCE_ID: backend-2
+      CORS_ORIGIN: http://localhost
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_DATABASE: ${DB_DATABASE:-boostcamp}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      CLOVA_STUDIO_API_KEY: ${CLOVA_STUDIO_API_KEY:-}
+      JWT_SECRET: ${JWT_SECRET:-test_jwt_secret_for_multi_instance_32chars}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-test_refresh_secret_for_multi_32chars}
+    ports:
+      - "4002:4000"
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:4000/api/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 30s
+
+  nginx:
+    image: nginx:alpine
+    container_name: web05-nginx-multi
+    ports:
+      - "80:80"
+    networks:
+      - multi-network
+    volumes:
+      - ./nginx-multi.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      backend-1:
+        condition: service_healthy
+      backend-2:
+        condition: service_healthy
+
+networks:
+  multi-network:
+    driver: bridge
+
+volumes:
+  postgres_multi_data:

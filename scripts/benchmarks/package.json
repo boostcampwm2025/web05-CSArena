@@ -6,9 +6,13 @@
   "type": "module",
   "scripts": {
     "smoke:queue": "node websocket-multi-instance/smoke-test-redis-queue.mjs",
-    "smoke:command-bus": "node websocket-multi-instance/smoke-test-command-bus.mjs"
+    "smoke:command-bus": "node websocket-multi-instance/smoke-test-command-bus.mjs",
+    "e2e:cross-instance": "node websocket-multi-instance/test-cross-instance.mjs",
+    "sign-jwt": "node websocket-multi-instance/sign-jwt.mjs"
   },
   "dependencies": {
-    "ioredis": "^5.10.1"
+    "ioredis": "^5.10.1",
+    "jsonwebtoken": "^9.0.3",
+    "socket.io-client": "^4.8.3"
   }
 }
