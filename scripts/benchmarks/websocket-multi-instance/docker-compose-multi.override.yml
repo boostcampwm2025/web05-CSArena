@@ -1,12 +1,16 @@
-## 포트 오버라이드: 기존 dev redis(6379)/postgres(5432)와 충돌 회피
+## 포트 오버라이드: 기존 dev redis(6379)/postgres(5432)/nginx(80)과 충돌 회피
 ## 사용: docker compose -f docker-compose-multi.yml -f scripts/benchmarks/websocket-multi-instance/docker-compose-multi.override.yml up -d
+##
+## 주의: Compose의 ports 리스트는 기본적으로 base와 merge된다.
+## !override 태그로 base의 포트 매핑을 완전히 교체해 병합을 방지한다.
+## (Docker Compose v2.20+ 필요)
 services:
   redis:
-    ports:
+    ports: !override
       - "6380:6379"
   postgres:
-    ports:
+    ports: !override
       - "5433:5432"
   nginx:
-    ports:
+    ports: !override
       - "8080:80"
