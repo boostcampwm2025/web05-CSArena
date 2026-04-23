@@ -141,6 +141,16 @@ async function testConnection() {
 async function testCrossInstanceMatching(socket1, socket2) {
   section('Test 2: 크로스 인스턴스 매칭 테스트');
 
+  // ⚠️ 매칭 후 이어지는 게임 이벤트(round:ready/start)도 match:found 직후 즉시 도달하므로,
+  //    Test 3에서 리스너를 등록하면 이미 발행된 이벤트를 놓친다.
+  //    여기서 미리 Promise로 예약해 Test 3에게 전달한다.
+  const gameEvents = {
+    ready1: waitForEvent(socket1, 'round:ready', 15000),
+    ready2: waitForEvent(socket2, 'round:ready', 15000),
+    start1: waitForEvent(socket1, 'round:start', 15000),
+    start2: waitForEvent(socket2, 'round:start', 15000),
+  };
+
   try {
     // 이벤트 리스너를 먼저 등록 (매칭이 즉시 발생할 수 있으므로)
     const matchFoundPromise1 = waitForEvent(socket1, 'match:found', 15000);
@@ -173,47 +183,46 @@ async function testCrossInstanceMatching(socket1, socket2) {
     pass(`Player 1 matched! Opponent: ${match1.opponent?.nickname || 'unknown'}`);
     pass(`Player 2 matched! Opponent: ${match2.opponent?.nickname || 'unknown'}`);
 
-    return true;
+    return { ok: true, gameEvents };
   } catch (err) {
     fail('Cross-instance matching', err.message);
-    return false;
+    return { ok: false };
   }
 }
 
 // ============================================================
 // 테스트 3: 게임 플레이 (이벤트 수신 확인)
 // ============================================================
-async function testGamePlay(socket1, socket2) {
+async function testGamePlay(socket1, socket2, gameEvents) {
   section('Test 3: 게임 이벤트 수신 테스트');
 
   try {
-    // round:ready 대기
-    const ready1Promise = waitForEvent(socket1, 'round:ready', 10000);
-    const ready2Promise = waitForEvent(socket2, 'round:ready', 10000);
-
-    const [ready1, ready2] = await Promise.all([ready1Promise, ready2Promise]);
+    // round:ready/start 리스너는 Test 2에서 미리 등록된 Promise를 재사용
+    // (match:found 직후 이벤트가 즉시 발행되므로 이 시점에 등록하면 놓침)
+    const [ready1] = await Promise.all([gameEvents.ready1, gameEvents.ready2]);
     pass(`Round ready received (duration: ${ready1.durationSec}s)`);
 
-    // round:start 대기 (문제 출제)
-    const start1Promise = waitForEvent(socket1, 'round:start', 10000);
-    const start2Promise = waitForEvent(socket2, 'round:start', 10000);
-
-    const [start1, start2] = await Promise.all([start1Promise, start2Promise]);
+    const [start1] = await Promise.all([gameEvents.start1, gameEvents.start2]);
     pass(`Round started! Question type: ${start1.question?.type || 'unknown'}`);
 
-    // Player 1 답안 제출
+    // ⚠️ 리스너를 emit 전에 먼저 등록 — 백엔드가 ack 반환 전에 opponent:submitted를 emit하므로
+    //    리스너 등록이 emit 이후면 이벤트를 놓쳐 타임아웃으로 실패한다
+    const opponentSubmittedPromise = waitForEvent(socket2, 'opponent:submitted', 10000);
+
+    // Player 1 답안 제출 — Socket.IO의 .timeout()으로 CI hang 방지
     const submitPromise = new Promise((resolve, reject) => {
-      socket1.emit('submit:answer', { answer: 'test-answer' }, (response) => {
-        if (response.ok) {
+      socket1.timeout(5000).emit('submit:answer', { answer: 'test-answer' }, (err, response) => {
+        if (err) {
+          reject(new Error('submit:answer ack timeout (5s)'));
+          return;
+        }
+        if (response?.ok) {
           resolve(response);
         } else {
-          reject(new Error(response.error));
+          reject(new Error(response?.error || 'submit failed'));
         }
       });
     });
-
-    // Player 2에서 opponent:submitted 수신 확인 (Redis Adapter 크로스 인스턴스 테스트)
-    const opponentSubmittedPromise = waitForEvent(socket2, 'opponent:submitted', 10000);
 
     const submitResult = await submitPromise;
     pass('Player 1 submitted answer');
@@ -223,11 +232,15 @@ async function testGamePlay(socket1, socket2) {
 
     // Player 2도 답안 제출
     const submit2Promise = new Promise((resolve, reject) => {
-      socket2.emit('submit:answer', { answer: 'test-answer-2' }, (response) => {
-        if (response.ok) {
+      socket2.timeout(5000).emit('submit:answer', { answer: 'test-answer-2' }, (err, response) => {
+        if (err) {
+          reject(new Error('submit:answer ack timeout (5s)'));
+          return;
+        }
+        if (response?.ok) {
           resolve(response);
         } else {
-          reject(new Error(response.error));
+          reject(new Error(response?.error || 'submit failed'));
         }
       });
     });
@@ -342,13 +355,13 @@ async function main() {
     socket2 = connections.socket2;
     results.pass++;
 
-    // Test 2: 크로스 인스턴스 매칭
-    const matched = await testCrossInstanceMatching(socket1, socket2);
-    matched ? results.pass++ : results.fail++;
+    // Test 2: 크로스 인스턴스 매칭 — 이후 게임 이벤트 리스너를 미리 예약해 반환
+    const matchResult = await testCrossInstanceMatching(socket1, socket2);
+    matchResult.ok ? results.pass++ : results.fail++;
 
-    if (matched) {
-      // Test 3: 게임 플레이
-      const played = await testGamePlay(socket1, socket2);
+    if (matchResult.ok) {
+      // Test 3: 게임 플레이 — Test 2에서 예약한 이벤트 Promise 재사용
+      const played = await testGamePlay(socket1, socket2, matchResult.gameEvents);
       played ? results.pass++ : results.fail++;
 
       // Test 4: 연결 끊김
