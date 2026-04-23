@@ -131,6 +131,7 @@ export class MatchPersistenceService {
       'save-match',
       { snapshot, finalResult },
       {
+        jobId: `save-match:${snapshot.roomId}`,
         attempts: 5,
         backoff: { type: 'exponential', delay: 1000 },
         removeOnComplete: true,
