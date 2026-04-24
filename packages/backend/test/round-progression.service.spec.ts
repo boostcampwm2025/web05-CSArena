@@ -361,4 +361,66 @@ describe('RoundProgressionService - AI Score Weighted Grading Logic', () => {
       expect(SPEED_BONUS).toBe(5);
     });
   });
+
+  // 세션 누수 regression guard
+  describe('Leak Regression — catch 경로에서 세션 정리 보장', () => {
+    const roomId = 'leak-test-room';
+    const player1Id = 'p1';
+    const player2Id = 'p2';
+
+    beforeEach(() => {
+      sessionManager.createGameSession(
+        roomId,
+        player1Id,
+        'socket1',
+        { nickname: 'P1', profileImage: null, tier: 'gold', tierPoint: 1500, exp_point: 1500 },
+        player2Id,
+        'socket2',
+        { nickname: 'P2', profileImage: null, tier: 'silver', tierPoint: 1200, exp_point: 1200 },
+      );
+      sessionManager.startNextRound(roomId);
+      // 서버 객체 주입 (emit 호출이 throw되지 않도록 최소 stub)
+      (roundProgressionService as any).server = {
+        to: jest.fn().mockReturnValue({ emit: jest.fn() }),
+      };
+    });
+
+    it('finishGame에서 DB 저장 실패 시에도 세션이 정리되어야 함', async () => {
+      mockMatchPersistence.saveMatchToDatabase.mockRejectedValue(new Error('DB connection lost'));
+
+      // finishGame은 private이라 any 캐스팅
+      await (roundProgressionService as any).finishGame(roomId);
+
+      expect(sessionManager.getGameSession(roomId)).toBeNull();
+    });
+
+    it('phaseGrading에서 Clova API 타임아웃 시에도 세션이 정리되어야 함', async () => {
+      const mockQuestion: QuestionEntity = {
+        id: 99,
+        questionType: 'short',
+        difficulty: 1,
+        content: 'Q',
+        correctAnswer: 'A',
+      } as QuestionEntity;
+      sessionManager.setQuestion(roomId, mockQuestion);
+      sessionManager.submitAnswer(roomId, player1Id, 'a');
+      sessionManager.submitAnswer(roomId, player2Id, 'b');
+
+      // Clova API 장애 시뮬레이션
+      mockQuizService.gradeQuestion.mockRejectedValue(new Error('Clova timeout'));
+
+      await roundProgressionService.phaseGrading(roomId);
+
+      expect(sessionManager.getGameSession(roomId)).toBeNull();
+      expect(mockMetricsService.recordGameSessionLeakRecovered).toHaveBeenCalledWith('catch_error');
+    });
+
+    it('catch 경로에서 clearAllTimers도 반드시 호출되어야 함', async () => {
+      mockMatchPersistence.saveMatchToDatabase.mockRejectedValue(new Error('DB down'));
+
+      await (roundProgressionService as any).finishGame(roomId);
+
+      expect(mockRoundTimer.clearAllTimers).toHaveBeenCalledWith(roomId);
+    });
+  });
 });
