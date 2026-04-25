@@ -16,6 +16,7 @@ out/
 # Environment files (unencrypted - NEVER commit)
 .env
 .env.*
+!.env.*.example
 
 # SOPS / Age keys
 keys.txt
