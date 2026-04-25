@@ -66,10 +66,12 @@ import { HttpMetricsInterceptor } from './http-metrics.interceptor';
       buckets: [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1],
     }),
 
-    // Idle sweeper가 회수한 누수 세션 수 (catch 블록 누락·비정상 종료 경로 감지)
+    // 누수 회수 세션 수 (라벨로 회수 경로 구분)
+    //   reason=idle        — 주기적 idle sweeper가 stale 판정해 정리한 세션
+    //   reason=catch_error — RoundProgressionService catch 헬퍼가 에러 경로에서 정리한 세션
     makeCounterProvider({
       name: 'game_session_leak_recovered_total',
-      help: 'Number of stale game sessions cleaned up by the idle sweeper',
+      help: 'Number of leaked game sessions reclaimed (reason=idle: periodic sweeper, reason=catch_error: error-path cleanup in round progression)',
       labelNames: ['reason'],
     }),
 

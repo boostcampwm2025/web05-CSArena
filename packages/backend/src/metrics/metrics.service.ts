@@ -90,7 +90,9 @@ export class MetricsService {
     this.gameCommandForwardLatency.observe(durationSeconds);
   }
 
-  // Idle sweeper가 회수한 누수 세션 기록
+  // 회수된 누수 세션 기록.
+  //   reason='idle'        — 주기적 idle sweeper가 정리
+  //   reason='catch_error' — RoundProgressionService catch 헬퍼가 에러 경로에서 정리
   recordGameSessionLeakRecovered(reason: 'idle' | 'catch_error'): void {
     this.gameSessionLeakRecovered.inc({ reason });
   }
