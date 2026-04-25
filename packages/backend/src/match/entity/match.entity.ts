@@ -19,6 +19,9 @@ export class Match {
   @PrimaryGeneratedColumn('increment', { type: 'bigint' })
   id: number;
 
+  @Column({ type: 'varchar', length: 100, nullable: true, unique: true, name: 'room_id' })
+  roomId: string | null;
+
   @Column({ type: 'bigint', nullable: false, name: 'player1_id' })
   player1Id: number;
 

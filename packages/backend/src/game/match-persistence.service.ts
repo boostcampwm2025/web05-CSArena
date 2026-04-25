@@ -152,6 +152,13 @@ export class MatchPersistenceService {
 
     await this.connection.transaction(async (manager) => {
       const matchId = await this.insertMatch(manager, snapshot, finalResult);
+
+      if (matchId === null) {
+        this.logger.warn(`중복 저장 감지 (ON CONFLICT) - roomId: ${snapshot.roomId}, 건너뜀`);
+
+        return;
+      }
+
       const roundIdMap = await this.insertRounds(manager, matchId, snapshot);
       await this.insertRoundAnswers(manager, roundIdMap, snapshot);
       await this.insertUserProblemBanks(manager, matchId, snapshot);
@@ -168,24 +175,27 @@ export class MatchPersistenceService {
     manager: EntityManager,
     snapshot: SessionSnapshot,
     finalResult: FinalResult,
-  ): Promise<number> {
+  ): Promise<number | null> {
     const result = await manager
       .createQueryBuilder()
       .insert()
       .into(Match)
       .values({
+        roomId: snapshot.roomId,
         player1Id: parseUserId(snapshot.player1Id),
         player2Id: parseUserId(snapshot.player2Id),
         winnerId: finalResult.winnerId ? parseUserId(finalResult.winnerId) : null,
         matchType: 'multi',
       })
+      .orIgnore()
       .returning('id')
       .execute();
 
     const generated = result.generatedMaps[0];
 
     if (!generated) {
-      throw new NonRetryableError('Match INSERT 실패: ID가 반환되지 않음');
+      // ON CONFLICT DO NOTHING: 동일 roomId의 매치가 이미 저장됨
+      return null;
     }
 
     return generated.id as number;
