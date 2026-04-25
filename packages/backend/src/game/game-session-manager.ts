@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/nestjs';
 import { UserInfo } from '../user/interfaces';
 import { Question as QuestionEntity } from '../quiz/entity';
 import { MetricsService } from '../metrics';
+import { RoundTimer } from './round-timer';
 import {
   GameSession,
   GradingInput,
@@ -24,11 +25,16 @@ export class GameSessionManager implements OnModuleInit, OnModuleDestroy {
   private gameSessions = new Map<string, GameSession>();
   private sweepInterval: NodeJS.Timeout | null = null;
 
-  constructor(private readonly metricsService: MetricsService) {}
+  constructor(
+    private readonly metricsService: MetricsService,
+    private readonly roundTimer: RoundTimer,
+  ) {}
 
   onModuleInit(): void {
     this.sweepInterval = setInterval(() => {
-      this.sweepStaleSessions();
+      this.sweepStaleSessions().catch((err) => {
+        this.logger.error('sweepStaleSessions failed', err);
+      });
     }, SWEEP_INTERVAL_MS);
   }
 
@@ -139,9 +145,11 @@ export class GameSessionManager implements OnModuleInit, OnModuleDestroy {
   /**
    * Idle sweeper — SESSION_STALE_MS 이상 활동 없는 세션 일괄 정리.
    * catch 블록 누락·비정상 종료 경로에서 남은 좀비 세션의 2차 방어선.
-   * 회수된 세션 수는 game_session_leak_recovered_total 메트릭에 기록.
+   *
+   * 정리 책임은 단일 경로(deleteGameSession + roundTimer.clearAllTimers)로 통합한다.
+   * 회수된 세션 수는 game_session_leak_recovered_total{reason="idle"}에 기록.
    */
-  sweepStaleSessions(): number {
+  async sweepStaleSessions(): Promise<number> {
     const now = Date.now();
     const staleRoomIds: string[] = [];
 
@@ -150,6 +158,8 @@ export class GameSessionManager implements OnModuleInit, OnModuleDestroy {
         staleRoomIds.push(roomId);
       }
     }
+
+    let reclaimed = 0;
 
     for (const roomId of staleRoomIds) {
       const session = this.gameSessions.get(roomId);
@@ -172,12 +182,28 @@ export class GameSessionManager implements OnModuleInit, OnModuleDestroy {
         extra: { ageMs, idleMs },
       });
 
-      this.gameSessions.delete(roomId);
-      this.metricsService.decrementActiveGames();
+      const deleted = this.deleteGameSession(roomId);
+
+      if (!deleted) {
+        continue;
+      }
+
+      // BullMQ 지연 잡(phase:*:roomId)이 큐에 남지 않도록 함께 정리.
+      // 실패해도 다음 세션 정리는 계속 진행.
+      try {
+        await this.roundTimer.clearAllTimers(roomId);
+      } catch (err) {
+        this.logger.error(`clearAllTimers failed during sweep for room ${roomId}`, err);
+        Sentry.captureException(err, {
+          tags: { roomId, phase: session.currentPhase, component: 'session-sweeper' },
+        });
+      }
+
       this.metricsService.recordGameSessionLeakRecovered('idle');
+      reclaimed++;
     }
 
-    return staleRoomIds.length;
+    return reclaimed;
   }
 
   getGameSession(roomId: string): GameSession | null {
