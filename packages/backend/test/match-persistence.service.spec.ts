@@ -22,6 +22,7 @@ describe('MatchPersistenceService', () => {
     insert: jest.fn().mockReturnThis(),
     into: jest.fn().mockReturnThis(),
     values: jest.fn().mockReturnThis(),
+    orIgnore: jest.fn().mockReturnThis(),
     returning: jest.fn().mockReturnThis(),
     execute: jest.fn(),
   };
@@ -162,6 +163,7 @@ describe('MatchPersistenceService', () => {
       expect(mockEntityManager.createQueryBuilder).toHaveBeenCalled();
       expect(mockQueryBuilder.into).toHaveBeenCalledWith(Match);
       expect(mockQueryBuilder.values).toHaveBeenCalledWith({
+        roomId: 'test-room',
         player1Id: 1,
         player2Id: 2,
         winnerId: 1,
@@ -253,13 +255,14 @@ describe('MatchPersistenceService', () => {
       expect(mockDataSource.transaction).toHaveBeenCalledTimes(1);
     });
 
-    it('Match INSERT ID 반환 실패 시 NonRetryableError로 재시도 없이 종료해야 함', async () => {
-      // Match INSERT에서 ID가 반환되지 않음
+    it('이미 저장된 매치(ON CONFLICT) 시 null을 반환하고 재시도하지 않아야 함', async () => {
+      // ON CONFLICT DO NOTHING: generatedMaps가 비어있음
       mockQueryBuilder.execute.mockResolvedValue({ generatedMaps: [] });
 
-      await service.saveMatchToDatabase(roomId, finalResult);
+      const result = await service.saveMatchToDatabase(roomId, finalResult);
 
-      // transaction은 1번만 호출되어야 함 (재시도 없음)
+      expect(result).toBeNull();
+      // 재시도 없이 1번만 실행
       expect(mockDataSource.transaction).toHaveBeenCalledTimes(1);
     });
 
