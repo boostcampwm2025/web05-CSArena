@@ -8,7 +8,7 @@ export const feedbackLoggerConfig = {
 
     new DailyRotateFile({
       level: 'info',
-      dirname: process.env.NODE_ENV === 'production' ? '/tmp/logs/feedbacks' : 'logs/feedbacks',
+      dirname: '/tmp/logs/feedbacks',
       filename: 'feedback-%DATE%.log', // 파일명 예: feedback-2025-01-06.log
       datePattern: 'YYYY-MM-DD',
       zippedArchive: true, // 지난 로그는 압축해서 용량 절약
