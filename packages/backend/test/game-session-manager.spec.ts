@@ -1,9 +1,12 @@
 import { GameSessionManager } from '../src/game/game-session-manager';
 import { UserInfo } from '../src/user/interfaces';
 import { Question as QuestionEntity } from '../src/quiz/entity';
+import { RoundTimer } from '../src/game/round-timer';
 
 describe('GameSessionManager - Game Session Management', () => {
   let sessionManager: GameSessionManager;
+  let mockMetricsService: any;
+  let mockRoundTimer: any;
 
   const mockUserInfo1: UserInfo = {
     nickname: 'Player1',
@@ -36,17 +39,26 @@ describe('GameSessionManager - Game Session Management', () => {
   } as any;
 
   beforeEach(() => {
-    const mockMetricsService = {
+    // sweeper의 setInterval을 가짜 타이머로 통제 — 라이프사이클(onModuleInit/Destroy)이
+    // 실제로 인터벌을 등록·해제하는지 검증 가능하게 한다.
+    jest.useFakeTimers();
+
+    mockMetricsService = {
       incrementActiveGames: jest.fn(),
       decrementActiveGames: jest.fn(),
       recordGameSessionLeakRecovered: jest.fn(),
-    } as any;
-    sessionManager = new GameSessionManager(mockMetricsService);
+    };
+    mockRoundTimer = {
+      clearAllTimers: jest.fn().mockResolvedValue(undefined),
+    } as unknown as RoundTimer;
+    sessionManager = new GameSessionManager(mockMetricsService, mockRoundTimer);
+    // 직접 인스턴스화는 NestJS 라이프사이클을 트리거하지 않으므로 명시적으로 호출.
+    sessionManager.onModuleInit();
   });
 
   afterEach(() => {
-    // setInterval 기반 sweeper가 테스트 런타임에 떠있지 않도록 정리
     sessionManager.onModuleDestroy();
+    jest.useRealTimers();
   });
 
   describe('createGameSession', () => {
@@ -660,14 +672,15 @@ describe('GameSessionManager - Game Session Management', () => {
       );
     });
 
-    it('stale 기준(30분) 이하 세션은 남아있어야 함', () => {
-      const cleaned = sessionManager.sweepStaleSessions();
+    it('stale 기준(30분) 이하 세션은 남아있어야 함', async () => {
+      const cleaned = await sessionManager.sweepStaleSessions();
 
       expect(cleaned).toBe(0);
       expect(sessionManager.getGameSession('room-stale')).not.toBeNull();
+      expect(mockRoundTimer.clearAllTimers).not.toHaveBeenCalled();
     });
 
-    it('lastActivityAt이 31분 이상 경과한 세션은 정리되어야 함', () => {
+    it('lastActivityAt이 31분 이상 경과한 세션은 정리되어야 함', async () => {
       const session = sessionManager.getGameSession('room-stale');
 
       if (!session) throw new Error('expected session');
@@ -675,10 +688,101 @@ describe('GameSessionManager - Game Session Management', () => {
       // 31분 전으로 인위적 조작
       session.lastActivityAt = Date.now() - 31 * 60 * 1000;
 
-      const cleaned = sessionManager.sweepStaleSessions();
+      const cleaned = await sessionManager.sweepStaleSessions();
 
       expect(cleaned).toBe(1);
       expect(sessionManager.getGameSession('room-stale')).toBeNull();
+    });
+
+    it('stale 세션 회수 시 deleteGameSession 단일 경로를 통과해야 함 (decrementActiveGames 호출)', async () => {
+      const session = sessionManager.getGameSession('room-stale');
+
+      if (!session) throw new Error('expected session');
+
+      session.lastActivityAt = Date.now() - 31 * 60 * 1000;
+
+      await sessionManager.sweepStaleSessions();
+
+      expect(mockMetricsService.decrementActiveGames).toHaveBeenCalledTimes(1);
+      expect(mockMetricsService.recordGameSessionLeakRecovered).toHaveBeenCalledWith('idle');
+    });
+
+    it('stale 세션 회수 시 BullMQ 지연 잡까지 함께 정리해야 함 (clearAllTimers 호출)', async () => {
+      const session = sessionManager.getGameSession('room-stale');
+
+      if (!session) throw new Error('expected session');
+
+      session.lastActivityAt = Date.now() - 31 * 60 * 1000;
+
+      await sessionManager.sweepStaleSessions();
+
+      expect(mockRoundTimer.clearAllTimers).toHaveBeenCalledWith('room-stale');
+    });
+
+    it('clearAllTimers가 throw해도 메트릭은 기록되고 다른 세션 회수가 계속되어야 함', async () => {
+      sessionManager.createGameSession(
+        'room-stale-2',
+        'user3',
+        'socket3',
+        mockUserInfo1,
+        'user4',
+        'socket4',
+        mockUserInfo2,
+      );
+
+      const s1 = sessionManager.getGameSession('room-stale');
+      const s2 = sessionManager.getGameSession('room-stale-2');
+
+      if (!s1 || !s2) throw new Error('expected sessions');
+
+      s1.lastActivityAt = Date.now() - 31 * 60 * 1000;
+      s2.lastActivityAt = Date.now() - 31 * 60 * 1000;
+
+      mockRoundTimer.clearAllTimers.mockRejectedValueOnce(new Error('queue down'));
+
+      const cleaned = await sessionManager.sweepStaleSessions();
+
+      expect(cleaned).toBe(2);
+      expect(sessionManager.getGameSession('room-stale')).toBeNull();
+      expect(sessionManager.getGameSession('room-stale-2')).toBeNull();
+      expect(mockMetricsService.recordGameSessionLeakRecovered).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('sweeper lifecycle', () => {
+    it('onModuleInit이 setInterval을 등록하고 onModuleDestroy가 해제해야 함', () => {
+      // beforeEach에서 이미 onModuleInit 호출됨 — 인터벌 1개 등록 상태
+      expect(jest.getTimerCount()).toBe(1);
+
+      sessionManager.onModuleDestroy();
+
+      expect(jest.getTimerCount()).toBe(0);
+    });
+
+    it('인터벌 콜백이 발화되면 sweepStaleSessions가 실행되어야 함', async () => {
+      sessionManager.createGameSession(
+        'room-tick',
+        'user1',
+        'socket1',
+        mockUserInfo1,
+        'user2',
+        'socket2',
+        mockUserInfo2,
+      );
+
+      const session = sessionManager.getGameSession('room-tick');
+
+      if (!session) throw new Error('expected session');
+
+      session.lastActivityAt = Date.now() - 31 * 60 * 1000;
+
+      // 5분 진행 → sweep interval 콜백 발화
+      jest.advanceTimersByTime(5 * 60 * 1000);
+      // setInterval 콜백 안의 await this.sweepStaleSessions()의 마이크로태스크 처리
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(mockRoundTimer.clearAllTimers).toHaveBeenCalledWith('room-tick');
     });
   });
 });
