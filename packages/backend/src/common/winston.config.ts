@@ -17,7 +17,13 @@ if (process.env.NODE_ENV !== 'production') {
   );
 }
 
+const formats = [winston.format.timestamp(), winston.format.json()];
+
+if (process.env.NODE_ENV === 'production') {
+  formats.unshift(winston.format.uncolorize());
+}
+
 export const feedbackLoggerConfig = {
-  format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
+  format: winston.format.combine(...formats),
   transports,
 };
