@@ -45,6 +45,9 @@ COPY --from=builder --chown=nestjs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nestjs:nodejs /app/packages/backend/dist ./dist
 COPY --from=builder --chown=nestjs:nodejs /app/packages/backend/package.json ./package.json
 
+# Create logs directory with proper permissions
+RUN mkdir -p logs && chown nestjs:nodejs logs
+
 # Switch to non-root user
 USER nestjs
 
