@@ -1,9 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
+import * as Sentry from '@sentry/nestjs';
 import { Server } from 'socket.io';
 import { RoundTimer } from './round-timer';
 import { QuizService } from '../quiz/quiz.service';
 import { GameSessionManager } from './game-session-manager';
 import { MatchPersistenceService } from './match-persistence.service';
+import { MetricsService } from '../metrics';
 import { getValidQuestionType, ROUND_DURATIONS } from './round-timer.constants';
 import { SPEED_BONUS } from '../quiz/quiz.constants';
 import { transformQuestionForClient } from './transformers/question.transformer';
@@ -21,7 +23,32 @@ export class RoundProgressionService {
     private readonly quizService: QuizService,
     private readonly sessionManager: GameSessionManager,
     private readonly matchPersistence: MatchPersistenceService,
+    private readonly metricsService: MetricsService,
   ) {}
+
+  /**
+   * 라운드 진행 중 에러 발생 시 일관된 종료 처리.
+   * 1) Sentry에 context 태그 포함해 전송
+   * 2) 타이머 전체 정리
+   * 3) 게임 세션 삭제 (메모리 누수 방지)
+   * 4) 누수 회수 메트릭 기록
+   *
+   * 기존에는 catch 블록이 타이머만 정리하고 세션은 Map에 남아 좀비 상태가 됐음.
+   */
+  private async abortGameOnError(roomId: string, phase: string, error: unknown): Promise<void> {
+    this.logger.error(`Error in ${phase} for room ${roomId}:`, error);
+    Sentry.captureException(error, {
+      tags: { roomId, phase, component: 'round-progression' },
+    });
+
+    await this.roundTimer.clearAllTimers(roomId);
+
+    const deleted = this.sessionManager.deleteGameSession(roomId);
+
+    if (deleted) {
+      this.metricsService.recordGameSessionLeakRecovered('catch_error');
+    }
+  }
 
   /**
    * WebSocket Server 설정 (GameGateway에서 호출)
@@ -97,8 +124,7 @@ export class RoundProgressionService {
         this.server.to(roomId).emit('round:tick', { remainedSec });
       });
     } catch (error) {
-      this.logger.error(`Error in phaseReady for room ${roomId}:`, error);
-      await this.roundTimer.clearAllTimers(roomId);
+      await this.abortGameOnError(roomId, 'phaseReady', error);
     }
   }
 
@@ -146,8 +172,7 @@ export class RoundProgressionService {
         this.server.to(roomId).emit('round:tick', { remainedSec });
       });
     } catch (error) {
-      this.logger.error(`Error in phaseQuestion for room ${roomId}:`, error);
-      await this.roundTimer.clearAllTimers(roomId);
+      await this.abortGameOnError(roomId, 'phaseQuestion', error);
     }
   }
 
@@ -167,8 +192,7 @@ export class RoundProgressionService {
       // 결과 확인 단계로 이동
       await this.phaseReview(roomId);
     } catch (error) {
-      this.logger.error(`Error in phaseGrading for room ${roomId}:`, error);
-      await this.roundTimer.clearAllTimers(roomId);
+      await this.abortGameOnError(roomId, 'phaseGrading', error);
     }
   }
 
@@ -344,8 +368,7 @@ export class RoundProgressionService {
         this.server.to(roomId).emit('round:tick', { remainedSec });
       });
     } catch (error) {
-      this.logger.error(`Error in phaseReview for room ${roomId}:`, error);
-      await this.roundTimer.clearAllTimers(roomId);
+      await this.abortGameOnError(roomId, 'phaseReview', error);
     }
   }
 
@@ -364,13 +387,15 @@ export class RoundProgressionService {
         this.startRoundSequence(roomId);
       }
     } catch (error) {
-      this.logger.error(`Error in transitionToNextRound for room ${roomId}:`, error);
-      await this.roundTimer.clearAllTimers(roomId);
+      await this.abortGameOnError(roomId, 'transitionToNextRound', error);
     }
   }
 
   /**
    * 게임 종료 처리
+   *
+   * finally 블록에서 세션/타이머를 일관되게 정리한다.
+   * try 블록 안에서 매치 저장이 throw되더라도 세션이 Map에 남지 않는다.
    */
   private async finishGame(roomId: string): Promise<void> {
     try {
@@ -399,12 +424,14 @@ export class RoundProgressionService {
         },
         tierPointChange: eloChanges?.player2Change ?? 0,
       });
-
-      // 세션 정리
-      this.sessionManager.deleteGameSession(roomId);
-      await this.roundTimer.clearAllTimers(roomId);
     } catch (error) {
       this.logger.error(`Error in finishGame for room ${roomId}:`, error);
+      Sentry.captureException(error, {
+        tags: { roomId, phase: 'finishGame', component: 'round-progression' },
+      });
+    } finally {
+      // 정상/에러 어느 경로든 보장되는 cleanup
+      this.sessionManager.deleteGameSession(roomId);
       await this.roundTimer.clearAllTimers(roomId);
     }
   }
@@ -463,8 +490,7 @@ export class RoundProgressionService {
       // 그레이딩으로 진행
       await this.phaseGrading(roomId);
     } catch (error) {
-      this.logger.error(`Error in handleQuestionTimeout for room ${roomId}:`, error);
-      await this.roundTimer.clearAllTimers(roomId);
+      await this.abortGameOnError(roomId, 'handleQuestionTimeout', error);
     }
   }
 }

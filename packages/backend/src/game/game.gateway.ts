@@ -190,7 +190,7 @@ export class GameGateway implements OnGatewayDisconnect, OnGatewayInit, OnModule
   }
 
   async handleDisconnect(client: Socket): Promise<void> {
-    const disconnectInfo = this.sessionManager.disconnectFromGame(client.id);
+    const disconnectInfo = this.sessionManager.getDisconnectInfo(client.id);
 
     // 게임 중 연결 끊김 처리
     if (disconnectInfo.roomId && disconnectInfo.userId) {
