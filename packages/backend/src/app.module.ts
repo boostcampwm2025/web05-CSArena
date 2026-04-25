@@ -42,7 +42,9 @@ const typeOrmModule = TypeOrmModule.forRootAsync({
     password: configService.get('DB_PASSWORD', 'postgres'),
     database: configService.get('DB_DATABASE', 'boostcamp'),
     entities: [__dirname + '/**/*.entity{.ts,.js}'],
-    synchronize: configService.get('NODE_ENV') !== 'production',
+    synchronize:
+      configService.get('NODE_ENV') !== 'production' ||
+      configService.get('DB_SYNCHRONIZE') === 'true',
     logging: configService.get('NODE_ENV') === 'development',
   }),
   inject: [ConfigService],
