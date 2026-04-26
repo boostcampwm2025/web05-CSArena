@@ -38,15 +38,21 @@ Clova 채점은 `BENCH_GRADING_BYPASS=true`로 우회 (각 환경 compose가 자
 
 ### 0. 사전 준비
 
-```bash
-# 시드 유저 (룸 500개면 1000명 이상 필요)
-docker exec -i web05-postgres-multi psql -U postgres -d boostcamp \
-  < scripts/benchmarks/websocket-multi-instance/seed-bench-users.sql
+ROOMS=500 측정은 **1000명 시드 + tokens.json 1000개**가 필수. 11번 측정의 50명 시드와는 별도 SQL 사용.
 
-# JWT 발급
+```bash
+# 1000명 시드 (load-limit 전용)
+docker exec -i web05-postgres-multi psql -U postgres -d boostcamp \
+  < scripts/benchmarks/load-limit/seed-bench-users-1000.sql
+
+# JWT 발급 — sign-bench-tokens.mjs 가 dev-benchuser% 동적 조회라 코드 변경 없이
+# 그대로 1000개 entry tokens.json을 생성한다
 cd scripts/benchmarks
 JWT_SECRET=local-dev-jwt-secret-key-min-32-chars \
   node websocket-multi-instance/sign-bench-tokens.mjs
+
+# 확인 — tokens.json 길이가 1000인지
+jq 'length' websocket-multi-instance/tokens.json
 ```
 
 ### 1. 환경 기동 (예: cpus:1)
