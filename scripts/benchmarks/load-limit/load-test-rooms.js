@@ -75,8 +75,10 @@ export const options = {
     },
   },
   thresholds: {
-    // 한계 정의: round 진입 p99 200ms 초과 시 fail 표시
-    match_to_round_start_duration: ['p(99)<200', 'p(95)<150'],
+    // round:start는 phaseReady(3s) 고정 지연이 baseline이므로 절대 임계 대신 drift로 본다.
+    // 핵심 한계 지표: submit_ack(서버 동기 처리) + enqueue→match:found(매칭 풀) latency.
+    // ELU/CPU/mem은 사이드카에서 별도 수집 → analyze-bench.sh가 한계 도달 판정.
+    submit_ack_duration: ['p(99)<500', 'p(95)<200'],
     enqueue_to_match_found_duration: ['p(95)<500'],
     errors: ['rate<0.05'],
   },

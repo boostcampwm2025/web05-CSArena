@@ -100,15 +100,18 @@ done
 # Redis
 echo ""
 echo "[redis]"
-awk -F',' '
-  $2=="redis" && $3=="client_count"      { cc[NR]=$4 }
-  $2=="redis" && $3=="used_memory_bytes" { mm[NR]=$4 }
-  END {
-    n=asort(cc); m=asort(mm)
-    if (n>0) printf "  client_count: max=%d p50=%d\n", cc[n], cc[int(n*0.5)]
-    if (m>0) printf "  used_memory:  max=%.1fMiB p50=%.1fMiB\n", mm[m]/1048576, mm[int(m*0.5)]/1048576
-  }
-' "$CSV"
+for metric in client_count used_memory_bytes; do
+  vals=$(awk -F',' -v m="$metric" '$2=="redis" && $3==m { print $4 }' "$CSV" | sort -n)
+  echo "$vals" | awk -v m="$metric" '
+    {a[NR]=$1}
+    END {
+      if (NR==0) { printf "  %s: (no samples)\n", m; exit }
+      if (m=="used_memory_bytes")
+        printf "  used_memory: max=%.1fMiB p50=%.1fMiB\n", a[NR]/1048576, a[int(NR*0.5)]/1048576
+      else
+        printf "  %s: max=%d p50=%d\n", m, a[NR], a[int(NR*0.5)]
+    }'
+done
 
 # 한계 도달 판정
 echo ""
