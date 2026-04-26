@@ -1,4 +1,4 @@
-## 자원 무제한 환경 — Docker resource limit 없음, 호스트(예: M1 Pro 16GB)가 사실상의 캡
+## 자원 무제한 환경 — Docker resource limit 없음, 호스트(예: M3 Pro 18GB)가 사실상의 캡
 ##
 ## 사용:
 ##   docker compose \
@@ -7,7 +7,7 @@
 ##     -f scripts/benchmarks/load-limit/docker-compose.unlimited.yml \
 ##     up -d --build
 ##
-## 주의: 보고 시 "무제한 환경"이 아니라 "호스트(M1 Pro 16GB) 자원 제한 없음" 으로 표기.
+## 주의: 보고 시 "무제한 환경"이 아니라 "호스트(M3 Pro 18GB) 자원 제한 없음" 으로 표기.
 ## 실측되는 한계는 시스템 자체 한계가 아니라 호스트 한계임을 명확히 한다.
 ##
 ## 본 파일이 추가하는 것은 BENCH_GRADING_BYPASS 뿐 — 자원 제한은 두지 않는다.
