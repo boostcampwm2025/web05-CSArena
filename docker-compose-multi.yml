@@ -56,6 +56,8 @@ services:
       CLOVA_STUDIO_API_KEY: ${CLOVA_STUDIO_API_KEY:-}
       JWT_SECRET: ${JWT_SECRET:-test_jwt_secret_for_multi_instance_32chars}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-test_refresh_secret_for_multi_32chars}
+      # 벤치마크 측정용 — 호스트에서 /api/metrics 스크레이핑 허용
+      PROMETHEUS_ALLOWED_CIDRS: ${PROMETHEUS_ALLOWED_CIDRS:-172.16.0.0/12,10.0.0.0/8,192.168.0.0/16,127.0.0.1/32}
     ports:
       - "4001:4000"
     depends_on:
@@ -92,6 +94,8 @@ services:
       CLOVA_STUDIO_API_KEY: ${CLOVA_STUDIO_API_KEY:-}
       JWT_SECRET: ${JWT_SECRET:-test_jwt_secret_for_multi_instance_32chars}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-test_refresh_secret_for_multi_32chars}
+      # 벤치마크 측정용 — 호스트에서 /api/metrics 스크레이핑 허용
+      PROMETHEUS_ALLOWED_CIDRS: ${PROMETHEUS_ALLOWED_CIDRS:-172.16.0.0/12,10.0.0.0/8,192.168.0.0/16,127.0.0.1/32}
     ports:
       - "4002:4000"
     depends_on:
