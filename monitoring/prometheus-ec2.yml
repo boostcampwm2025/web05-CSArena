@@ -3,10 +3,13 @@ global:
   evaluation_interval: 15s
 
 scrape_configs:
-  - job_name: 'nestjs-backend'
-    metrics_path: /api/metrics
-    static_configs:
-      - targets: ['backend:4000']
+  # TODO: ECS Fargate 태스크는 EC2 Docker 네트워크와 분리되어 있어 backend:4000 DNS가
+  # 해석되지 않는다. ALB internal DNS를 타겟으로 사용하거나 ECS 태스크에서
+  # remote_write로 push하는 방식으로 재설계가 필요하다.
+  # - job_name: 'nestjs-backend'
+  #   metrics_path: /api/metrics
+  #   static_configs:
+  #     - targets: ['backend:4000']
 
   - job_name: 'postgres'
     static_configs:
