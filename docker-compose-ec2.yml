@@ -5,13 +5,20 @@ services:
     networks:
       - csarena-network
     restart: unless-stopped
-    command: ["redis-server", "--appendonly", "yes", "--appendfsync", "everysec"]
+    command:
+      - "redis-server"
+      - "--appendonly"
+      - "yes"
+      - "--appendfsync"
+      - "everysec"
+      - "--requirepass"
+      - "${REDIS_PASSWORD}"
     volumes:
       - redis_data:/data
     ports:
-      - "6379:6379"
+      - "${EC2_PRIVATE_IP}:6379:6379"
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "--no-auth-warning", "ping"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -30,7 +37,7 @@ services:
       - postgres_data:/var/lib/postgresql
       - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
     ports:
-      - "5432:5432"
+      - "${EC2_PRIVATE_IP}:5432:5432"
     command:
       - "postgres"
       - "-c"
