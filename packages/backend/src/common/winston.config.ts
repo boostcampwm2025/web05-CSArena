@@ -1,19 +1,29 @@
 import * as winston from 'winston';
 import DailyRotateFile from 'winston-daily-rotate-file';
 
-export const feedbackLoggerConfig = {
-  format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
-  transports: [
-    new winston.transports.Console(),
+const transports: winston.transport[] = [new winston.transports.Console()];
 
+if (process.env.NODE_ENV !== 'production') {
+  transports.push(
     new DailyRotateFile({
       level: 'info',
-      dirname: 'logs/feedbacks', // 프로젝트 루트의 logs/feedbacks 폴더에 저장
-      filename: 'feedback-%DATE%.log', // 파일명 예: feedback-2025-01-06.log
+      dirname: 'logs/feedbacks',
+      filename: 'feedback-%DATE%.log',
       datePattern: 'YYYY-MM-DD',
-      zippedArchive: true, // 지난 로그는 압축해서 용량 절약
-      maxSize: '20m', // 파일 하나가 20MB 넘으면 분리
-      maxFiles: '14d', // 14일치만 보관하고 오래된 건 자동 삭제
+      zippedArchive: true,
+      maxSize: '20m',
+      maxFiles: '14d',
     }),
-  ],
+  );
+}
+
+const formats = [winston.format.timestamp(), winston.format.json()];
+
+if (process.env.NODE_ENV === 'production') {
+  formats.unshift(winston.format.uncolorize());
+}
+
+export const feedbackLoggerConfig = {
+  format: winston.format.combine(...formats),
+  transports,
 };
