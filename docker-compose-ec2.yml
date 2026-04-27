@@ -16,7 +16,7 @@ services:
     volumes:
       - redis_data:/data
     ports:
-      - "${EC2_PRIVATE_IP}:6379:6379"
+      - "${EC2_PRIVATE_IP:?EC2_PRIVATE_IP must be set in .env.ec2}:6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "--no-auth-warning", "ping"]
       interval: 10s
@@ -37,7 +37,7 @@ services:
       - postgres_data:/var/lib/postgresql
       - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
     ports:
-      - "${EC2_PRIVATE_IP}:5432:5432"
+      - "${EC2_PRIVATE_IP:?EC2_PRIVATE_IP must be set in .env.ec2}:5432:5432"
     command:
       - "postgres"
       - "-c"
@@ -57,7 +57,9 @@ services:
       - csarena-network
     restart: unless-stopped
     environment:
-      DATA_SOURCE_NAME: "postgresql://${DB_USERNAME}:${DB_PASSWORD}@postgres:5432/${DB_DATABASE}?sslmode=disable"
+      DATA_SOURCE_URI: "postgres:5432/${DB_DATABASE}?sslmode=disable"
+      DATA_SOURCE_USER: ${DB_USERNAME}
+      DATA_SOURCE_PASS: ${DB_PASSWORD}
     volumes:
       - ./monitoring/postgres-exporter-queries.yaml:/etc/postgres-exporter/queries.yaml:ro
     command:
