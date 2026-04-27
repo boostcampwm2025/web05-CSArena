@@ -43,8 +43,8 @@ const typeOrmModule = TypeOrmModule.forRootAsync({
     database: configService.get('DB_DATABASE', 'boostcamp'),
     entities: [__dirname + '/**/*.entity{.ts,.js}'],
     synchronize:
-      configService.get('NODE_ENV') !== 'production' ||
-      configService.get('DB_SYNCHRONIZE') === 'true',
+      configService.get('NODE_ENV') !== 'production' &&
+      configService.get('DB_SYNCHRONIZE') !== 'false',
     logging: configService.get('NODE_ENV') === 'development',
   }),
   inject: [ConfigService],
