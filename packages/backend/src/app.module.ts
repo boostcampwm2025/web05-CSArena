@@ -62,6 +62,7 @@ const metadata: ModuleMetadata = {
         connection: {
           host: configService.get('REDIS_HOST', 'localhost'),
           port: parseInt(configService.get('REDIS_PORT', '6379'), 10),
+          password: configService.get('REDIS_PASSWORD') || undefined,
         },
       }),
       inject: [ConfigService],

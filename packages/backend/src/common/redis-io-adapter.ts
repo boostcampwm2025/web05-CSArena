@@ -28,9 +28,12 @@ export class RedisIoAdapter extends IoAdapter {
   }
 
   async connectToRedis(): Promise<void> {
-    const pubClient = createClient({
-      url: `redis://${this.redisHost}:${this.redisPort}`,
-    });
+    const password = process.env.REDIS_PASSWORD;
+    const url = password
+      ? `redis://:${password}@${this.redisHost}:${this.redisPort}`
+      : `redis://${this.redisHost}:${this.redisPort}`;
+
+    const pubClient = createClient({ url });
 
     const subClient = pubClient.duplicate();
 
