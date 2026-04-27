@@ -92,7 +92,7 @@ services:
       - csarena-network
     restart: unless-stopped
     ports:
-      - "127.0.0.1:3001:3000"
+      - "3001:3000"
     volumes:
       - grafana_data:/var/lib/grafana
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
