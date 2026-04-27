@@ -38,8 +38,15 @@ export class GradingService {
    * - 객관식: 즉시 채점 (10점 또는 0점)
    * - 단답형: AI 채점 (10점 또는 0점)
    * - 서술형: AI 채점 (0~10점 부분 점수, 7점 이상 정답 처리)
+   *
+   * 부하 테스트 우회: BENCH_GRADING_BYPASS=true 환경변수가 설정되면
+   * Clova 호출 없이 결정적 mock 응답을 반환한다. 운영 스택에는 절대 설정하지 말 것.
    */
   async gradeQuestion(question: QuestionEntity, submissions: Submission[]): Promise<GradeResult[]> {
+    if (process.env.BENCH_GRADING_BYPASS === 'true') {
+      return this.bypassGrade(submissions);
+    }
+
     if (question.questionType === 'multiple') {
       return this.gradeMultipleChoice(question, submissions);
     }
@@ -47,6 +54,20 @@ export class GradingService {
     const gameTypeQuestion = this.convertEntityToGameType(question);
 
     return this.gradeSubjectiveQuestion(gameTypeQuestion, submissions);
+  }
+
+  /**
+   * 부하 테스트 전용 결정적 채점 — 모든 답안을 isCorrect=true, score=7로 처리.
+   * 외부 의존(Clova) 없이 grading 단계 latency를 일정하게 유지해 측정 noise를 제거.
+   */
+  private bypassGrade(submissions: Submission[]): GradeResult[] {
+    return submissions.map((sub) => ({
+      playerId: sub.playerId,
+      answer: sub.answer,
+      isCorrect: true,
+      score: 7,
+      feedback: 'BENCH_GRADING_BYPASS',
+    }));
   }
 
   /**

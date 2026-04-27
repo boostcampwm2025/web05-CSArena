@@ -45,8 +45,8 @@ COPY --from=builder --chown=nestjs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nestjs:nodejs /app/packages/backend/dist ./dist
 COPY --from=builder --chown=nestjs:nodejs /app/packages/backend/package.json ./package.json
 
-# Create logs directory with proper permissions
-RUN mkdir -p logs && chown nestjs:nodejs logs
+# winston-daily-rotate-file 이 런타임에 logs/ 디렉터리를 만들려 시도하므로 미리 생성 + 권한 부여
+RUN mkdir -p /app/logs && chown nestjs:nodejs /app/logs
 
 # Switch to non-root user
 USER nestjs

@@ -1,0 +1,30 @@
+## 자원 제한 환경 #2 — backend 인스턴스당 cpus:2, mem:2g
+##
+## 사용:
+##   docker compose \
+##     -f docker-compose-multi.yml \
+##     -f scripts/benchmarks/websocket-multi-instance/docker-compose-multi.override.yml \
+##     -f scripts/benchmarks/load-limit/docker-compose.cpus2.yml \
+##     up -d --build
+##
+## 주의: cpus:1 환경과 동일한 부하 시나리오를 돌려 "한 단계 더 큰 자원에서
+## 한계가 어떻게 이동하는지" 비교한다. 인스턴스 사양 동치 주장 금지.
+services:
+  backend-1:
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2g
+    environment:
+      BENCH_GRADING_BYPASS: "true"
+      NODE_OPTIONS: "--max-old-space-size=1400"
+  backend-2:
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2g
+    environment:
+      BENCH_GRADING_BYPASS: "true"
+      NODE_OPTIONS: "--max-old-space-size=1400"

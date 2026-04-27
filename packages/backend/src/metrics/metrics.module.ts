@@ -7,6 +7,7 @@ import {
 } from '@willsoto/nestjs-prometheus';
 import { MetricsService } from './metrics.service';
 import { HttpMetricsInterceptor } from './http-metrics.interceptor';
+import { EventLoopMonitorService } from './event-loop-monitor.service';
 
 @Global()
 @Module({
@@ -75,8 +76,16 @@ import { HttpMetricsInterceptor } from './http-metrics.interceptor';
       labelNames: ['reason'],
     }),
 
+    // Node.js 이벤트 루프 활용도 (0.0~1.0). 부하 한계 측정 시 주요 진단 메트릭.
+    // 0.85 초과 지속 시 이벤트 루프 포화 — 추가 부하 수용 한계 신호.
+    makeGaugeProvider({
+      name: 'process_event_loop_utilization',
+      help: 'Node.js event loop utilization (0.0~1.0) — sampled each second from perf_hooks.performance.eventLoopUtilization()',
+    }),
+
     MetricsService,
     HttpMetricsInterceptor,
+    EventLoopMonitorService,
   ],
   exports: [MetricsService, HttpMetricsInterceptor],
 })
