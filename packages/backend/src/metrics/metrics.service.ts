@@ -36,6 +36,9 @@ export class MetricsService {
 
     @InjectMetric('game_session_leak_recovered_total')
     public readonly gameSessionLeakRecovered: Counter<string>,
+
+    @InjectMetric('process_event_loop_utilization')
+    public readonly eventLoopUtilization: Gauge<string>,
   ) {}
 
   // HTTP 메트릭 기록
@@ -95,6 +98,11 @@ export class MetricsService {
   //   reason='catch_error' — RoundProgressionService catch 헬퍼가 에러 경로에서 정리
   recordGameSessionLeakRecovered(reason: 'idle' | 'catch_error'): void {
     this.gameSessionLeakRecovered.inc({ reason });
+  }
+
+  // 이벤트 루프 활용도 갱신 (0.0~1.0)
+  setEventLoopUtilization(value: number): void {
+    this.eventLoopUtilization.set(value);
   }
 
   // 경로 정규화 (동적 파라미터 제거)

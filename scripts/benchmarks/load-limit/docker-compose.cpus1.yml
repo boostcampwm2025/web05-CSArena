@@ -1,0 +1,33 @@
+## 자원 제한 환경 #1 — backend 인스턴스당 cpus:1, mem:1g
+##
+## 사용:
+##   docker compose \
+##     -f docker-compose-multi.yml \
+##     -f scripts/benchmarks/websocket-multi-instance/docker-compose-multi.override.yml \
+##     -f scripts/benchmarks/load-limit/docker-compose.cpus1.yml \
+##     up -d --build
+##
+## 주의:
+##   - 본 파일은 인스턴스 사양 모사가 아님. AWS T 시리즈의 burst credit/Nitro/ENA를
+##     재현하지 않으므로 결과 보고 시 "cpus:1 mem:1g 제약 환경"으로만 표기할 것.
+##   - 부하 테스트 중에는 BENCH_GRADING_BYPASS=true로 Clova 외부 의존을 차단.
+services:
+  backend-1:
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1g
+    environment:
+      BENCH_GRADING_BYPASS: "true"
+      # 이벤트 루프 + GC 거동을 안정화하기 위한 V8 힙 상한 (메모리 한계의 ~70%)
+      NODE_OPTIONS: "--max-old-space-size=700"
+  backend-2:
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1g
+    environment:
+      BENCH_GRADING_BYPASS: "true"
+      NODE_OPTIONS: "--max-old-space-size=700"
