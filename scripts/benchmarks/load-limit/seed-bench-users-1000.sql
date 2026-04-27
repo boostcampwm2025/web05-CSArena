@@ -13,19 +13,23 @@
 -- ============================================================
 BEGIN;
 
--- tiers
-INSERT INTO tiers (name, min_points, max_points, icon_url) VALUES
-  ('Bronze',   0,    999,  NULL),
-  ('Silver',   1000, 1999, NULL),
-  ('Gold',     2000, 2999, NULL),
-  ('Platinum', 3000, 3999, NULL),
-  ('Diamond',  4000, NULL, NULL)
-ON CONFLICT DO NOTHING;
+-- tiers — name 컬럼에 UNIQUE 제약이 없어 ON CONFLICT 작동 안 함.
+-- WHERE NOT EXISTS로 멱등성 보장 (재실행해도 중복 추가 X).
+INSERT INTO tiers (name, min_points, max_points, icon_url)
+SELECT v.name, v.min_pts, v.max_pts, v.icon
+FROM (VALUES
+  ('Bronze'::varchar,   0,    999,  NULL::varchar),
+  ('Silver'::varchar,   1000, 1999, NULL::varchar),
+  ('Gold'::varchar,     2000, 2999, NULL::varchar),
+  ('Platinum'::varchar, 3000, 3999, NULL::varchar),
+  ('Diamond'::varchar,  4000, NULL, NULL::varchar)
+) AS v(name, min_pts, max_pts, icon)
+WHERE NOT EXISTS (SELECT 1 FROM tiers t WHERE t.name = v.name);
 
--- 최소 카테고리 1개
+-- 최소 카테고리 1개 — 동일하게 WHERE NOT EXISTS
 INSERT INTO categories (name, parent_id, is_leaf, status, question_count)
-VALUES ('벤치마크', NULL, true, 'active', 0)
-ON CONFLICT DO NOTHING;
+SELECT '벤치마크'::varchar, NULL, true, 'active', 0
+WHERE NOT EXISTS (SELECT 1 FROM categories c WHERE c.name = '벤치마크');
 
 -- 유저 1~1000 — bench-user-N 규칙 (기존 50명 시드와 동일 oauth_id 패턴이라 ON CONFLICT로 멱등 동작)
 INSERT INTO users (nickname, oauth_provider, oauth_id, user_profile, email)

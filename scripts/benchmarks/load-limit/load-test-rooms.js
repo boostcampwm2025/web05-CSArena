@@ -172,10 +172,10 @@ export default function () {
           return;
         }
 
-        if (event === 'round:result' && roundStartAt) {
+        if (event === 'round:end' && roundStartAt) {
+          // 백엔드는 round:end emit (round:result 아님). 시뮬 1라운드 후 정상 종료.
           roundResultDuration.add(Date.now() - roundStartAt);
           submitsCompleted.add(1);
-          // 한 라운드만 시뮬레이션 — 종료
           socket.close();
           return;
         }
