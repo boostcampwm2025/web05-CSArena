@@ -1,28 +1,30 @@
-name: CI/CD - Deploy to NCP
+name: CI/CD - Deploy to AWS ECS
 
 on:
-  pull_request:
-    branches: [main]
   push:
-    branches: [main]
+    branches: [develop]
 
 env:
-  NCP_REGISTRY: ${{ secrets.NCP_REGISTRY }}
+  AWS_REGION: ap-northeast-2
+  ECR_REGISTRY: 733959200078.dkr.ecr.ap-northeast-2.amazonaws.com
+  ECR_REPOSITORY: csarena-backend
+  ECS_CLUSTER: csarena-cluster
+  ECS_SERVICE: csarena-backend
+  S3_BUCKET: csarena-frontend
+  CF_DISTRIBUTION_ID: E3NVYGGZ2OZA8O
 
 jobs:
-  test-and-build:
+  ci:
+    name: Lint · Test · Build
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'pnpm'
@@ -30,113 +32,130 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Lint check
+      - name: Lint
         run: pnpm lint
 
-      - name: Backend tests
-        run: pnpm --filter @web05-CSBattleArena/backend test
+      - name: Backend test
+        run: pnpm --filter @web05-boostcamp/backend test
 
       - name: Backend build
-        run: pnpm --filter @web05-CSBattleArena/backend build
+        run: pnpm --filter @web05-boostcamp/backend build
 
       - name: Frontend build
-        run: pnpm --filter @web05-CSBattleArena/frontend build
+        run: pnpm --filter @web05-boostcamp/frontend build
 
-  build-and-push-images:
-    needs: [test-and-build]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+  deploy-backend:
+    name: Deploy Backend → ECS
+    needs: ci
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-
-    strategy:
-      matrix:
-        service: [backend, frontend]
+    timeout-minutes: 20
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to NCP Container Registry
-        uses: docker/login-action@v3
+      - uses: aws-actions/configure-aws-credentials@v4
         with:
-          registry: ${{ secrets.NCP_REGISTRY }}
-          username: ${{ secrets.NCP_REGISTRY_ACCESS_KEY }}
-          password: ${{ secrets.NCP_REGISTRY_SECRET_KEY }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+      - uses: aws-actions/amazon-ecr-login@v2
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build and push image to ECR
+        uses: docker/build-push-action@v6
         with:
           context: .
-          file: packages/${{ matrix.service }}/Dockerfile
+          file: packages/backend/Dockerfile
           push: true
           tags: |
-            ${{ env.NCP_REGISTRY }}/web05-${{ matrix.service }}:${{ github.sha }}
-            ${{ env.NCP_REGISTRY }}/web05-${{ matrix.service }}:latest
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  deploy-to-ncp:
-    needs: [build-and-push-images]
+      - name: Register new task definition
+        id: task-def
+        env:
+          NEW_IMAGE: ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition ${{ env.ECS_SERVICE }} \
+            --query 'taskDefinition' \
+            --output json > /tmp/td-current.json
+
+          python3 << 'EOF'
+          import json, os
+
+          with open('/tmp/td-current.json') as f:
+              td = json.load(f)
+
+          for key in ['taskDefinitionArn', 'revision', 'status', 'requiresAttributes',
+                      'compatibilities', 'registeredAt', 'registeredBy', 'enableFaultInjection']:
+              td.pop(key, None)
+
+          new_image = os.environ['NEW_IMAGE']
+          for cd in td['containerDefinitions']:
+              if cd.get('name') == 'csarena-backend':
+                  cd['image'] = new_image
+                  cd['environmentFiles'] = []
+
+          with open('/tmp/td-new.json', 'w') as f:
+              json.dump(td, f)
+          EOF
+
+          REVISION=$(aws ecs register-task-definition \
+            --cli-input-json file:///tmp/td-new.json \
+            --query 'taskDefinition.revision' \
+            --output text)
+          echo "revision=$REVISION" >> "$GITHUB_OUTPUT"
+
+      - name: Update ECS service and wait for stability
+        run: |
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service ${{ env.ECS_SERVICE }} \
+            --task-definition ${{ env.ECS_SERVICE }}:${{ steps.task-def.outputs.revision }} \
+            --force-new-deployment
+
+          aws ecs wait services-stable \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services ${{ env.ECS_SERVICE }}
+
+  deploy-frontend:
+    name: Deploy Frontend → S3 + CloudFront
+    needs: ci
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Install SOPS
-        uses: mdgreenwald/mozilla-sops-action@v1.6.0
+      - uses: pnpm/action-setup@v4
 
-      - name: Decrypt Secrets
-        env:
-          SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
-        run: sops -d prod.env > .env
-
-      - name: Copy docker-compose.yml and .env to NCP Server
-        uses: appleboy/scp-action@v0.1.7
+      - uses: actions/setup-node@v4
         with:
-          host: ${{ secrets.NCP_SERVER_HOST }}
-          username: ${{ secrets.NCP_SERVER_USERNAME }}
-          key: ${{ secrets.NCP_SERVER_SSH_KEY }}
-          port: ${{ secrets.NCP_SERVER_SSH_PORT }}
-          source: "docker-compose-prod.yml,.env"
-          target: "/home/web05-CSBattleArena/"
+          node-version: '22'
+          cache: 'pnpm'
 
-      - name: Deploy to NCP Server
-        uses: appleboy/ssh-action@v1.0.3
-        env:
-          NCP_REGISTRY: ${{ secrets.NCP_REGISTRY }}
-          NCP_REGISTRY_ACCESS_KEY: ${{ secrets.NCP_REGISTRY_ACCESS_KEY }}
-          NCP_REGISTRY_SECRET_KEY: ${{ secrets.NCP_REGISTRY_SECRET_KEY }}
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build frontend
+        run: pnpm --filter @web05-boostcamp/frontend build
+
+      - uses: aws-actions/configure-aws-credentials@v4
         with:
-          host: ${{ secrets.NCP_SERVER_HOST }}
-          username: ${{ secrets.NCP_SERVER_USERNAME }}
-          key: ${{ secrets.NCP_SERVER_SSH_KEY }}
-          port: ${{ secrets.NCP_SERVER_SSH_PORT }}
-          envs: NCP_REGISTRY,NCP_REGISTRY_ACCESS_KEY,NCP_REGISTRY_SECRET_KEY
-          script: |
-            cd /home/web05-CSBattleArena
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
 
-            # Login to NCP Container Registry
-            echo "$NCP_REGISTRY_SECRET_KEY" | docker login "$NCP_REGISTRY" -u "$NCP_REGISTRY_ACCESS_KEY" --password-stdin
+      - name: Sync to S3
+        run: aws s3 sync packages/frontend/dist/ s3://${{ env.S3_BUCKET }} --delete
 
-            # Pull latest images
-            docker compose -f docker-compose-prod.yml pull
-
-            # Stop and remove old containers
-            docker compose -f docker-compose-prod.yml down
-
-            # Start new containers with detached mode
-            docker compose -f docker-compose-prod.yml up -d
-
-            # Clean up old images
-            docker image prune -af
-
-            # Health check (wait 15s for services to start)
-            sleep 15
-            curl -f http://localhost/api/health || exit 1
-
-            echo "Deployment completed successfully!"
+      - name: Invalidate CloudFront cache
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ env.CF_DISTRIBUTION_ID }} \
+            --paths "/*"
