@@ -97,9 +97,9 @@ jobs:
 
           new_image = os.environ['NEW_IMAGE']
           for cd in td['containerDefinitions']:
-              if 'csarena-backend' in cd.get('image', ''):
+              if cd.get('name') == 'csarena-backend':
                   cd['image'] = new_image
-              cd['environmentFiles'] = []
+                  cd['environmentFiles'] = []
 
           with open('/tmp/td-new.json', 'w') as f:
               json.dump(td, f)
