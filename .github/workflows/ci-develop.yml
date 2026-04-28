@@ -1,0 +1,38 @@
+name: CI - Test & Build
+
+on:
+  pull_request:
+    branches: [develop]
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint check
+        run: pnpm lint
+
+      - name: Backend tests
+        run: pnpm --filter @web05-boostcamp/backend test
+
+      - name: Backend build
+        run: pnpm --filter @web05-boostcamp/backend build
+
+      - name: Frontend build
+        run: pnpm --filter @web05-boostcamp/frontend build
