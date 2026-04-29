@@ -2,8 +2,6 @@ export interface Match {
   player1: string;
   player2: string;
   roomId: string;
-  player1QueuedAt?: number;
-  player2QueuedAt?: number;
 }
 
 export interface QueuedPlayer {

@@ -3,7 +3,6 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { QuizService } from '../../src/quiz/quiz.service';
 import { Question as QuestionEntity, Category } from '../../src/quiz/entity';
 import { ClovaClientService } from '../../src/quiz/clova/clova-client.service';
-import { MetricsService } from '../../src/metrics';
 import {
   GradingService,
   QuestionConverterService,
@@ -33,10 +32,6 @@ describe('QuizService', () => {
 
   const mockClovaClient = {
     callClova: jest.fn(),
-  };
-
-  const mockMetricsService = {
-    recordGradingDuration: jest.fn(),
   };
 
   const mockLogger = {
@@ -79,10 +74,6 @@ describe('QuizService', () => {
         {
           provide: ClovaClientService,
           useValue: mockClovaClient,
-        },
-        {
-          provide: MetricsService,
-          useValue: mockMetricsService,
         },
       ],
     }).compile();

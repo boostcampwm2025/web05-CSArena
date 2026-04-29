@@ -17,7 +17,6 @@ import { ProblemBankModule } from './problem-bank/problem-bank.module';
 import { LeaderboardModule } from './leaderboard/leaderboard.module';
 import { feedbackLoggerConfig } from './common/winston.config';
 import { WinstonModule } from 'nest-winston';
-import { LoggerModule } from 'nestjs-pino';
 import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
 import { TierModule } from './tier/tier.module';
@@ -70,28 +69,6 @@ const metadata: ModuleMetadata = {
       inject: [ConfigService],
     }),
     WinstonModule.forRoot(feedbackLoggerConfig),
-    LoggerModule.forRootAsync({
-      imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => {
-        const isProduction = configService.get('NODE_ENV') === 'production';
-
-        return {
-          pinoHttp: {
-            level: isProduction ? 'info' : 'debug',
-            transport: isProduction
-              ? undefined
-              : { target: 'pino-pretty', options: { singleLine: true } },
-            redact: ['req.headers.authorization', 'req.headers.cookie'],
-            serializers: {
-              req(req: { id: string; method: string; url: string }) {
-                return { id: req.id, method: req.method, url: req.url };
-              },
-            },
-          },
-        };
-      },
-      inject: [ConfigService],
-    }),
     MetricsModule,
     RedisModule,
     TierModule,

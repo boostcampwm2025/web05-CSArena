@@ -83,38 +83,6 @@ import { EventLoopMonitorService } from './event-loop-monitor.service';
       help: 'Node.js event loop utilization (0.0~1.0) — sampled each second from perf_hooks.performance.eventLoopUtilization()',
     }),
 
-    // 매칭 대기 시간 (큐 진입 → 매칭 완료). 매칭 품질의 직접적 지표.
-    makeHistogramProvider({
-      name: 'matchmaking_wait_duration_seconds',
-      help: 'Time from queue entry to match found, in seconds',
-      buckets: [1, 3, 5, 10, 20, 30, 60, 120],
-    }),
-
-    // Clova API 채점 소요 시간. 외부 API 의존성 장애 조기 감지.
-    makeHistogramProvider({
-      name: 'grading_duration_seconds',
-      help: 'Clova API grading call duration in seconds',
-      labelNames: ['question_type', 'status'],
-      buckets: [0.5, 1, 2, 3, 5, 7, 10, 15],
-    }),
-
-    // BullMQ 큐 상태 (대기/처리중/실패). 게임 타이머·매치 저장 큐 적체 감지.
-    makeGaugeProvider({
-      name: 'bullmq_jobs_waiting',
-      help: 'Number of BullMQ jobs waiting to be processed',
-      labelNames: ['queue'],
-    }),
-    makeGaugeProvider({
-      name: 'bullmq_jobs_active',
-      help: 'Number of BullMQ jobs currently being processed',
-      labelNames: ['queue'],
-    }),
-    makeGaugeProvider({
-      name: 'bullmq_jobs_failed',
-      help: 'Number of BullMQ jobs that have failed',
-      labelNames: ['queue'],
-    }),
-
     MetricsService,
     HttpMetricsInterceptor,
     EventLoopMonitorService,

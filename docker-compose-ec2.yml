@@ -50,19 +50,6 @@ services:
       timeout: 5s
       retries: 5
 
-  redis-exporter:
-    image: oliver006/redis_exporter:v1.67.0
-    container_name: csarena-redis-exporter
-    networks:
-      - csarena-network
-    restart: unless-stopped
-    environment:
-      REDIS_ADDR: "redis://redis:6379"
-      REDIS_PASSWORD: "${REDIS_PASSWORD}"
-    depends_on:
-      redis:
-        condition: service_healthy
-
   postgres-exporter:
     image: prometheuscommunity/postgres-exporter:v0.19.1
     container_name: csarena-postgres-exporter

@@ -16,7 +16,6 @@ import { GameCommandBus } from './game-command-bus';
 import { MATCH_PERSISTENCE_QUEUE, ROUND_TIMER_QUEUE } from './queues/queue.constants';
 import { RoundTimerWorker } from './workers/round-timer.worker';
 import { MatchPersistenceWorker } from './workers/match-persistence.worker';
-import { BullmqMetricsService } from '../metrics/bullmq-metrics.service';
 
 @Module({
   imports: [
@@ -40,7 +39,6 @@ import { BullmqMetricsService } from '../metrics/bullmq-metrics.service';
     GameCommandBus,
     RoundTimerWorker,
     MatchPersistenceWorker,
-    BullmqMetricsService,
   ],
   exports: [GameSessionManager, RoundProgressionService],
 })
