@@ -7,11 +7,11 @@ import cookieParser from 'cookie-parser';
 import compression from 'compression';
 import type { Application } from 'express';
 import { RedisIoAdapter } from './common/redis-io-adapter';
-import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
+import { Logger } from 'nestjs-pino';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
-  app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
+  app.useLogger(app.get(Logger));
 
   (app.getHttpAdapter().getInstance() as Application).set('trust proxy', 1);
   app.use(compression());
