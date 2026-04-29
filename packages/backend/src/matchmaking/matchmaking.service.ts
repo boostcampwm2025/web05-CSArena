@@ -15,6 +15,10 @@ export class MatchmakingService {
     const queueSize = await this.matchQueue.getQueueSizeAsync();
     this.metricsService.setMatchmakingQueueSize(queueSize);
 
+    if (match) {
+      this.recordMatchWaitDurations(match);
+    }
+
     return match;
   }
 
@@ -36,6 +40,20 @@ export class MatchmakingService {
     const queueSize = await this.matchQueue.getQueueSizeAsync();
     this.metricsService.setMatchmakingQueueSize(queueSize);
 
+    for (const match of matches) {
+      this.recordMatchWaitDurations(match);
+    }
+
     return matches;
+  }
+
+  private recordMatchWaitDurations(match: Match): void {
+    if (match.player1QueuedAt) {
+      this.metricsService.recordMatchmakingWaitDuration(match.player1QueuedAt);
+    }
+
+    if (match.player2QueuedAt) {
+      this.metricsService.recordMatchmakingWaitDuration(match.player2QueuedAt);
+    }
   }
 }

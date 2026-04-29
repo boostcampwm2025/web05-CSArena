@@ -39,6 +39,21 @@ export class MetricsService {
 
     @InjectMetric('process_event_loop_utilization')
     public readonly eventLoopUtilization: Gauge<string>,
+
+    @InjectMetric('matchmaking_wait_duration_seconds')
+    public readonly matchmakingWaitDuration: Histogram<string>,
+
+    @InjectMetric('grading_duration_seconds')
+    public readonly gradingDuration: Histogram<string>,
+
+    @InjectMetric('bullmq_jobs_waiting')
+    public readonly bullmqJobsWaiting: Gauge<string>,
+
+    @InjectMetric('bullmq_jobs_active')
+    public readonly bullmqJobsActive: Gauge<string>,
+
+    @InjectMetric('bullmq_jobs_failed')
+    public readonly bullmqJobsFailed: Gauge<string>,
   ) {}
 
   // HTTP 메트릭 기록
@@ -103,6 +118,28 @@ export class MetricsService {
   // 이벤트 루프 활용도 갱신 (0.0~1.0)
   setEventLoopUtilization(value: number): void {
     this.eventLoopUtilization.set(value);
+  }
+
+  // 매칭 대기 시간 기록 (큐 진입 시각 → 현재)
+  recordMatchmakingWaitDuration(queuedAtMs: number): void {
+    const durationSeconds = (Date.now() - queuedAtMs) / 1000;
+    this.matchmakingWaitDuration.observe(durationSeconds);
+  }
+
+  // Clova 채점 소요 시간 기록
+  recordGradingDuration(
+    durationSeconds: number,
+    questionType: string,
+    status: 'success' | 'error',
+  ): void {
+    this.gradingDuration.observe({ question_type: questionType, status }, durationSeconds);
+  }
+
+  // BullMQ 큐 상태 갱신
+  setBullmqJobCounts(queue: string, waiting: number, active: number, failed: number): void {
+    this.bullmqJobsWaiting.set({ queue }, waiting);
+    this.bullmqJobsActive.set({ queue }, active);
+    this.bullmqJobsFailed.set({ queue }, failed);
   }
 
   // 경로 정규화 (동적 파라미터 제거)

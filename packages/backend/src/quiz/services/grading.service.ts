@@ -13,6 +13,7 @@ import {
 } from '../quiz.types';
 import { sanitizeSubmissions } from '../utils';
 import { QUESTION_TYPE_STRATEGIES, QuestionTypeStrategy } from '../strategies';
+import { MetricsService } from '../../metrics';
 
 /**
  * 채점 서비스
@@ -26,6 +27,7 @@ export class GradingService {
 
   constructor(
     private readonly clovaClient: ClovaClientService,
+    private readonly metricsService: MetricsService,
     @Inject(QUESTION_TYPE_STRATEGIES)
     strategies: QuestionTypeStrategy[],
   ) {
@@ -161,13 +163,27 @@ ${JSON.stringify(sanitizedAnswersForPrompt)}
       grades: Omit<GradeResult, 'answer'>[];
     };
 
-    const result = await this.clovaClient.callClova<AiGradeResponse>({
-      systemPrompt: QUIZ_PROMPTS.GRADER,
-      userMessage: userMessage,
-      jsonSchema: schema,
-    });
+    const gradingStart = Date.now();
+    let gradingStatus: 'success' | 'error' = 'success';
 
-    return this.mapGradeResults(result.grades, submissions, question.type);
+    try {
+      const result = await this.clovaClient.callClova<AiGradeResponse>({
+        systemPrompt: QUIZ_PROMPTS.GRADER,
+        userMessage: userMessage,
+        jsonSchema: schema,
+      });
+
+      return this.mapGradeResults(result.grades, submissions, question.type);
+    } catch (error) {
+      gradingStatus = 'error';
+      throw error;
+    } finally {
+      this.metricsService.recordGradingDuration(
+        (Date.now() - gradingStart) / 1000,
+        question.type,
+        gradingStatus,
+      );
+    }
   }
 
   private mapGradeResults(

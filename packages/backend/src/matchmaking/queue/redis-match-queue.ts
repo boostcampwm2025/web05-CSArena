@@ -92,9 +92,10 @@ export class RedisMatchQueue implements IMatchQueue, OnModuleDestroy {
 
     if bestMatch then
       -- 매칭 성공: 상대를 큐에서 제거
+      local bestMatchQueuedAt = redis.call('GET', '${PLAYER_DATA_PREFIX}' .. bestMatch)
       redis.call('ZREM', queueKey, bestMatch)
       redis.call('DEL', '${PLAYER_DATA_PREFIX}' .. bestMatch)
-      return bestMatch
+      return {bestMatch, bestMatchQueuedAt or '0'}
     else
       -- 매칭 실패: 큐에 추가
       redis.call('ZADD', queueKey, eloRating, userId)
@@ -168,8 +169,11 @@ export class RedisMatchQueue implements IMatchQueue, OnModuleDestroy {
           end
 
           if bestMatch then
+            local bestMatchData = redis.call('GET', '${PLAYER_DATA_PREFIX}' .. bestMatch)
             table.insert(matches, playerId)
+            table.insert(matches, tostring(playerQueuedAt))
             table.insert(matches, bestMatch)
+            table.insert(matches, bestMatchData or '0')
             processed[playerId] = true
             processed[bestMatch] = true
           end
@@ -209,10 +213,10 @@ export class RedisMatchQueue implements IMatchQueue, OnModuleDestroy {
 
     // Redis 오류는 throw — null은 "큐 추가만 됨, 매칭 없음"의 정상 결과와
     // 구분되어야 하므로 실패를 숨기지 않는다.
-    let matchedUserId: string | null;
+    let result: [string, string] | null;
 
     try {
-      matchedUserId = (await this.redis.eval(
+      result = (await this.redis.eval(
         this.addAndMatchScript,
         1,
         QUEUE_KEY,
@@ -220,14 +224,15 @@ export class RedisMatchQueue implements IMatchQueue, OnModuleDestroy {
         eloRating.toString(),
         now.toString(),
         allowedRange.toString(),
-      )) as string | null;
+      )) as [string, string] | null;
     } catch (error) {
       const message = error instanceof Error ? error.message : 'unknown error';
       this.logger.error(`Failed to add to queue: ${message}`);
       throw error;
     }
 
-    if (matchedUserId) {
+    if (result) {
+      const [matchedUserId, opponentQueuedAt] = result;
       const roomId = randomUUID();
       this.logger.log(`Match found: ${userId} (${eloRating}) vs ${matchedUserId}`);
 
@@ -235,6 +240,8 @@ export class RedisMatchQueue implements IMatchQueue, OnModuleDestroy {
         player1: userId,
         player2: matchedUserId,
         roomId,
+        player1QueuedAt: now,
+        player2QueuedAt: Number(opponentQueuedAt),
       };
     }
 
@@ -276,11 +283,13 @@ export class RedisMatchQueue implements IMatchQueue, OnModuleDestroy {
       const matched = result as string[];
       const matches: Match[] = [];
 
-      for (let i = 0; i < matched.length; i += 2) {
+      for (let i = 0; i < matched.length; i += 4) {
         matches.push({
           player1: matched[i],
-          player2: matched[i + 1],
+          player2: matched[i + 2],
           roomId: randomUUID(),
+          player1QueuedAt: Number(matched[i + 1]),
+          player2QueuedAt: Number(matched[i + 3]),
         });
       }
 
