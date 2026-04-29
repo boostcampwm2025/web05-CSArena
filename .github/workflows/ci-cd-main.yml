@@ -13,6 +13,10 @@ env:
   S3_BUCKET: csarena-frontend-prod
   CF_DISTRIBUTION_ID: E3NVYGGZ2OZA8O
 
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   ci:
     name: Lint · Test · Build
@@ -48,7 +52,7 @@ jobs:
     name: Deploy Backend → ECS
     needs: ci
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v4
@@ -118,7 +122,7 @@ jobs:
             --task-definition ${{ env.ECS_SERVICE }}:${{ steps.task-def.outputs.revision }} \
             --force-new-deployment
 
-          aws ecs wait services-stable \
+          AWS_MAX_ATTEMPTS=80 aws ecs wait services-stable \
             --cluster ${{ env.ECS_CLUSTER }} \
             --services ${{ env.ECS_SERVICE }}
 
