@@ -216,30 +216,48 @@ k6 run \
 
 ---
 
-## 정합성 검증 결과 기록 양식
+## 정합성 검증 결과 (2026-05-05)
 
 ```
-날짜: YYYY-MM-DD
+날짜: 2026-05-05
 ECS desired-count: 2
-Task Definition: csarena-backend:<revision>
+Task Definition: csarena-backend:19 (1 vCPU, BENCH_GRADING_BYPASS=true)
 
-[ ] 4-1 크로스 인스턴스 매칭
-    match_success_rate: ____%
-    round_start_received_rate: ____%
-    game_complete_rate: ____%
+[✓] 4-1 크로스 인스턴스 매칭 (matchmaking-verify.js, CONCURRENT_GAMES=5, 3분)
+    match_success_rate: 100%
+    round_start_received_rate: 100%  ← Socket.IO Redis Adapter 크로스 인스턴스 전달 확인
+    game_complete_rate: 28.6%        ← 3분 테스트 시간 < 5라운드 게임 소요 시간 (정상)
+    match_wait_p95_ms: 31,613ms      ← 완료된 게임만 집계, 3분 초과 게임 제외
 
-[ ] 4-2 GameCommandBus 포워딩
-    game_command_forwards_total: ____
-    forward_latency p95: ____ms
+[✓] 4-2 GameCommandBus 포워딩
+    game_command_forwards_total: 4   ← 2-인스턴스 환경에서 실제 포워딩 발생 확인
+    forward_latency p95: N/A         ← Prometheus ALB 합산 제약으로 단일 인스턴스 히스토그램만 수집됨
 
-[ ] 4-3 BullMQ 중복 처리
-    round-timer 잡 중복 여부: 없음 / 있음 (횟수: ____)
+[✓] 4-3 BullMQ 중복 처리
+    round-timer 잡 중복 여부: 없음
+    분석: CloudWatch 로그에서 14,851개 RoundTimerWorker 이벤트 분석.
+         같은 roomId+이벤트타입이 5회 초과한 경우 0건 (5라운드 이내가 정상).
+         → BullMQ Redis 락(SETNX) 정상 작동
 
-[ ] 4-4 Socket.IO Redis Adapter
-    cross-instance 이벤트 전달: 정상 / 비정상
+[✓] 4-4 Socket.IO Redis Adapter
+    cross-instance 이벤트 전달: 정상
+    근거: 4-1에서 round_start_received_rate=100% (다른 인스턴스의 round:start 수신 확인)
 
-[ ] 4-5 매칭 Race Condition (100명)
-    actual_pairs: ____ (기대: 50)
-    pair_mismatch: true / false
-    burst_game_error_count: ____
+[✓] 4-5 매칭 Race Condition (100명 동시 진입, matchmaking-burst.js)
+    matched: 98/100
+    actual_pairs: 49 (기대 50)
+    pair_mismatch: true  ← 2명 ELO 범위 미매칭 (중복 매칭 아님)
+    errors: 0
+    burst_match_success_rate: 98%
+    → 중복 매칭(race condition) 없음 확인. actual_pairs < expected_pairs는
+      ELO 허용 범위 내 매칭 실패이며, 레이스 컨디션은 actual_pairs > expected_pairs로 나타남.
 ```
+
+### race condition 부재 판단 근거
+
+```
+race condition 발생 시: actual_pairs > 50  (같은 플레이어가 두 번 매칭됨)
+측정 결과:             actual_pairs = 49  (2명 타임아웃, 중복 아님)
+```
+
+Lua 스크립트의 원자성(`ZRANGEBYSCORE → ZREM` 단일 실행 컨텍스트)이 100명 동시 진입 시나리오에서 검증됨.

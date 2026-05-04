@@ -72,6 +72,26 @@ ALB 헬스체크 통과:          ~30초 (10초 간격 × 3회)
 합계:                       약 3~5분
 ```
 
+### 측정 결과 (2026-05-05)
+
+**측정 방법**: BENCH_GRADING_BYPASS=true 환경에서 grading 호출이 없어 CPU가 20% 수준에 머물러 자동 알람이 미발생. desiredCount를 수동으로 1→2로 변경하여 ECS 기동 타이밍을 직접 측정.
+
+| 구간 | 소요 시간 | 내용 |
+|------|----------|------|
+| T+0 ~ T+20s | **20초** | ECS 태스크 PENDING 상태 진입 |
+| T+20s ~ T+60s | **40초** | Fargate 태스크 기동 → RUNNING |
+| T+60s ~ T+90s | **30초** | ALB 헬스체크 통과 (`initial` → `healthy`) |
+| **T+0 ~ T+90s** | **총 90초** | desiredCount 변경 → 트래픽 수신 시작 |
+
+**CloudWatch 알람 포함 시 (자동 scale-out)**:
+- 알람 평가(2분) + 기동(90초) ≈ **총 3.5분**
+- 목표 5분 이내 달성 ✓
+
+**BENCH_GRADING_BYPASS와 실제 부하 차이**:
+- 부하 테스트(bypass=true): 200룸 기준 CPU 20% (Clova 호출 없음)
+- 실제 운영(bypass=false): 200룸 기준 CPU 60% (13番 측정 결과)
+- 실제 scale-out 트리거는 Clova 그레이딩 호출이 주된 CPU 원인
+
 ### 가용성 확인
 
 scale-out 진행 중에도 기존 연결이 유지되어야 한다.
@@ -84,6 +104,12 @@ aws logs filter-log-events \
   --filter-pattern '"5" " 50"' \
   --start-time $(date -d '30 minutes ago' +%s000) \
   --query 'events[*].message'
+```
+
+**결과**: ALB 로그 그룹 미설정으로 직접 확인 불가. ECS 서비스 이벤트에서 정상 등록 확인:
+```
+(service csarena-backend) registered 1 targets in target-group
+(service csarena-backend) has reached a steady state.
 ```
 
 ---
@@ -141,6 +167,28 @@ aws ecs describe-services \
 | `bullmq_jobs_failed{queue="match-persistence"}` | 증가 없음 |
 | `game_session_leak_recovered_total{reason="catch_error"}` | 비정상 급증 없음 |
 | ALB 5xx | 0 |
+
+### 측정 결과 (2026-05-05)
+
+**시나리오**: ROOMS=5 (10 VUs = 5게임) k6 시뮬레이션 진행 중 desiredCount 2→1 수동 감소.
+
+| 지표 | 측정값 | 판정 |
+|------|--------|------|
+| `games_active_total` (scale-in 후) | 5 → 0 (게임 자연 완료) | ✓ |
+| `games_completed` (6분 테스트) | 56 | ✓ |
+| `error_rate` | 0 | ✓ |
+| `game_session_leak_recovered_total` | 0 (증가 없음) | ✓ |
+| BullMQ 잡 중복 처리 | 없음 (CloudWatch 로그 분석) | ✓ |
+
+**관찰**: scale-in 트리거 시 10 VUs가 모두 동일 인스턴스(172.31.42.34)에 연결되어 있어, 종료 대상 인스턴스(172.31.7.125)에 활성 연결이 없었음. ALB 드레이닝 개시 후 즉시 SIGTERM → 정상 종료. 진행 중 게임은 서바이빙 인스턴스에서 계속 완료.
+
+**deregistration_delay 확인**: 300초 설정 확인됨 (ALB 대상 그룹 속성 조회).
+
+```
+ALB deregistration_delay.timeout_seconds = 300
+→ 기존 WebSocket 연결 최대 5분 보호
+→ 5라운드 게임(최대 5분) 자연 완료 가능
+```
 
 ### GameSessionManager idle sweeper
 

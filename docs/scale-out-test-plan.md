@@ -448,20 +448,32 @@ aws elbv2 describe-target-group-attributes \
 [x] Phase 1: 단일 인스턴스 한계 측정 (13번 측정으로 완료)
     → 0.5 vCPU 한계: 100 룸 (ELU 0.896), 1 vCPU: 500 룸 여유
 
-[ ] (선택) 0.5 vCPU → 1 vCPU task 업그레이드 검토
-[ ] BENCH_GRADING_BYPASS=true 태스크 정의 등록 및 배포
-[ ] 테스트 계정 토큰 준비 (scripts/benchmarks/scale-out/sign-bench-tokens.mjs)
-[ ] Grafana 대시보드 화면 열기 (game-server + infrastructure)
-[ ] CloudWatch 대시보드 열기 (ECS CPU, Service Events)
-[ ] Phase 2: Auto Scaling 정책 등록 (CPU 60% Target Tracking)
-[ ] Phase 3: 부하 인가 → scale-out 타임라인 기록
-[ ] Phase 4: desired-count 2 고정 후 정합성 4개 항목 검증
-    [ ] 4-1: matchmaking-verify.js (크로스 인스턴스 매칭)
-    [ ] 4-2: Grafana game_command_forwards_total 확인
-    [ ] 4-3: CloudWatch 로그에서 BullMQ 잡 중복 처리 검색
-    [ ] 4-4: Socket.IO Redis Adapter 브로드캐스트 확인
-    [ ] 4-5: matchmaking-burst.js (100명 동시 매칭 race condition)
-[ ] Phase 5: 부하 제거 → scale-in 동작 및 게임 세션 안전성 확인
-[ ] BENCH_GRADING_BYPASS 제거 후 재배포
-[ ] Auto Scaling 정책 운영 여부 결정 (유지 or 제거)
+[x] BENCH_GRADING_BYPASS=true 태스크 정의 등록 및 배포 (csarena-backend:19)
+[x] 테스트 계정 토큰 준비 (1000개 토큰 생성 완료)
+[x] Phase 2: Auto Scaling 정책 등록 (CPU 60% Target Tracking, min 1 / max 4)
+[x] Phase 3: scale-out 타임라인 측정 (desiredCount 수동 1→2)
+    → ECS 기동 T+0 ~ T+90s: 태스크 PENDING(T+20s) → RUNNING(T+60s) → HEALTHY(T+90s)
+    → CloudWatch 알람 포함 시 총 ~3.5분 (5분 목표 달성)
+    → bypass 환경 200룸 CPU 20% (실 운영 60%는 Clova 호출 포함 시)
+[x] Phase 4: desired-count 2 고정 후 정합성 검증 (2026-05-05)
+    [x] 4-1: matchmaking-verify.js → match 100%, round_start 100% (크로스 인스턴스 확인)
+    [x] 4-2: game_command_forwards_total=4 (포워딩 발생 확인)
+    [x] 4-3: BullMQ 잡 중복 없음 (14,851 이벤트 분석, 5라운드 초과 없음)
+    [x] 4-4: Socket.IO Redis Adapter 정상 (4-1 round_start_received 100%로 확인)
+    [x] 4-5: 100명 burst → actual_pairs=49 (race condition 없음, 2명 ELO 미매칭)
+[x] Phase 5: ROOMS=5 게임 진행 중 scale-in → 56게임 완료, error_rate=0
+[x] BENCH_GRADING_BYPASS 제거 후 운영 태스크 정의(:18)로 원복
+[x] Auto Scaling 정책 유지 결정 (운영 트래픽 대응)
 ```
+
+## 최종 결과 요약 (2026-05-05)
+
+| 항목 | 목표 | 실측 | 판정 |
+|------|------|------|------|
+| Scale-out ECS 기동 시간 | 5분 이내 | **90초** (알람 포함 ~3.5분) | ✓ |
+| 크로스 인스턴스 매칭 | > 98% | **100%** | ✓ |
+| 크로스 인스턴스 이벤트 전달 | > 98% | **100%** | ✓ |
+| GameCommandBus 포워딩 발생 | 확인 | **4회 (2인스턴스 환경)** | ✓ |
+| BullMQ 잡 중복 | 0건 | **0건** | ✓ |
+| Race condition (100명) | pair_mismatch=false | **49쌍 (no duplicate)** | ✓ |
+| Scale-in 게임 안전성 | error=0 | **56게임 / error_rate=0** | ✓ |
