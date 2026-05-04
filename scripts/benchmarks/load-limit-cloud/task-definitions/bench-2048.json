@@ -1,0 +1,69 @@
+{
+  "family": "csarena-backend-bench-2048",
+  "executionRoleArn": "arn:aws:iam::733959200078:role/ecsTaskExecutionRole",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "2048",
+  "memory": "4096",
+  "containerDefinitions": [
+    {
+      "name": "backend",
+      "image": "733959200078.dkr.ecr.ap-northeast-2.amazonaws.com/csarena-backend:v8",
+      "cpu": 0,
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 4000,
+          "hostPort": 4000,
+          "protocol": "tcp",
+          "name": "backend-4000-tcp",
+          "appProtocol": "http"
+        }
+      ],
+      "environment": [
+        { "name": "NODE_ENV", "value": "production" },
+        { "name": "DB_HOST", "value": "172.31.44.173" },
+        { "name": "DB_PORT", "value": "5432" },
+        { "name": "DB_USERNAME", "value": "csarena" },
+        { "name": "DB_PASSWORD", "value": "REPLACE_WITH_PRODUCTION_DB_PASSWORD" },
+        { "name": "DB_DATABASE", "value": "csarena" },
+        { "name": "REDIS_HOST", "value": "172.31.44.173" },
+        { "name": "REDIS_PORT", "value": "6379" },
+        { "name": "REDIS_PASSWORD", "value": "REPLACE_WITH_PRODUCTION_REDIS_PASSWORD" },
+        { "name": "JWT_SECRET", "value": "REPLACE_WITH_PRODUCTION_JWT_SECRET" },
+        { "name": "JWT_REFRESH_SECRET", "value": "REPLACE_WITH_PRODUCTION_JWT_REFRESH_SECRET" },
+        { "name": "GITHUB_CLIENT_ID", "value": "REPLACE_WITH_GITHUB_CLIENT_ID" },
+        { "name": "GITHUB_CLIENT_SECRET", "value": "REPLACE_WITH_GITHUB_CLIENT_SECRET" },
+        { "name": "GITHUB_CALLBACK_URL", "value": "https://dm2twkzzyg6a9.cloudfront.net/api/auth/github/callback" },
+        { "name": "CORS_ORIGIN", "value": "https://dm2twkzzyg6a9.cloudfront.net" },
+        { "name": "FRONTEND_URL", "value": "https://dm2twkzzyg6a9.cloudfront.net" },
+        { "name": "GRADING_MODE", "value": "mock" },
+        { "name": "CLOVA_STUDIO_API_KEY", "value": "1" },
+        { "name": "BENCH_GRADING_BYPASS", "value": "true" },
+        { "name": "PROMETHEUS_ALLOWED_CIDRS", "value": "172.0.0.0/8,REPLACE_WITH_BENCH_HOST_PUBLIC_IP/32" }
+      ],
+      "environmentFiles": [],
+      "mountPoints": [],
+      "volumesFrom": [],
+      "ulimits": [],
+      "systemControls": [],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/csarena-backend-bench",
+          "awslogs-create-group": "true",
+          "awslogs-region": "ap-northeast-2",
+          "awslogs-stream-prefix": "ecs"
+        },
+        "secretOptions": []
+      },
+      "healthCheck": {
+        "command": ["CMD-SHELL", "wget -qO- http://localhost:4000/api/health || exit 1"],
+        "interval": 30,
+        "timeout": 10,
+        "retries": 3,
+        "startPeriod": 60
+      }
+    }
+  ]
+}
