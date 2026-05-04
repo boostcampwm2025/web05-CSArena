@@ -54,3 +54,6 @@ lerna-debug.log*
 # Benchmark artifacts (측정 호스트 환경 의존, 큰 데이터)
 scripts/benchmarks/**/results/
 scripts/benchmarks/**/tokens.json
+
+# 분석·설계 문서 (로컬 작업 파일, 커밋 불필요)
+docs/
