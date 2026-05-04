@@ -30,7 +30,7 @@ CSArena 백엔드의 동시 활성 룸 한계를 **AWS ECS Fargate 환경**에�
 
 12번과 동일 (`scripts/benchmarks/load-limit/load-test-rooms.js` 그대로 재사용). `NGINX_URL` 환경변수로 endpoint만 교체.
 
-```
+```bash
 connect → CONNECT(/ws,token) → connect:completed → match:enqueue
   → match:found → round:ready → round:start → submit:answer
   → round:result → close
@@ -83,6 +83,7 @@ CF_DNS=dm2twkzzyg6a9.cloudfront.net
 `task-definitions/bench-{512,1024,2048}.json`은 secrets와 측정 호스트 IP를 placeholder로 두고 커밋되어 있음. 측정 시작 전 반드시 production 값을 주입해야 한다.
 
 치환 대상:
+
 | placeholder | 값 출처 |
 |---|---|
 | `REPLACE_WITH_PRODUCTION_DB_PASSWORD` | production task definition v17의 `DB_PASSWORD` |
@@ -146,6 +147,19 @@ aws ecs register-task-definition --region ap-northeast-2 \
 ```
 
 각 명령 출력의 `revision` 번호를 기록 (예: `csarena-backend-bench-512:1`).
+
+### 1-5. ⚠️ 측정 시작 전 — production task definition revision 캡처 (필수)
+
+원복 시점에 의도치 않은 다운그레이드를 방지하기 위해 **시작 직전의 production task definition을 변수에 저장**한다. 측정 도중 누가 production을 업데이트해도 종료 시 정확한 시점으로 돌아갈 수 있음.
+
+```bash
+ORIG_TASK_DEF=$(aws ecs describe-services --region ap-northeast-2 \
+  --cluster csarena-cluster --services csarena-backend \
+  --query "services[0].taskDefinition" --output text)
+echo "ORIG_TASK_DEF=$ORIG_TASK_DEF"
+```
+
+이 값을 측정 종료까지 셸 환경에 유지. **새 터미널 열면 다시 export 필수.** 단계 7(원복)에서 사용.
 
 ### 2. EC2 PostgreSQL에 1000명 시드
 
@@ -299,21 +313,26 @@ done
 
 ### 7. ⚠️ production task definition 원복 (필수)
 
-**측정 끝나면 반드시 v14로 되돌리기**. PROMETHEUS_ALLOWED_CIDRS 외부 IP 노출도 자동으로 닫힘.
+**측정 끝나면 반드시 단계 1-5에서 캡처한 `$ORIG_TASK_DEF`로 되돌리기.** PROMETHEUS_ALLOWED_CIDRS 외부 IP 노출도 자동으로 닫힘.
+
+> 특정 revision(예: `csarena-backend:14`)으로 하드코딩하면 측정 시작 시점의 실제 task definition과 달라 의도치 않은 다운그레이드가 발생할 수 있음. 반드시 단계 1-5에서 캡처한 값을 사용.
 
 ```bash
+echo "원복 대상: $ORIG_TASK_DEF"
+
 aws ecs update-service --region ap-northeast-2 \
   --cluster csarena-cluster \
   --service csarena-backend \
-  --task-definition csarena-backend:14
+  --task-definition "$ORIG_TASK_DEF"
 
 aws ecs wait services-stable --region ap-northeast-2 \
   --cluster csarena-cluster --services csarena-backend
 
-# 검증 — 다시 v14로 돌아왔는지
-aws ecs describe-services --region ap-northeast-2 \
+# 검증 — ORIG_TASK_DEF로 정확히 돌아왔는지
+CURRENT=$(aws ecs describe-services --region ap-northeast-2 \
   --cluster csarena-cluster --services csarena-backend \
-  --query "services[0].taskDefinition"
+  --query "services[0].taskDefinition" --output text)
+[[ "$CURRENT" == "$ORIG_TASK_DEF" ]] && echo "OK: 원복 완료" || echo "WARN: 불일치 ($CURRENT)"
 ```
 
 ### 8. CloudWatch에서 CPU/mem 사후 조회
@@ -362,7 +381,7 @@ done
 
 ## 산출물 (예상)
 
-```
+```bash
 results/
   bench512-rooms{50,100,200,500}-metrics.csv     ← 사이드카 ELU 1초
   bench512-rooms{50,100,200,500}-k6.json         ← k6 latency
