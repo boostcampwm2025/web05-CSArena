@@ -40,7 +40,7 @@
         { "name": "GRADING_MODE", "value": "mock" },
         { "name": "CLOVA_STUDIO_API_KEY", "value": "1" },
         { "name": "BENCH_GRADING_BYPASS", "value": "true" },
-        { "name": "PROMETHEUS_ALLOWED_CIDRS", "value": "172.0.0.0/8,REPLACE_WITH_BENCH_HOST_PUBLIC_IP/32" }
+        { "name": "PROMETHEUS_ALLOWED_CIDRS", "value": "172.16.0.0/12,REPLACE_WITH_BENCH_HOST_PUBLIC_IP/32" }
       ],
       "environmentFiles": [],
       "mountPoints": [],
