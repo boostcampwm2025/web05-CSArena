@@ -50,3 +50,7 @@ lerna-debug.log*
 *.tsbuildinfo
 
 .claude
+
+# Benchmark artifacts (측정 호스트 환경 의존, 큰 데이터)
+scripts/benchmarks/**/results/
+scripts/benchmarks/**/tokens.json
