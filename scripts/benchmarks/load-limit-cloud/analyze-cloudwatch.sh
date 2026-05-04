@@ -24,11 +24,20 @@ for f in results/bench512-rooms*-cw.json \
   mem_avg=$(jq -r '[.memory[].Average // 0] | if length>0 then (add/length|tostring) else "n/a" end' "$f")
   mem_max=$(jq -r '[.memory[].Maximum // 0] | if length>0 then (max|tostring) else "n/a" end' "$f")
 
-  # 소수점 2자리로 포맷
-  cpu_avg_f=$(printf "%.2f" "$cpu_avg" 2>/dev/null || echo "$cpu_avg")
-  cpu_max_f=$(printf "%.2f" "$cpu_max" 2>/dev/null || echo "$cpu_max")
-  mem_avg_f=$(printf "%.2f" "$mem_avg" 2>/dev/null || echo "$mem_avg")
-  mem_max_f=$(printf "%.2f" "$mem_max" 2>/dev/null || echo "$mem_max")
+  # 숫자 검증 후 포맷 — 비숫자는 그대로 출력 (printf가 부분 출력 후 실패하면 "0.00n/a" 같은
+  # 깨진 값이 캡처돼 표 정렬이 망가지는 문제 방지)
+  format_num() {
+    local v="$1"
+    if [[ "$v" =~ ^-?[0-9]+(\.[0-9]+)?$ ]]; then
+      printf "%.2f" "$v"
+    else
+      printf "%s" "$v"
+    fi
+  }
+  cpu_avg_f=$(format_num "$cpu_avg")
+  cpu_max_f=$(format_num "$cpu_max")
+  mem_avg_f=$(format_num "$mem_avg")
+  mem_max_f=$(format_num "$mem_max")
 
   printf "%-25s %-10s %-10s %-10s %-10s\n" "$name" "$cpu_avg_f" "$cpu_max_f" "$mem_avg_f" "$mem_max_f"
 done
