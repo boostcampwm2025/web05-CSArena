@@ -40,8 +40,8 @@ function validateIdentifier(name, value) {
 }
 
 // 임의 문자열을 single-quoted shell literal로 안전하게 escape
-// 예: csarena123!@# → 'csarena123!@#'
-//     it's a → 'it'\''s a'
+// 예: hello world → 'hello world'
+//     it's a      → 'it'\''s a'
 function shellQuote(value) {
   return "'" + String(value).replace(/'/g, "'\\''") + "'";
 }
