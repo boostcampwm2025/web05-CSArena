@@ -18,7 +18,7 @@
  *
  * 사전 조건:
  *   - BENCH_GRADING_BYPASS=true 가 ECS 태스크에 설정돼 있어야 함
- *   - tokens.json 이 scripts/benchmarks/websocket-multi-instance/ 에 존재해야 함
+ *   - tokens.json 이 scripts/benchmarks/scale-out/ 에 존재해야 함 (sign-bench-tokens.mjs 생성)
  *
  * 관찰 지표:
  *   - games_active_total (Grafana)
@@ -40,7 +40,7 @@ const VUS = ROOMS * 2;
 const DURATION = __ENV.DURATION || '5m';
 
 const tokens = new SharedArray('bench-tokens', () =>
-  JSON.parse(open('../websocket-multi-instance/tokens.json')),
+  JSON.parse(open('./tokens.json')),
 );
 
 const enqueueToMatchDuration = new Trend('enqueue_to_match_duration_ms', true);

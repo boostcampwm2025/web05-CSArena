@@ -13,8 +13,7 @@
  *   k6 run -e MAX_VUS=300 scripts/benchmarks/scale-out/ws-connections.js
  *
  * 사전 조건:
- *   - tokens.json 이 scripts/benchmarks/websocket-multi-instance/ 에 존재해야 함
- *   - node scripts/benchmarks/scale-out/sign-bench-tokens.mjs 로 생성
+ *   - tokens.json 이 scripts/benchmarks/scale-out/ 에 존재해야 함 (sign-bench-tokens.mjs 생성)
  *
  * 관찰 지표:
  *   - websocket_connections_active (Grafana game-server 대시보드)
@@ -33,7 +32,7 @@ const MAX_VUS = Number(__ENV.MAX_VUS || 500);
 const HOLD_DURATION_S = Number(__ENV.HOLD_DURATION_S || 60);
 
 const tokens = new SharedArray('bench-tokens', () =>
-  JSON.parse(open('../websocket-multi-instance/tokens.json')),
+  JSON.parse(open('./tokens.json')),
 );
 
 const connectedCount = new Counter('ws_connected');

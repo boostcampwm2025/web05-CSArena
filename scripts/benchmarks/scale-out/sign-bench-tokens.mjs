@@ -40,7 +40,11 @@ const OUTPUT = process.env.OUTPUT || join(__dirname, 'tokens.json');
 
 // USER_IDS가 없으면 2~101 (100개) 자동 생성
 const userIds = process.env.USER_IDS
-  ? process.env.USER_IDS.split(',').map(Number)
+  ? process.env.USER_IDS.split(',').map((s) => {
+      const n = Number(s.trim());
+      if (Number.isNaN(n)) throw new Error(`Invalid user ID: "${s}"`);
+      return n;
+    })
   : Array.from({ length: 100 }, (_, i) => i + 2);
 
 const tokens = userIds.map((id) => {

@@ -33,7 +33,7 @@ const CONCURRENT_GAMES = Number(__ENV.CONCURRENT_GAMES || 5);
 const VUS = CONCURRENT_GAMES * 2;
 
 const tokens = new SharedArray('bench-tokens', () =>
-  JSON.parse(open('../websocket-multi-instance/tokens.json')),
+  JSON.parse(open('./tokens.json')),
 );
 
 const matchSuccessRate = new Rate('match_success_rate');
@@ -85,6 +85,7 @@ export default function () {
   let matched = false;
   let roundStarted = false;
   let gameEnded = false;
+  let hasError = false;
   let nextAckId = 1;
 
   ws.connect(url, null, function (socket) {
@@ -137,12 +138,14 @@ export default function () {
     });
 
     socket.on('error', () => {
+      hasError = true;
       matchSuccessRate.add(0);
       roundStartRate.add(0);
       gameCompleteRate.add(0);
     });
 
     socket.on('close', () => {
+      if (hasError) return;
       if (!matched) matchSuccessRate.add(0);
       if (matched && !roundStarted) roundStartRate.add(0);
       if (!gameEnded) gameCompleteRate.add(0);

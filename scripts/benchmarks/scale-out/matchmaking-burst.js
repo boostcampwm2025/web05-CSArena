@@ -30,7 +30,7 @@ const SOCKETIO_NS = '/ws';
 const PLAYERS = Number(__ENV.PLAYERS || 100);
 
 const tokens = new SharedArray('bench-tokens', () =>
-  JSON.parse(open('../websocket-multi-instance/tokens.json')),
+  JSON.parse(open('./tokens.json')),
 );
 
 // 핵심 지표
