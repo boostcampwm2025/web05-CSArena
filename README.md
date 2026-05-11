@@ -11,7 +11,7 @@
 [![LangChain](https://img.shields.io/badge/LangChain-1C3C3C?logo=langchain&logoColor=white)](https://www.langchain.com/)
 [![pnpm](https://img.shields.io/badge/pnpm-F69220?logo=pnpm&logoColor=white)](https://pnpm.io/)
 
-**[📖 프로젝트 위키](https://github.com/boostcampwm2025/web05-boostcamp/wiki)** &nbsp; | &nbsp; **[🚀 라이브 데모](https://cs-arena.site)**
+**[📖 프로젝트 위키](https://github.com/boostcampwm2025/web05-boostcamp/wiki)** 
 
 </div>
 
@@ -84,28 +84,78 @@ AI 기반 학습 도구가 늘어나고 있지만, 환각(Hallucination) 현상�
 
 ## 🔧 기술적 특징 (Technical Highlights)
 
-### 1. RAG 기반 문제 출제 및 채점
+> 단순 구현에 그치지 않고, 실제 운영 환경에서 발생하는 분산 시스템 문제를 직접 측정하고 해결했습니다.
+> 상세 내용은 [프로젝트 위키](https://github.com/boostcampwm2025/web05-boostcamp/wiki)에서 확인할 수 있습니다.
+
+<br />
+
+### 1. 수평 확장 가능한 분산 실시간 서버
+
+> "상태 있는 WebSocket 서버를 어떻게 수평 확장할 것인가?" — 이 질문에 4가지 패턴으로 답합니다.
+
+단일 인스턴스에서만 동작하는 WebSocket 서버를 **ECS Fargate 다중 인스턴스 환경**에서도 정확히 동작하도록 재설계했습니다.
+
+| 문제 | 해결책 | 근거 |
+|:---|:---|:---|
+| 인스턴스 간 이벤트 전달 불가 | **Socket.IO Redis Adapter** | sticky session 없이 stateless 수평 확장 |
+| 다중 인스턴스 중복 매칭 | **Redis Lua 원자 스크립트** | 분산 환경 race condition 완전 차단 |
+| 크로스 인스턴스 게임 커맨드 라우팅 | **GameCommandBus (Redis Pub/Sub)** | 게임 상태 소유 인스턴스에 정확히 전달 |
+| BullMQ 라운드 타이머 중복 실행 | **Job ID 기반 dedup** | 재시작·재연결 시 타이머 중복 방지 |
+
+<br />
+
+**k6 부하 테스트 실측 결과:**
+
+| 검증 항목 | 결과 |
+|:---|:---|
+| 크로스 인스턴스 이벤트 전달률 | **100%** (round_start_received_rate) |
+| 100명 동시 매칭 race condition | **0건** (actual_pairs = expected_pairs) |
+| BullMQ 라운드 타이머 중복 | **0건** (14,851 이벤트 분석) |
+| Scale-in 중 게임 에러율 | **0%** (56게임 동시 진행 중 ECS drain) |
+| ECS 신규 태스크 기동 ~ ALB 정상화 | **약 90초** (PENDING 20s → RUNNING 60s → HEALTHY 90s) |
+
+[→ 상세 내용 보기](https://github.com/boostcampwm2025/web05-boostcamp/wiki)
+
+<br />
+
+### 2. RAG 기반 문제 출제 및 채점
 
 ```
-📄 문서 검색 → 🤖 문제/모범답안 생성 → ✅ 채점 및 피드백
+📄 문서 검색(pgvector) → 🔍 HyDE 쿼리 확장 → 📊 Reranker → 🤖 HyperCLOVA X 생성 → ✅ Gemini 후처리
 ```
 
-- **LangChain + pgvector**를 활용한 문서 검색 파이프라인
-- 검증된 CS 문서 기반으로 환각 현상 최소화
+- **HyDE(Hypothetical Document Embeddings)** 로 검색 정확도 향상
+- **Clova Reranker** 로 검색 결과 재순위화하여 관련성 높은 문서 우선 선택
 - 채점 시 모범답안뿐만 아니라 **채점 기준과 피드백**을 함께 제공
-- **RAGAS**를 활용한 RAG 파이프라인 품질 평가
+- **RAGAS** 기반 faithfulness · answer_relevancy · context_recall 정량 평가
 
-### 2. 실시간 매칭 시스템
+[→ RAG 파이프라인 상세](https://github.com/boostcampwm2025/web05-boostcamp/wiki)
 
-- **Socket.io** 기반 실시간 양방향 통신
-- 티어 기반 매칭 + 대기 시간에 따른 범위 확장
-- 매칭 품질 로그로 공정성 검증 가능
+<br />
 
-### 3. WebSocket 기반 실시간 대전
+### 3. 성능 최적화
 
-- 라운드별 문제 출제 및 답안 제출
-- 실시간 점수 업데이트 및 결과 동기화
-- 연결 끊김 시 재연결 처리
+**리더보드 쿼리 최적화**
+- 전체 랭킹 조회 시 발생하는 N+1 문제 분석 및 인덱스 설계
+- `pg_stat_statements` 기반 슬로우 쿼리 탐지 → 실행 계획(EXPLAIN ANALYZE) 분석 → 인덱스 추가
+
+**BullMQ 워커 최적화**
+- 채점 Job 병렬 처리 및 재시도 전략 설계
+- 중복 Job 방지로 불필요한 외부 API 호출 차단
+
+**OAuth 흐름 최적화**
+- Passport.js 기반 GitHub OAuth 흐름 개선 및 토큰 갱신 처리
+
+[→ 성능 최적화 상세](https://github.com/boostcampwm2025/web05-boostcamp/wiki)
+
+<br />
+
+### 4. CI/CD 및 인프라 자동화
+
+- **GitHub Actions** 기반 PR 단위 빌드·테스트·배포 파이프라인
+- **ECS Fargate** Auto Scaling: CPU 기반 Target Tracking (ScaleOut 60s / ScaleIn 300s cooldown)
+- **Amazon ECR** 이미지 레지스트리 + **ALB** 기반 트래픽 분산
+- **Prometheus + Grafana** 실시간 모니터링 (WebSocket 연결 수, BullMQ 큐 상태, 게임 세션 수)
 
 <br />
 
@@ -117,57 +167,23 @@ AI 기반 학습 도구가 늘어나고 있지만, 환각(Hallucination) 현상�
 | **Backend** | ![NestJS](https://img.shields.io/badge/NestJS-E0234E?logo=nestjs&logoColor=white) ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white) ![TypeORM](https://img.shields.io/badge/TypeORM-FE0803?logo=typeorm&logoColor=white) ![Socket.io](https://img.shields.io/badge/Socket.io-010101?logo=socket.io&logoColor=white) ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white) |
 | **RAG Pipeline** | ![Python](https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white) ![LangChain](https://img.shields.io/badge/LangChain-1C3C3C?logo=langchain&logoColor=white) ![pgvector](https://img.shields.io/badge/pgvector-4169E1?logo=postgresql&logoColor=white) |
 | **AI/LLM** | ![Naver Cloud](https://img.shields.io/badge/Clova_Studio-03C75A?logo=naver&logoColor=white) ![Google](https://img.shields.io/badge/Gemini-4285F4?logo=google&logoColor=white) |
-| **Infra & DevOps** | ![NCP](https://img.shields.io/badge/NCP-03C75A?logo=naver&logoColor=white) ![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white) ![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?logo=github-actions&logoColor=white) |
+| **Infra & DevOps** | ![AWS](https://img.shields.io/badge/AWS_ECS_Fargate-FF9900?logo=aws&logoColor=white) ![Redis](https://img.shields.io/badge/Redis-DC382D?logo=redis&logoColor=white) ![NCP](https://img.shields.io/badge/NCP-03C75A?logo=naver&logoColor=white) ![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white) ![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?logo=github-actions&logoColor=white) |
 | **Auth** | ![Passport](https://img.shields.io/badge/Passport-34E27A?logo=passport&logoColor=white) ![JWT](https://img.shields.io/badge/JWT-000000?logo=jsonwebtokens&logoColor=white) ![GitHub OAuth](https://img.shields.io/badge/GitHub_OAuth-181717?logo=github&logoColor=white) |
 | **Monorepo** | ![pnpm](https://img.shields.io/badge/pnpm-F69220?logo=pnpm&logoColor=white) |
 
 <br />
 
-## 🏗️ 인프라 아키텍처 (Architecture)
+## 🏗️ 인프라 아키텍처 (Infrastructure Architecture)
 
-<!-- 아키텍처 다이어그램 이미지 추가 필요 -->
-<div align="center">
-  <img width="3764" height="2364" alt="image" src="https://github.com/user-attachments/assets/2761c20a-7c03-4974-b088-d824be0589b5" />
-</div>
+![인프라 아키텍처](https://github.com/user-attachments/assets/dc853761-384d-4276-b9bd-7b21188f9e10)
+
 
 <br />
 
-## 🚀 Quick Start
+## 🔄 CI/CD 파이프라인 (CI/CD Pipeline)
 
-### ⚙️ 사전 요구사항
+![CI/CD 파이프라인](https://github.com/user-attachments/assets/b3dda18a-1fae-433a-869a-cf8ae46f80e3)
 
-- Node.js 18.0.0+
-- pnpm 8.0.0+
-- Docker & Docker Compose
-
-### 🛠️ 설치 및 실행
-
-```bash                                                                                                   
-# 1. Node.js 설치
-                                                                      
-# macOS                                                                                           
-brew install node
-                                                                                  
-# Windows                                                                                         
-winget install OpenJS.NodeJS.LTS
-                                                                                                                                                          
-# 2. pnpm 설치                                                                                     
-npm install -g pnpm
-                                                                                                                                                                                   
-# 3. 저장소 클론                                                                                     
-git clone https://github.com/boostcampwm2025/web05-CSArena.git                               
-cd web05-CSArena
-                                                                                                                                                                           
-# 4. 의존성 설치                                                                                     
-pnpm install
-                                                                                                                                                                                 
-# 5. 환경 변수 설정                                                                                  
-cp .env.example .env
-                                                                                                                                                                            
-# 6. 실행                                                                                           
-pnpm dev:local
-
-```
 
 <br />
 
